@@ -1,6 +1,10 @@
 import dagre from 'dagre';
 import type { Edge, Node } from 'reactflow';
 
+type EdgeData = { kind?: string; birthYear?: number };
+const getKind = (e: Edge): string | undefined => (e.data as EdgeData | undefined)?.kind;
+const getBirthYear = (e: Edge): number | undefined => (e.data as EdgeData | undefined)?.birthYear;
+
 // Node sizes (match CSS roughly)
 const SIM_W = 160;
 const SIM_H = 56;
@@ -28,15 +32,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
 
   // Keep child edges ordered oldest->youngest where possible
   // Dagre respects edge insertion order as a heuristic for ordering.
-  const sortedEdges = [...edges].sort((a: any, b: any) => {
-    const ak = a?.data?.kind;
-    const bk = b?.data?.kind;
+  const sortedEdges = [...edges].sort((a, b) => {
+    const ak = getKind(a);
+    const bk = getKind(b);
     if (ak === 'parent' && bk !== 'parent') return -1;
     if (ak !== 'parent' && bk === 'parent') return 1;
 
     if (ak === 'parent' && bk === 'parent') {
-      const ay = a?.data?.birthYear ?? 999999;
-      const by = b?.data?.birthYear ?? 999999;
+      const ay = getBirthYear(a) ?? 999999;
+      const by = getBirthYear(b) ?? 999999;
       if (ay !== by) return ay - by;
     }
 
