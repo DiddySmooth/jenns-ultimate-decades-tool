@@ -1,6 +1,6 @@
 import type { AgingConfig, SimEntry, TrackerConfig } from '../types/tracker';
 import { formatChallengeDate } from './timeConvert';
-import { getBirthYear } from './simDates';
+import { currentYearFromCurrentDay, getBirthYear, getDeathYear } from './simDates';
 
 export function getFullName(sim: Pick<SimEntry, 'firstName' | 'lastName' | 'name'>): string {
   const combined = `${(sim.firstName ?? '').trim()} ${(sim.lastName ?? '').trim()}`.trim();
@@ -21,10 +21,13 @@ export function computeLifeStage(
   if (!birthYear) return '';
 
   // Convert current day -> year
-  const yearsElapsed = Math.floor((currentDay - 1) / config.daysPerYear);
-  const currentYear = config.startYear + yearsElapsed;
+  const currentYear = currentYearFromCurrentDay(config, currentDay);
 
-  const ageYears = Math.max(0, currentYear - birthYear);
+  // If dead, compute stage based on age at death (not current year)
+  const deathYear = getDeathYear(sim, config);
+  const endYear = deathYear ?? currentYear;
+
+  const ageYears = Math.max(0, endYear - birthYear);
   const ageDays = ageYears * config.daysPerYear;
 
   let cursor = 0;
