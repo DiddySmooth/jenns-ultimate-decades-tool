@@ -36,7 +36,14 @@ function useAuth() {
   return { user, loading };
 }
 
+const DEV_STORAGE_KEY = 'judt_dev_save';
+
 async function loadSave(userId: string): Promise<TrackerSave | null> {
+  // In local dev, use localStorage instead of the API
+  if (import.meta.env.DEV) {
+    const raw = localStorage.getItem(DEV_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }
   try {
     const r = await fetch(`/api/getSave?userId=${userId}`);
     if (r.status === 404) return null;
@@ -48,6 +55,11 @@ async function loadSave(userId: string): Promise<TrackerSave | null> {
 }
 
 async function persistSave(save: TrackerSave): Promise<void> {
+  // In local dev, persist to localStorage
+  if (import.meta.env.DEV) {
+    localStorage.setItem(DEV_STORAGE_KEY, JSON.stringify(save));
+    return;
+  }
   await fetch('/api/putSave', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
