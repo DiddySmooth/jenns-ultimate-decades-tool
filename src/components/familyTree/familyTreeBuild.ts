@@ -90,12 +90,17 @@ export function buildFamilyTree(
       const a = u.partnerAId ? savedPos.get(`sim:${u.partnerAId}`) : null;
       const b = u.partnerBId ? savedPos.get(`sim:${u.partnerBId}`) : null;
       if (a && b) {
-        const ax = a.x + SIM_W / 2;
-        const bx = b.x + SIM_W / 2;
-        const ay = a.y + SIM_H / 2;
-        const by = b.y + SIM_H / 2;
+        // Center union on the *gap midpoint* between spouse nodes.
+        // (Marriage line is drawn between right edge of left node and left edge of right node.)
+        const left = a.x <= b.x ? a : b;
+        const right = a.x <= b.x ? b : a;
 
-        const midX = (ax + bx) / 2;
+        const leftEndX = left.x + SIM_W;
+        const rightEndX = right.x;
+        const midX = (leftEndX + rightEndX) / 2;
+
+        const ay = left.y + SIM_H / 2;
+        const by = right.y + SIM_H / 2;
         const lineY = (ay + by) / 2;
 
         return { x: midX - UNION_W / 2, y: lineY - UNION_H / 2 };
