@@ -828,6 +828,7 @@ body {
 [data-theme-preview='tropical-mauve'] .theme-chip-swatch { background: linear-gradient(135deg, #51a3a3 0%, #dfcc74 55%, #c3e991 100%); }
 [data-theme-preview='evergreen-fawn'] .theme-chip-swatch { background: linear-gradient(135deg, #14281d 0%, #355834 55%, #c2a878 100%); }
 [data-theme-preview='twilight-rose'] .theme-chip-swatch { background: linear-gradient(135deg, #190e4f 0%, #b33c86 55%, #ea638c 100%); }
+[data-theme-preview='coffee-teal'] .theme-chip-swatch { background: linear-gradient(135deg, #171219 0%, #225560 50%, #edf060 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
