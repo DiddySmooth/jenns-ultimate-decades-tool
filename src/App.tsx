@@ -199,6 +199,7 @@ export default function App() {
           <h1 className="app-title">JUDT</h1>
           <span className="challenge-meta">Started {save.config.startYear} · Day {save.currentDay}</span>
           <span className="save-status">{saving ? 'Saving…' : '✓ Saved'}</span>
+          <ThemePicker current={themeId} onChange={setThemeId} compact />
           <span className="user-info">{user.email}</span>
           <button className="btn-ghost btn-sm" onClick={() => { flush(); signOut(); }}>Sign out</button>
         </div>
@@ -231,10 +232,6 @@ export default function App() {
         {tab === 'settings' && (
           <div className="settings-page">
             <h2>Settings</h2>
-            <section className="settings-section">
-              <h3>Appearance</h3>
-              <ThemePicker current={themeId} onChange={setThemeId} />
-            </section>
             <section className="settings-section">
               <h3>Account</h3>
               <p className="settings-meta">Signed in as <strong>{user.email}</strong></p>
