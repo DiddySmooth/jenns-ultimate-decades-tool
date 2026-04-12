@@ -348,7 +348,7 @@ body {
   transition: color 0.15s, border-color 0.15s;
 }
 .tab-nav button.active { color: var(--color-accent); border-bottom-color: var(--color-accent); font-weight: 600; }
-.app-main { flex: 1; padding: 1rem; max-width: 960px; margin: 0 auto; width: 100%; }
+.app-main { flex: 1; padding: 1rem; width: 100%; }
 
 /* ── Timeline ── */
 .timeline-view { width: 100%; }
@@ -368,8 +368,8 @@ body {
   flex-wrap: wrap;
 }
 .add-col-bar input { flex: 1; min-width: 200px; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; }
-.timeline-scroll-wrapper { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); }
-.timeline-table { border-collapse: collapse; font-size: 0.82rem; min-width: 700px; }
+.timeline-scroll-wrapper { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); width: 100%; }
+.timeline-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
 .timeline-table th {
   background: var(--color-bg);
   padding: 0.45rem 0.5rem;
@@ -394,15 +394,15 @@ body {
 .sticky-col { position: sticky; left: 0; background: var(--color-surface); z-index: 1; }
 .timeline-row.past .sticky-col { background: var(--color-past); }
 .timeline-row.current .sticky-col { background: var(--color-current); }
-.col-day-of-week { min-width: 44px; font-weight: 500; }
-.col-day-num { min-width: 48px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.col-day-of-week { width: 52px; font-weight: 500; }
+.col-day-num { width: 56px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .col-day-num.clickable { cursor: pointer; }
 .col-day-num.clickable:hover { text-decoration: underline; color: var(--color-accent); }
-.col-year { min-width: 52px; font-variant-numeric: tabular-nums; }
-.col-events { min-width: 140px; }
-.col-deaths { min-width: 100px; }
-.col-births { min-width: 100px; }
-.col-lifestage { min-width: 90px; }
+.col-year { width: 60px; font-variant-numeric: tabular-nums; }
+.col-events { width: 160px; }
+.col-deaths { width: 110px; }
+.col-births { width: 110px; }
+.col-lifestage { min-width: 80px; }
 
 .current-marker {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -499,7 +499,7 @@ body {
 @media (min-width: 640px) {
   .modal-overlay { align-items: center; padding: 2rem; }
   .modal { border-radius: var(--radius); }
-  .app-main { padding: 1.5rem 2rem; }
+  .app-main { padding: 1rem 1.5rem; }
   .sims-list { flex-direction: row; flex-wrap: wrap; }
   .sim-card { flex: 1 1 280px; }
 }
