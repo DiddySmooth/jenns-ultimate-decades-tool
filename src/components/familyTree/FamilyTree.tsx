@@ -7,10 +7,12 @@ import ReactFlow, {
   type Edge,
   type OnNodesChange,
   type OnEdgesChange,
+  type ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { nanoid } from 'nanoid';
+import { useState } from 'react';
 import type { FamilyTreeState, SimEntry, UnionNode } from '../../types/tracker';
 import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
@@ -32,6 +34,7 @@ interface Props {
 
 export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnionsChange, onSimsChange }: Props) {
   const { nodes, edges } = useMemo(() => buildFamilyTree(sims, unions, saved), [sims, unions, saved]);
+  const [rf, setRf] = useState<ReactFlowInstance | null>(null);
 
   const onNodesChange: OnNodesChange = useCallback(
     () => {
@@ -79,6 +82,9 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
       <div className="sheet-header">
         <h2>Family Tree</h2>
         <span className="field-hint">Drag nodes to arrange. Tree auto-populates from Sims Info.</span>
+        <button className="btn-secondary btn-sm" onClick={() => rf?.fitView({ padding: 0.2, duration: 300 })}>
+          Center View
+        </button>
       </div>
 
       <div className="family-tree-layout">
@@ -89,7 +95,12 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            fitView
+            onInit={setRf}
+            minZoom={0.15}
+            maxZoom={2}
+            fitView={nodes.length <= 60}
+            fitViewOptions={{ padding: 0.2 }}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           >
             <Background />
             <Controls />
