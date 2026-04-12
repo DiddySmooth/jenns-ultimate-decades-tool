@@ -58,12 +58,15 @@ export interface SimEntry {
   motherId?: string;
   spouseId?: string;
 
-  // Dates (by timeline day number, recommended)
+  // Dates (year-only, preferred)
+  birthYear?: number;
+  deathYear?: number;
+  marriageYear?: number;
+
+  // Legacy fields (still supported)
   birthDayNumber?: number;
   deathDayNumber?: number;
   marriageDayNumber?: number;
-
-  // Legacy string fields (still supported/displayed)
   dateOfBirth?: string;
   dateOfDeath?: string;
 

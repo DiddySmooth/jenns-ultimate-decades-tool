@@ -1,8 +1,9 @@
 import type { SimEntry, TrackerConfig, SimSex } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 import { useMemo, useState } from 'react';
-import { computeLifeStage, formatDayNumber, getFullName, parseDayNumberFromLegacyDate } from '../../utils/lifeStage';
+import { computeLifeStage, getFullName } from '../../utils/lifeStage';
 import { migrateSimEntry } from '../../utils/migrateSim';
+import { formatYear, getBirthYear, getDeathYear } from '../../utils/simDates';
 
 interface Props {
   sims: SimEntry[];
@@ -64,20 +65,20 @@ export default function SimsSheet({ sims, config, onAdd, onUpdate, onDelete }: P
             {simsNormalized.filter((s) => s.generation === gen).map((sim) => {
               const stage = computeLifeStage(sim, config, (config as any).currentDay ?? 1);
               const fullName = getFullName(sim);
-              const birthDay = sim.birthDayNumber ?? parseDayNumberFromLegacyDate(sim.dateOfBirth);
-              const deathDay = sim.deathDayNumber ?? parseDayNumberFromLegacyDate(sim.dateOfDeath);
+              const birthYear = getBirthYear(sim, config);
+              const deathYear = getDeathYear(sim, config);
 
               return (
-                <div key={sim.id} className={`sim-card${sim.dateOfDeath || deathDay ? ' deceased' : ''}`}>
+                <div key={sim.id} className={`sim-card${sim.dateOfDeath || deathYear ? ' deceased' : ''}`}>
                   <div className="sim-card-header">
                     <strong>{fullName}</strong>
                     <span className="sim-stage">{stage || sim.currentLifeStage || ''}</span>
                   </div>
                   <div className="sim-card-meta">
-                    <span>Born: {formatDayNumber(birthDay, config)}</span>
-                    {(sim.dateOfDeath || deathDay) && (
+                    <span>Born: {formatYear(birthYear)}</span>
+                    {(sim.dateOfDeath || deathYear) && (
                       <span>
-                        Died: {formatDayNumber(deathDay, config)}
+                        Died: {formatYear(deathYear)}
                         {sim.causeOfDeath ? ` (${sim.causeOfDeath})` : ''}
                       </span>
                     )}
@@ -124,15 +125,13 @@ export default function SimsSheet({ sims, config, onAdd, onUpdate, onDelete }: P
               <input type="number" min={1} value={editing.generation} onChange={(e) => setEditing({ ...editing, generation: Number(e.target.value) })} />
             </div>
             <div className="field-group">
-              <label>Birth Day #</label>
+              <label>Birth Year</label>
               <input
                 type="number"
-                min={1}
-                placeholder="e.g. 1"
-                value={editing.birthDayNumber ?? ''}
-                onChange={(e) => setEditing({ ...editing, birthDayNumber: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="e.g. 1890"
+                value={editing.birthYear ?? ''}
+                onChange={(e) => setEditing({ ...editing, birthYear: e.target.value ? Number(e.target.value) : undefined })}
               />
-              <span className="field-hint">Shown as: {formatDayNumber(editing.birthDayNumber, config)}</span>
             </div>
 
             <div className="field-group">
@@ -151,18 +150,16 @@ export default function SimsSheet({ sims, config, onAdd, onUpdate, onDelete }: P
                 readOnly
                 value={computeLifeStage(editing, config, (config as any).currentDay ?? 1) || ''}
               />
-              <span className="field-hint">Computed from Birth Day # + current timeline day.</span>
+              <span className="field-hint">Computed from Birth Year + current timeline year.</span>
             </div>
             <div className="field-group">
-              <label>Death Day #</label>
+              <label>Death Year</label>
               <input
                 type="number"
-                min={1}
                 placeholder="Leave blank if alive"
-                value={editing.deathDayNumber ?? ''}
-                onChange={(e) => setEditing({ ...editing, deathDayNumber: e.target.value ? Number(e.target.value) : undefined })}
+                value={editing.deathYear ?? ''}
+                onChange={(e) => setEditing({ ...editing, deathYear: e.target.value ? Number(e.target.value) : undefined })}
               />
-              <span className="field-hint">Shown as: {formatDayNumber(editing.deathDayNumber, config)}</span>
             </div>
             <div className="field-group">
               <label>Cause of Death</label>
@@ -194,14 +191,12 @@ export default function SimsSheet({ sims, config, onAdd, onUpdate, onDelete }: P
             </div>
 
             <div className="field-group">
-              <label>Date of Marriage (Day #)</label>
+              <label>Marriage Year</label>
               <input
                 type="number"
-                min={1}
-                value={editing.marriageDayNumber ?? ''}
-                onChange={(e) => setEditing({ ...editing, marriageDayNumber: e.target.value ? Number(e.target.value) : undefined })}
+                value={editing.marriageYear ?? ''}
+                onChange={(e) => setEditing({ ...editing, marriageYear: e.target.value ? Number(e.target.value) : undefined })}
               />
-              <span className="field-hint">Shown as: {formatDayNumber(editing.marriageDayNumber, config)}</span>
             </div>
             <div className="field-group">
               <label>Notes</label>
