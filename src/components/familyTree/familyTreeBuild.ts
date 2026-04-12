@@ -78,8 +78,9 @@ export function buildFamilyTree(
   // also adjust union positions in FamilyTree.tsx using measured node widths.
   const SIM_W = 160;
   const SIM_H = 56;
-  const UNION_W = 26;
-  const UNION_H = 26;
+  // Union node is invisible; treat it as 0x0 for positioning so it truly sits on the midpoint.
+  const UNION_W = 0;
+  const UNION_H = 0;
 
   unions.forEach((u, idx) => {
     const id = `union:${u.id}`;
