@@ -66,6 +66,7 @@ export default function SetupWizard({ onComplete }: Props) {
       sims: [],
       timeline,
       currentDay: 1,
+      pregnancyCouples: [],
     };
 
     onComplete(save);

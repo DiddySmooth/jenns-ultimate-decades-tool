@@ -875,3 +875,39 @@ body {
 
 /* Timeline inner width container ensures header + rows use identical width */
 .vt-inner { min-width: 100%; }
+
+/* ── Marriage & Pregnancy tracker ── */
+.preg-grid-wrapper { border: 1px solid var(--color-border); border-radius: var(--radius); overflow-x: auto; }
+.preg-grid-header, .preg-grid-row {
+  display: grid;
+  grid-template-columns: 180px 180px 80px 90px 100px 130px 1fr 110px;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem;
+}
+.preg-grid-header {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  border-bottom: 2px solid var(--color-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.preg-grid-row { border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+.preg-grid-row:last-child { border-bottom: none; }
+.preg-grid-row select, .preg-grid-row input[type="number"] {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.checkbox-center { display: flex; justify-content: center; }
+.tries-cell { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.try-box { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface); }
+.try-box.checked { border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(0,0,0,0.03); }
+.try-box input { width: 14px; height: 14px; }

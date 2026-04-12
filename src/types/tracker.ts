@@ -107,11 +107,26 @@ export interface TimelineDay {
   lifeStageCells: Record<string, string>; // keyed by life stage id — any life stage column
 }
 
+export type PregnancyStatus = 'trying' | 'pregnant' | 'done' | 'infertile';
+
+export interface PregnancyCouple {
+  id: string;
+  fatherId?: string;
+  motherId?: string;
+  married: boolean;
+  babyGen: number;
+  totalTries: number;
+  status: PregnancyStatus;
+  tries: boolean[]; // length should match totalTries
+  notes?: string;
+}
+
 export interface TrackerSave {
   config: TrackerConfig;
   sims: SimEntry[];
   timeline: TimelineDay[];
   currentDay: number;
+  pregnancyCouples: PregnancyCouple[];
 }
 
 // Setup wizard state
