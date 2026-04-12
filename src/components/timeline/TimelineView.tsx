@@ -89,19 +89,19 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, lifeSt
       style={{ height: ROW_HEIGHT }}
       onMouseDown={onActivate}
     >
-      <div className="vt-cell vt-sticky" style={{ width: COL_DAY_OF_WEEK, minWidth: COL_DAY_OF_WEEK }}>
+      <div className="vt-cell vt-sticky-day" style={{ width: COL_DAY_OF_WEEK, minWidth: COL_DAY_OF_WEEK }}>
         {isCurrent && <span className="current-marker" />}
         {day.dayOfWeek.slice(0, 3)}
       </div>
       <div
-        className="vt-cell vt-daynum"
+        className="vt-cell vt-sticky-daynum"
         style={{ width: COL_DAY_NUM, minWidth: COL_DAY_NUM }}
         onClick={onMarkDay}
         title={isPast ? 'Click to undo to this day' : 'Click to mark passed up to this day'}
       >
         {day.dayNumber}
       </div>
-      <div className="vt-cell" style={{ width: COL_YEAR, minWidth: COL_YEAR }}>{day.year}</div>
+      <div className="vt-cell vt-sticky-year" style={{ width: COL_YEAR, minWidth: COL_YEAR }}>{day.year}</div>
       <div className="vt-cell vt-events" style={{ width: COL_EVENTS, minWidth: COL_EVENTS }}>
         {day.events.map((ev) => <span key={ev.id} className="cell-tag">{ev.description}</span>)}
         {addingEvent
@@ -154,9 +154,9 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
       <div className="vt-wrapper vt-hscroll">
         {/* Sticky header */}
         <div className="vt-header" style={{ minWidth: totalWidth }}>
-          <div className="vt-head-cell" style={{ width: COL_DAY_OF_WEEK }}>Day</div>
-          <div className="vt-head-cell" style={{ width: COL_DAY_NUM }}>Day #</div>
-          <div className="vt-head-cell" style={{ width: COL_YEAR }}>Year</div>
+          <div className="vt-head-cell vt-head-sticky-day" style={{ width: COL_DAY_OF_WEEK }}>Day</div>
+          <div className="vt-head-cell vt-head-sticky-daynum" style={{ width: COL_DAY_NUM }}>Day #</div>
+          <div className="vt-head-cell vt-head-sticky-year" style={{ width: COL_YEAR }}>Year</div>
           <div className="vt-head-cell" style={{ width: COL_EVENTS }}>Events</div>
           <div className="vt-head-cell" style={{ width: COL_DEATHS }}>Deaths</div>
           {lifeStageCols.map((col) => (

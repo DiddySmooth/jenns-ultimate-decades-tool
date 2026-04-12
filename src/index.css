@@ -431,11 +431,13 @@ body {
 .add-col-bar input { flex: 1; min-width: 200px; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; }
 
 /* Virtualised table wrapper */
-.vt-wrapper { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: visible; }
-.vt-wrapper.vt-hscroll { overflow-x: auto; }
-.vt-body { max-height: calc(100vh - 220px); overflow-y: auto; }
+.vt-wrapper { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; max-width: 100%; }
+/* Single horizontal scrollbar lives here */
+.vt-wrapper.vt-hscroll { overflow-x: auto; overflow-y: hidden; }
+/* Vertical scrollbar lives here (no horizontal scrollbar) */
+.vt-body { max-height: calc(100vh - 220px); overflow-y: auto; overflow-x: hidden; }
 
-/* Keep header pinned at top of viewport while scrolling page */
+/* Header stays pinned at top of the scroll region */
 .vt-header { position: sticky; top: 0; z-index: 6; }
 .vt-header {
   display: flex;
@@ -503,8 +505,16 @@ body {
 }
 .vt-cell.editing input::placeholder { color: var(--color-text-muted); }
 .vt-cell.has-value { }
-.vt-sticky { position: sticky; left: 0; background: inherit; z-index: 1; font-weight: 500; }
-.vt-daynum { font-variant-numeric: tabular-nums; font-family: var(--font-mono); cursor: pointer; }
+/* Frozen columns (left side) */
+.vt-sticky-day { position: sticky; left: 0; background: inherit; z-index: 3; font-weight: 500; }
+.vt-sticky-daynum { position: sticky; left: 56px; background: inherit; z-index: 3; font-variant-numeric: tabular-nums; font-family: var(--font-mono); cursor: pointer; }
+.vt-sticky-year { position: sticky; left: 116px; background: inherit; z-index: 3; font-variant-numeric: tabular-nums; }
+
+/* Header frozen columns */
+.vt-head-sticky-day { position: sticky; left: 0; z-index: 7; background: var(--color-bg); }
+.vt-head-sticky-daynum { position: sticky; left: 56px; z-index: 7; background: var(--color-bg); }
+.vt-head-sticky-year { position: sticky; left: 116px; z-index: 7; background: var(--color-bg); }
+
 .vt-daynum:hover { text-decoration: underline; color: var(--color-accent); }
 .vt-events { gap: 0.25rem; flex-wrap: nowrap; overflow: hidden; cursor: default; }
 .vt-events:hover { background: transparent; }
