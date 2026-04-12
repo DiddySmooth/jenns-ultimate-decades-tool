@@ -22,8 +22,16 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
   const d = treeConfig.display;
   const avatarClass = treeConfig.avatarShape === 'circle' ? 'circle' : treeConfig.avatarShape === 'rounded' ? 'rounded' : 'square';
 
+  const tooltip = [
+    stage ? `Stage: ${stage}` : null,
+    age != null ? `Age: ${age}` : null,
+    d.showBirthYear ? `Born: ${formatYear(by)}` : (by ? `Born: ${formatYear(by)}` : null),
+    d.showDeathYear && dy ? `Died: ${formatYear(dy)}` : (dy ? `Died: ${formatYear(dy)}` : null),
+    sim.generation != null ? `Gen: ${sim.generation}` : null,
+  ].filter(Boolean).join('\n');
+
   return (
-    <div className="ft-node ft-sim">
+    <div className={`ft-node ft-sim${d.compactNodes ? ' compact' : ''}`} title={tooltip}>
       {/* incoming: parents/union */}
       <Handle type="target" position={Position.Top} id="parent-in" />
       {/* outgoing: to children (fallback) */}
@@ -53,13 +61,16 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
         )}
       </div>
       <div className="ft-name" title={name}>{name}</div>
-      <div className="ft-meta">
-        {d.showLifeStage && stage ? <div>{stage}</div> : null}
-        {d.showAge && age != null ? <div>{age}y</div> : null}
-        {d.showBirthYear ? <div>Born: {formatYear(by)}</div> : null}
-        {d.showDeathYear && dy ? <div>Died: {formatYear(dy)}</div> : null}
-        {d.showGeneration ? <div>Gen: {sim.generation}</div> : null}
-      </div>
+
+      {!d.compactNodes && (
+        <div className="ft-meta">
+          {d.showLifeStage && stage ? <div>{stage}</div> : null}
+          {d.showAge && age != null ? <div>{age}y</div> : null}
+          {d.showBirthYear ? <div>Born: {formatYear(by)}</div> : null}
+          {d.showDeathYear && dy ? <div>Died: {formatYear(dy)}</div> : null}
+          {d.showGeneration ? <div>Gen: {sim.generation}</div> : null}
+        </div>
+      )}
     </div>
   );
 }

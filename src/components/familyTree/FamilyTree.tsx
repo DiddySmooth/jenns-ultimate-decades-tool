@@ -304,8 +304,18 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
               <input
                 type="checkbox"
+                checked={!!config.display.compactNodes}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, compactNodes: e.target.checked } })}
+              />
+              Compact nodes (avatar + name only)
+            </label>
+
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
                 checked={config.display.showLifeStage}
                 onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showLifeStage: e.target.checked } })}
+                disabled={!!config.display.compactNodes}
               />
               Show life stage
             </label>
@@ -314,6 +324,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                 type="checkbox"
                 checked={config.display.showAge}
                 onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showAge: e.target.checked } })}
+                disabled={!!config.display.compactNodes}
               />
               Show age
             </label>
@@ -322,6 +333,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                 type="checkbox"
                 checked={config.display.showBirthYear}
                 onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showBirthYear: e.target.checked } })}
+                disabled={!!config.display.compactNodes}
               />
               Show birth year
             </label>
@@ -330,6 +342,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                 type="checkbox"
                 checked={config.display.showDeathYear}
                 onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showDeathYear: e.target.checked } })}
+                disabled={!!config.display.compactNodes}
               />
               Show death year
             </label>
@@ -338,6 +351,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                 type="checkbox"
                 checked={config.display.showGeneration}
                 onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showGeneration: e.target.checked } })}
+                disabled={!!config.display.compactNodes}
               />
               Show generation
             </label>
