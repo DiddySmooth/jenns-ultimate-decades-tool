@@ -67,8 +67,9 @@
 
 /* ── Non-theme global tokens ── */
 :root {
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Almendra', Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: 'Almendra', Georgia, serif;
   --radius: 4px;
   --shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
