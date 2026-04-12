@@ -1,112 +1,242 @@
-# Jenn's Ultimate Decades Tool
+# Jenn's Ultimate Decades Tool (JUDT)
 
-A web app for tracking multi-generational Sims 4 Decades Challenge playthroughs. Built for mobile-first use, configurable per player, and designed to replace the spreadsheet workflow.
+A mobile-first web app for tracking a Sims 4 “Ultimate Decades Challenge” playthrough.
 
-## Features (MVP)
-- Setup wizard: configure start year, sim-day-to-year ratio, aging stages per sim type (human, pets, occults)
-- Auto-generated timeline with markable days and event logging
-- Sims info sheet: track every sim's name, birth/death dates, life stage, cause of death, generation
-- Aging reference table
-- Google Sign-In via Azure Static Web Apps auth
-- Per-user save data stored in Azure Blob Storage (no database)
+At its core this project is a **spreadsheet replacement**:
+- a generated **Timeline** (Sim days → challenge years)
+- a **Sims Info Sheet** (who exists, when they were born/died/married, etc.)
+- configurable **Aging Tables** (human + pets + occults)
 
-## Local Development
+Live site (Azure Static Web Apps):
+- https://wonderful-tree-03105d910.6.azurestaticapps.net
 
-```bash
-# Install frontend deps
-npm install
+---
 
-# Install API deps
-cd api && npm install && cd ..
+## What users can do
 
-# Start frontend (Vite dev server)
-npm run dev
-```
+### 1) Create a tracker (Setup Wizard)
+The first run is an onboarding wizard that generates your Timeline + Aging tables.
 
-> **Auth in local dev:** `/.auth/me` isn't available locally. The app detects `import.meta.env.DEV` and falls back to a mock user automatically — no setup needed for basic UI work.
+**Step 1 — Basic Config**
+- Start year (required)
+- Sim days per year (default: 4)
+- Starting day of week (default: Sunday)
 
-> **API in local dev:** You'll need [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local) and a local `AZURE_STORAGE_CONNECTION_STRING` in `api/local.settings.json` to test the save API locally.
+**Step 2 — Human Aging**
+- Define life stages (add/remove/reorder)
+- Define how many **Sim days** each stage lasts
+- Years equivalent is computed automatically
 
-## How Auth Works
+**Step 3 — Pets & Occults**
+- Select which pets/occults you want to track
+- Configure their aging tables
 
-Azure Static Web Apps has [built-in authentication](https://learn.microsoft.com/en-us/azure/static-web-apps/authentication-authorization). We use Google as the provider.
+**Step 4 — Review**
+- Review everything before generation
+- Generates a Timeline through **year 2050**
 
-- Users click "Sign in with Google" → redirected to `/.auth/login/google`
-- After login, `/.auth/me` returns the user's identity (userId, email, provider)
-- API routes (`/api/*`) are protected — only authenticated users can call them
-- No passwords are stored anywhere
 
-### Required Google OAuth setup
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com/)
-2. Enable the Google OAuth 2.0 API
-3. Create OAuth credentials (Web Application type)
-4. Add your Azure Static Web App's auth callback URL: `https://<your-app>.azurestaticapps.net/.auth/login/google/callback`
-5. Store `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` as GitHub Secrets and Azure app settings
+### 2) Timeline
+The Timeline is the “spreadsheet” view.
 
-## How Storage Works
+Columns:
+- Day of week
+- Day #
+- Year
+- Events
+- Deaths
+- Births
+- **Human** life stage columns (from your setup)
+- **Pet** life stage columns (appended after human)
+- **Custom columns** (manually added; useful for occult-specific stages)
 
-Each user gets one JSON blob:
+Key interactions:
+- Click any cell to edit.
+- Events are free-text (no dropdown).
+- Click a **Day #** to mark progress.
+  - Clicking a future day marks everything up to that day as done.
+  - Clicking a past day “rewinds” (undo) back to that day.
+
+### 3) Sims Info Sheet
+The Sims sheet is your roster.
+
+It includes all previous fields plus:
+- First name / last name
+- Sex
+- Father / mother / spouse (links to other Sims)
+- Day # fields:
+  - Birth day
+  - Death day
+  - Marriage day
+- Place of birth
+
+**Life stage is auto-computed** (no dropdown):
+- From Birth Day # + current timeline day + configured aging lengths.
+
+### 4) Settings
+- Theme picker (top bar dropdown)
+- Column label editor (Settings → Timeline Columns)
+  - Safely rename life stage column headers without breaking stored data
+
+---
+
+## Themes / design tokens
+
+This app is designed around **global CSS variables**.
+
+- Theme selection sets `data-theme="<id>"` on `<html>`.
+- Theme tokens live in `src/index.css`.
+- Theme list lives in `src/theme/themeRegistry.ts`.
+
+Current themes:
+- Default
+- Light
+- Dark
+- Klein Blue
+- Berry Jungle
+- Petal Pop
+
+To add a new palette:
+1. Add an entry to `THEME_OPTIONS` in `src/theme/themeRegistry.ts`
+2. Add a `:root[data-theme='<id>'] { ... }` token block in `src/index.css`
+3. Add preview swatches for the dropdown (see `theme-swatch-dot` rules)
+
+---
+
+## Saving & performance
+
+### Save format
+Each user has a single JSON save stored in Azure Blob Storage:
+
 ```
 Container: decades-saves
 Blob key:  {userId}/tracker.json
 ```
 
-The full `TrackerSave` object (config + sims + timeline) is stored as a single JSON file. No database needed.
+The stored object is `TrackerSave`:
+- `config` (setup wizard output)
+- `timeline` (generated rows + edits)
+- `sims`
+- `currentDay`
 
-## Deployment
+Type definitions:
+- `src/types/tracker.ts`
 
-### 1. Create Azure resources
+### Debounced auto-save
+To keep edits snappy and avoid expensive writes, changes are persisted with a **debounced save** (~30 seconds):
+- UI updates immediately
+- Blob write happens after you pause
+- Save also flushes on sign out / page close
+
+Implementation:
+- `src/hooks/useDebouncedSave.ts`
+
+### Timeline performance strategy
+The timeline can be large. We use multiple layers of optimization:
+- Cell edits are local and do not re-render the whole page.
+- Row rendering uses CSS containment hints:
+  - `content-visibility: auto`
+  - `contain-intrinsic-height`
+
+---
+
+## Authentication (Google Sign-In)
+
+We intentionally do **not** store passwords.
+
+This project uses the **Google Identity Services SDK** (client-side) similar to the existing PlexRequest site:
+- `https://accounts.google.com/gsi/client`
+- The returned JWT is decoded client-side
+- `sub` is used as the stable user id for blob storage
+
+Where this lives:
+- `src/App.tsx`
+
+> Note: Google OAuth setup requires configuring authorized JavaScript origins for both local dev and the deployed SWA domain.
+
+---
+
+## Azure Functions API
+
+There are two HTTP-trigger functions:
+- `api/getSave` (GET) — reads `{userId}/tracker.json`
+- `api/putSave` (POST) — writes `{userId}/tracker.json`
+
+Dependencies:
+- `@azure/storage-blob`
+
+Environment:
+- `AZURE_STORAGE_CONNECTION_STRING`
+
+---
+
+## Local development
 
 ```bash
-# Create a resource group (if you don't have one)
-az group create --name decades-tracker-rg --location eastus
+# frontend
+npm install
+npm run dev
 
-# Create a Storage Account
-az storage account create --name decadestrackerstorage --resource-group decades-tracker-rg --sku Standard_LRS
-
-# Create the blob container
-az storage container create --name decades-saves --account-name decadestrackerstorage
-
-# Get the connection string
-az storage account show-connection-string --name decadestrackerstorage --resource-group decades-tracker-rg
-
-# Create the Static Web App
-az staticwebapp create --name jenns-ultimate-decades-tool --resource-group decades-tracker-rg --location eastus2
+# api deps (only needed if you run the functions locally)
+cd api
+npm install
 ```
 
-### 2. Set GitHub Secrets
+Notes:
+- Local dev uses the real Google Identity script (so you may want to add `http://localhost:5173` to Google OAuth authorized origins).
+- API calls in local dev will require running Azure Functions locally OR you can test UI-only flows.
 
-In your repo → Settings → Secrets and variables → Actions, add:
-- `AZURE_STATIC_WEB_APPS_API_TOKEN` — from the Azure Static Web App resource
-- `AZURE_STORAGE_CONNECTION_STRING` — from the storage account
-- `GOOGLE_CLIENT_ID` — from Google Cloud Console
-- `GOOGLE_CLIENT_SECRET` — from Google Cloud Console
+---
 
-### 3. Push to main
+## Deployment (Azure Static Web Apps)
 
-GitHub Actions will build and deploy automatically on every push to `main`.
+CI/CD is handled by GitHub Actions on push to `main`.
 
-## Tech Stack
+Workflow:
+- `.github/workflows/azure-static-web-apps.yml`
 
-- React 19 + Vite + TypeScript
-- Azure Static Web Apps (hosting + auth)
-- Azure Functions v4 (API)
-- Azure Blob Storage (data)
-- No database, no auth server, no passwords
+Required secrets:
+- `AZURE_STATIC_WEB_APPS_API_TOKEN`
+- `AZURE_STORAGE_CONNECTION_STRING`
 
-## Project Structure
+(And Google OAuth configuration in Google Cloud Console.)
+
+---
+
+## Repo structure
 
 ```
 src/
   components/
-    setup/      # Setup wizard steps
-    timeline/   # Timeline view
-    sims/       # Sims info sheet
-    aging/      # Aging reference table
-  hooks/        # useWizard hook
-  types/        # TypeScript types (tracker.ts)
-  utils/        # Time conversion helpers
+    setup/                # setup wizard
+    timeline/             # timeline view
+    sims/                 # sims info sheet
+    aging/                # aging reference
+  hooks/
+    useDebouncedSave.ts
+    useTheme.ts
+    useWizard.ts
+  theme/
+    themeRegistry.ts
+  types/
+    tracker.ts
+  utils/
+    timeConvert.ts
+    lifeStage.ts
+    migrateSim.ts
 api/
-  getSave/      # Azure Function: load user save from blob
-  putSave/      # Azure Function: write user save to blob
+  getSave/
+  putSave/
+staticwebapp.config.json
 ```
+
+---
+
+## Design intent (non-negotiables)
+
+This is a utility tool, not a generic SaaS dashboard:
+- Typography-led UI
+- Spreadsheet-like interactions
+- Mobile-first
+- Avoid AI-ish gradients/hero sections/card grids
+
