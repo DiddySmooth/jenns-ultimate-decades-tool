@@ -43,7 +43,6 @@ export function generateTimeline(
       marked: false,
       events: [],
       deaths: '',
-      births: '',
       lifeStageCells: {},
     });
   }

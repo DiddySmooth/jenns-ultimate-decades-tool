@@ -129,7 +129,6 @@ export default function App() {
     if (!day) return;
     let updatedDay;
     if (field === 'deaths') updatedDay = { ...day, deaths: value };
-    else if (field === 'births') updatedDay = { ...day, births: value };
     else updatedDay = { ...day, lifeStageCells: { ...day.lifeStageCells, [field]: value } };
     // Mutate the timeline array in-place on the ref (no new array, no re-render)
     const newTimeline = current.timeline.slice();

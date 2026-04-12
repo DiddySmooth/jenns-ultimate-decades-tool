@@ -104,7 +104,6 @@ export interface TimelineDay {
   marked: boolean;
   events: TimelineEvent[];    // general events column
   deaths: string;             // deaths column (free text)
-  births: string;             // births column (free text)
   lifeStageCells: Record<string, string>; // keyed by life stage id — any life stage column
 }
 

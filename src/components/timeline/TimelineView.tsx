@@ -25,7 +25,8 @@ const COL_DAY_NUM = 60;
 const COL_YEAR = 64;
 const COL_EVENTS = 180;
 const COL_DEATHS = 120;
-const COL_BIRTHS = 120;
+// Births column removed (tracked via Newborn/Baby life stage column)
+// const COL_BIRTHS = 120;
 const COL_LIFESTAGE = 110;
 const ROW_HEIGHT = 34;
 
@@ -105,7 +106,6 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, lifeStageCols, o
           : <button className="cell-add-btn" onClick={() => setAddingEvent(true)}>+</button>}
       </div>
       <EditableCell width={COL_DEATHS} initialValue={day.deaths || ''} onCommit={(v) => onUpdateCell('deaths', v)} />
-      <EditableCell width={COL_BIRTHS} initialValue={day.births || ''} onCommit={(v) => onUpdateCell('births', v)} />
       {lifeStageCols.map((col) => (
         <EditableCell key={col.id} width={COL_LIFESTAGE} initialValue={day.lifeStageCells?.[col.id] || ''} onCommit={(v) => onUpdateCell(col.id, v)} />
       ))}
@@ -125,7 +125,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
     setAddColMode(false);
   };
 
-  const totalWidth = COL_DAY_OF_WEEK + COL_DAY_NUM + COL_YEAR + COL_EVENTS + COL_DEATHS + COL_BIRTHS + lifeStageCols.length * COL_LIFESTAGE;
+  const totalWidth = COL_DAY_OF_WEEK + COL_DAY_NUM + COL_YEAR + COL_EVENTS + COL_DEATHS + lifeStageCols.length * COL_LIFESTAGE;
 
   return (
     <div className="timeline-view">
@@ -152,7 +152,6 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
           <div className="vt-head-cell" style={{ width: COL_YEAR }}>Year</div>
           <div className="vt-head-cell" style={{ width: COL_EVENTS }}>Events</div>
           <div className="vt-head-cell" style={{ width: COL_DEATHS }}>Deaths</div>
-          <div className="vt-head-cell" style={{ width: COL_BIRTHS }}>Births</div>
           {lifeStageCols.map((col) => (
             <div key={col.id} className="vt-head-cell" style={{ width: COL_LIFESTAGE }}>{col.label}</div>
           ))}
