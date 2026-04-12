@@ -4,6 +4,7 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  type Edge,
   type ReactFlowInstance,
   useEdgesState,
   useNodesState,
@@ -201,14 +202,47 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
           <button
             className="btn-secondary btn-sm"
             onClick={() => {
-              // 2) basic auto-layout (positions)
-              // Use the actual rendered nodes/edges and do a real DAG layout
-              const laidOut = genealogyLayout(nodes, edges);
+              // 2) Auto-layout (positions)
+              // Important: layout should be based on parent/child structure only.
+              // Marriage edges turn the graph into a long chain and ruin ranks.
+
+              const unionsById = new Map(unions.map((u) => [u.id, u] as const));
+
+              const isParentEdge = (e: Edge) => (e.data as { kind?: string } | undefined)?.kind === 'parent';
+
+              const layoutEdges: Edge[] = [];
+              for (const e of edges) {
+                if (!isParentEdge(e)) continue;
+
+                // If the source is a union node, add synthetic edges from each partner -> child
+                // just for layout purposes.
+                if (String(e.source).startsWith('union:')) {
+                  const unionId = String(e.source).replace(/^union:/, '');
+                  const u = unionsById.get(unionId);
+                  if (u?.partnerAId) {
+                    layoutEdges.push({ id: `le:${u.partnerAId}->${e.target}`, source: `sim:${u.partnerAId}`, target: e.target });
+                  }
+                  if (u?.partnerBId) {
+                    layoutEdges.push({ id: `le:${u.partnerBId}->${e.target}`, source: `sim:${u.partnerBId}`, target: e.target });
+                  }
+                  continue;
+                }
+
+                // Otherwise keep existing parent edge.
+                layoutEdges.push({ id: `le:${e.source}->${e.target}`, source: e.source, target: e.target });
+              }
+
+              const laidOut = genealogyLayout(nodes, layoutEdges);
+
               const next = {
                 ...saved,
-                nodes: laidOut.map((n) => ({ id: n.id, type: ((n.type as 'sim' | 'union') ?? 'sim'), position: n.position })),
+                // Persist only sim nodes; unions are derived from spouse positions.
+                nodes: laidOut
+                  .filter((n) => String(n.id).startsWith('sim:'))
+                  .map((n) => ({ id: n.id, type: 'sim' as const, position: n.position })),
                 edges: saved.edges ?? [],
               };
+
               onSavedChange(next);
               setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
             }}
