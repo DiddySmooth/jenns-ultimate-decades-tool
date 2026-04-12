@@ -1,0 +1,13 @@
+{
+  "name": "decades-tracker-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for Jenn's Ultimate Decades Tool",
+  "main": "getSave/index.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0",
+    "@azure/storage-blob": "^12.0.0"
+  }
+}
