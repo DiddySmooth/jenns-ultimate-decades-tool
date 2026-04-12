@@ -47,6 +47,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Grape Willow',
     description: 'Dusty grape, lavender purple, celadon, willow green, dusty olive',
   },
+  {
+    id: 'amaranth-sun',
+    label: 'Amaranth Sun',
+    description: 'Onyx, amaranth, tomato, tuscan sun, pacific blue',
+  },
 ];
 
 export type ThemeId = string;

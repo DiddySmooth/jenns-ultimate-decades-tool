@@ -125,6 +125,21 @@
   --color-swatch: #8963ba;
 }
 
+/* ── Amaranth Sun (from palette) ── */
+:root[data-theme='amaranth-sun'] {
+  --color-bg: #0c090d;          /* onyx */
+  --color-surface: #151017;
+  --color-border: rgba(83, 179, 203, 0.22); /* pacific blue */
+  --color-text: #fff7f8;
+  --color-text-muted: rgba(255, 247, 248, 0.72);
+  --color-accent: #e01a4f;      /* amaranth */
+  --color-accent-hover: #f9c22e;/* tuscan sun */
+  --color-danger: #f15946;      /* tomato */
+  --color-past: #120d13;
+  --color-current: #1a131e;
+  --color-swatch: #e01a4f;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
@@ -706,6 +721,7 @@ body {
 [data-theme-preview='petal-pop'] .theme-chip-swatch { background: linear-gradient(135deg, #ee2677 0%, #e86252 60%, #e87ea1 100%); }
 [data-theme-preview='sims'] .theme-chip-swatch { background: linear-gradient(135deg, #21b96b 0%, #a6e329 55%, #4276b7 100%); }
 [data-theme-preview='grape-willow'] .theme-chip-swatch { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
+[data-theme-preview='amaranth-sun'] .theme-chip-swatch { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
@@ -739,6 +755,7 @@ body {
 [data-theme-preview='petal-pop'].theme-swatch-dot { background: linear-gradient(135deg, #ee2677 0%, #e86252 60%, #e87ea1 100%); }
 [data-theme-preview='sims'].theme-swatch-dot { background: linear-gradient(135deg, #21b96b 0%, #a6e329 55%, #4276b7 100%); }
 [data-theme-preview='grape-willow'].theme-swatch-dot { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
+[data-theme-preview='amaranth-sun'].theme-swatch-dot { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
 .theme-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.4rem;
