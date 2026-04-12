@@ -52,6 +52,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Amaranth Sun',
     description: 'Onyx, amaranth, tomato, tuscan sun, pacific blue',
   },
+  {
+    id: 'tropical-mauve',
+    label: 'Tropical Mauve',
+    description: 'Tropical teal, mauve shadow, golden apricot, golden sand, lime cream',
+  },
 ];
 
 export type ThemeId = string;

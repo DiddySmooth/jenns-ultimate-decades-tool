@@ -140,6 +140,21 @@
   --color-swatch: #e01a4f;
 }
 
+/* ── Tropical Mauve (from palette) ── */
+:root[data-theme='tropical-mauve'] {
+  --color-bg: #f7fbfa;
+  --color-surface: #ffffff;
+  --color-border: rgba(81, 163, 163, 0.30); /* tropical teal */
+  --color-text: #1b1b1f;
+  --color-text-muted: rgba(27, 27, 31, 0.65);
+  --color-accent: #51a3a3;      /* tropical teal */
+  --color-accent-hover: #cb904d;/* golden apricot */
+  --color-danger: #75485e;      /* mauve shadow */
+  --color-past: #eef8f6;
+  --color-current: #f6fff0;
+  --color-swatch: #51a3a3;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
@@ -729,6 +744,7 @@ body {
 [data-theme-preview='sims'] .theme-chip-swatch { background: linear-gradient(135deg, #21b96b 0%, #a6e329 55%, #4276b7 100%); }
 [data-theme-preview='grape-willow'] .theme-chip-swatch { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
 [data-theme-preview='amaranth-sun'] .theme-chip-swatch { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
+[data-theme-preview='tropical-mauve'] .theme-chip-swatch { background: linear-gradient(135deg, #51a3a3 0%, #dfcc74 55%, #c3e991 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
@@ -763,6 +779,7 @@ body {
 [data-theme-preview='sims'].theme-swatch-dot { background: linear-gradient(135deg, #21b96b 0%, #a6e329 55%, #4276b7 100%); }
 [data-theme-preview='grape-willow'].theme-swatch-dot { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
 [data-theme-preview='amaranth-sun'].theme-swatch-dot { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
+[data-theme-preview='tropical-mauve'].theme-swatch-dot { background: linear-gradient(135deg, #51a3a3 0%, #dfcc74 55%, #c3e991 100%); }
 .theme-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.4rem;
