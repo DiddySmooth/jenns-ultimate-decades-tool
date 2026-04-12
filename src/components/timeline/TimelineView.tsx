@@ -86,8 +86,12 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, lifeStageCols, o
         {isCurrent && <span className="current-marker" />}
         {day.dayOfWeek.slice(0, 3)}
       </div>
-      <div className="vt-cell vt-daynum" style={{ width: COL_DAY_NUM, minWidth: COL_DAY_NUM }}
-        onClick={() => !isPast && onMarkDay()}>
+      <div
+        className="vt-cell vt-daynum"
+        style={{ width: COL_DAY_NUM, minWidth: COL_DAY_NUM }}
+        onClick={onMarkDay}
+        title={isPast ? 'Click to undo to this day' : 'Click to mark passed up to this day'}
+      >
         {day.dayNumber}
       </div>
       <div className="vt-cell" style={{ width: COL_YEAR, minWidth: COL_YEAR }}>{day.year}</div>
