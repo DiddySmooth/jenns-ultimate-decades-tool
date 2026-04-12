@@ -4,17 +4,69 @@
    No gradients, no AI-purple, no card-grid dashboards.
    ========================================================= */
 
-:root {
+/* ── Theme tokens — default (earthy green) ── */
+:root,
+:root[data-theme='default'] {
   --color-bg: #f7f6f3;
   --color-surface: #ffffff;
   --color-border: #d4d1cc;
   --color-text: #1a1916;
   --color-text-muted: #6b6860;
-  --color-accent: #3d5a47;       /* muted green — earthy, not flashy */
+  --color-accent: #3d5a47;
   --color-accent-hover: #2f4537;
   --color-danger: #8b2e2e;
   --color-past: #edecea;
   --color-current: #fff8e6;
+  --color-swatch: #3d5a47;
+}
+
+/* ── Light ── */
+:root[data-theme='light'] {
+  --color-bg: #ffffff;
+  --color-surface: #f9f9f9;
+  --color-border: #e2e2e2;
+  --color-text: #111111;
+  --color-text-muted: #666666;
+  --color-accent: #1a56db;
+  --color-accent-hover: #1145b8;
+  --color-danger: #c0392b;
+  --color-past: #f0f0f0;
+  --color-current: #fffbe6;
+  --color-swatch: #1a56db;
+}
+
+/* ── Dark ── */
+:root[data-theme='dark'] {
+  --color-bg: #111213;
+  --color-surface: #1c1e20;
+  --color-border: #2e3035;
+  --color-text: #e8e6e3;
+  --color-text-muted: #888c94;
+  --color-accent: #6fcf97;
+  --color-accent-hover: #5ab882;
+  --color-danger: #eb5757;
+  --color-past: #181a1b;
+  --color-current: #1f2a1c;
+  --color-swatch: #6fcf97;
+}
+
+/* ── Klein Blue (from palette) ── */
+:root[data-theme='klein-blue'] {
+  --color-bg: #f5f4fa;
+  --color-surface: #ffffff;
+  --color-border: #c8c0e8;
+  --color-text: #0d0b2a;
+  --color-text-muted: #5e4ae3;
+  --color-accent: #05299e;
+  --color-accent-hover: #041f77;
+  --color-danger: #f26ca7;
+  --color-past: #ede9f8;
+  --color-current: #fdf0f5;
+  --color-swatch: #5e4ae3;
+}
+
+/* ── Non-theme global tokens ── */
+:root {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --radius: 4px;
@@ -451,3 +503,42 @@ body {
   .sims-list { flex-direction: row; flex-wrap: wrap; }
   .sim-card { flex: 1 1 280px; }
 }
+
+/* ── Theme Picker ── */
+.theme-picker { display: flex; flex-direction: column; gap: 0.6rem; }
+.theme-picker-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); }
+.theme-picker-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.theme-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.theme-chip.active { border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent); }
+.theme-chip-swatch {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--color-swatch);
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+/* Per-theme swatch previews on the chip itself */
+[data-theme-preview='default'] .theme-chip-swatch { background: #3d5a47; }
+[data-theme-preview='light'] .theme-chip-swatch { background: #1a56db; }
+[data-theme-preview='dark'] .theme-chip-swatch { background: #6fcf97; }
+[data-theme-preview='klein-blue'] .theme-chip-swatch { background: linear-gradient(135deg, #05299e 0%, #f26ca7 100%); }
+
+/* ── Settings page ── */
+.settings-page { max-width: 560px; }
+.settings-page h2 { margin: 0 0 1.5rem; }
+.settings-section { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--color-border); }
+.settings-section:last-child { border-bottom: none; }
+.settings-section h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin: 0 0 1rem; }
+.settings-meta { font-size: 0.9rem; color: var(--color-text-muted); margin: 0 0 1rem; }
+
+/* ── Save status ── */
+.save-status { font-size: 0.75rem; color: var(--color-text-muted); margin-left: auto; }
