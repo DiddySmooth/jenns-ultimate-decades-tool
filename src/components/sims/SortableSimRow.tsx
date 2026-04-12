@@ -30,7 +30,15 @@ export default function SortableSimRow({
   onEdit,
   onDelete,
 }: Props) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sim.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sim.id });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -46,7 +54,15 @@ export default function SortableSimRow({
   return (
     <div ref={setNodeRef} style={style} className={`sim-row${expanded ? ' expanded' : ''}${deathYear ? ' deceased' : ''}`}>
       <div className="sim-row-main">
-        <button className="btn-icon drag-handle" {...attributes} {...listeners} title="Drag to reorder">≡</button>
+        <button
+          ref={setActivatorNodeRef}
+          className="btn-icon drag-handle"
+          {...attributes}
+          {...listeners}
+          title="Drag to reorder"
+        >
+          ≡
+        </button>
 
         <button className="btn-icon expand-toggle" onClick={onToggleExpanded} title={expanded ? 'Collapse' : 'Expand'}>
           {expanded ? '▾' : '▸'}

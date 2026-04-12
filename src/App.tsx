@@ -95,7 +95,14 @@ export default function App() {
   // React state is only updated for save scheduling and non-timeline changes
   const saveRef = useRef<TrackerSave | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
-  const [tab, setTab] = useState<Tab>('timeline');
+  const [tab, setTab] = useState<Tab>(() => {
+    const stored = localStorage.getItem('judt_tab') as Tab | null;
+    return stored ?? 'timeline';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('judt_tab', tab);
+  }, [tab]);
 
   // Build a stable persist function bound to the current user
   const persistFn = useCallback(

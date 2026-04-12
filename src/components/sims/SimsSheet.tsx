@@ -1,8 +1,21 @@
 import type { SimEntry, TrackerConfig, SimSex } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 import { useMemo, useState } from 'react';
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import {
+  DndContext,
+  closestCenter,
+  type DragEndEvent,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
 import SortableSimRow from './SortableSimRow';
 import { computeLifeStage, getFullName } from '../../utils/lifeStage';
 import { migrateSimEntry } from '../../utils/migrateSim';
@@ -61,12 +74,24 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
     return sim ? getFullName(sim) : '—';
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over) return;
+    if (String(active.id) === String(over.id)) return;
 
-    const oldIndex = simsNormalized.findIndex((s) => s.id === active.id);
-    const newIndex = simsNormalized.findIndex((s) => s.id === over.id);
+    const oldIndex = simsNormalized.findIndex((s) => String(s.id) === String(active.id));
+    const newIndex = simsNormalized.findIndex((s) => String(s.id) === String(over.id));
     if (oldIndex < 0 || newIndex < 0) return;
 
     onReorder(arrayMove(simsNormalized, oldIndex, newIndex));
@@ -100,7 +125,7 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
         <span />
       </div>
 
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={simsNormalized.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <div className="sims-list rows">
             {simsNormalized.map((sim) => (
