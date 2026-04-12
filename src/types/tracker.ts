@@ -164,6 +164,9 @@ export interface FamilyTreeDisplayConfig {
   showAge: boolean;
   showLifeStage: boolean;
   showGeneration: boolean;
+
+  /** Compact mode: only render avatar + name on the node; other fields show on hover. */
+  compactNodes?: boolean;
 }
 
 export interface FamilyTreeFilterConfig {

@@ -986,6 +986,9 @@ body {
   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
 .ft-sim { display: flex; align-items: center; gap: 0.5rem; }
+.ft-sim.compact { padding: 0.45rem 0.55rem; min-width: 160px; }
+.ft-sim.compact .ft-meta { display: none; }
+.ft-sim.compact .ft-name { max-width: 120px; }
 .ft-avatar {
   width: 36px;
   height: 36px;
