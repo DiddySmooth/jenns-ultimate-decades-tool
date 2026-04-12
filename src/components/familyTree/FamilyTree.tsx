@@ -1,18 +1,15 @@
-import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { nanoid } from 'nanoid';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  type Node,
-  type Edge,
-  type OnNodesChange,
-  type OnEdgesChange,
   type ReactFlowInstance,
+  useEdgesState,
+  useNodesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { nanoid } from 'nanoid';
-import { useState } from 'react';
 import type { FamilyTreeState, SimEntry, UnionNode } from '../../types/tracker';
 import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
@@ -33,8 +30,33 @@ interface Props {
 }
 
 export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnionsChange, onSimsChange }: Props) {
-  const { nodes, edges } = useMemo(() => buildFamilyTree(sims, unions, saved), [sims, unions, saved]);
+  const built = useMemo(() => buildFamilyTree(sims, unions, saved), [sims, unions, saved]);
+
   const [rf, setRf] = useState<ReactFlowInstance | null>(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState(built.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(built.edges);
+
+  // When underlying sims/unions change, rebuild the graph.
+  useEffect(() => {
+    setNodes(built.nodes);
+    setEdges(built.edges);
+    // Try to bring something into view shortly after rebuild.
+    setTimeout(() => {
+      if (!rf) return;
+      if (built.nodes.length === 0) return;
+      rf.fitView({ padding: 0.2, duration: 250 });
+    }, 60);
+  }, [built.nodes, built.edges]);
+
+  // Persist node positions (only) back into save
+  const lastPosSig = useRef<string>('');
+  useEffect(() => {
+    const pos = nodes.map((n) => ({ id: n.id, type: (n.type as any) ?? 'sim', position: n.position }));
+    const sig = JSON.stringify(pos);
+    if (sig === lastPosSig.current) return;
+    lastPosSig.current = sig;
+    onSavedChange({ ...saved, nodes: pos, edges: saved.edges ?? [] });
+  }, [nodes]);
 
   // Console diagnostics (enabled in prod temporarily)
   const lastDiagRef = useRef<string>('');
@@ -65,22 +87,6 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
     }
   }, [sims, unions, nodes.length, edges.length]);
 
-  const onNodesChange: OnNodesChange = useCallback(
-    () => {
-      // Persist only positions for now
-      const nextNodes = nodes.map((n) => ({ id: n.id, type: n.type as any, position: n.position }));
-      onSavedChange({ ...saved, nodes: nextNodes, edges: saved.edges ?? [] });
-    },
-    [nodes, saved, onSavedChange]
-  );
-
-  const onEdgesChange: OnEdgesChange = useCallback(
-    () => {
-      // edges are auto-derived in MVP; no-op
-    },
-    []
-  );
-
   const simOptions = useMemo(
     () => sims.map((s) => ({ id: s.id, label: (s.firstName || s.name || s.id) + (s.lastName ? ` ${s.lastName}` : '') })),
     [sims]
@@ -106,12 +112,16 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
     return res;
   }, [sims, unions]);
 
+  const centerView = useCallback(() => {
+    rf?.fitView({ padding: 0.2, duration: 300 });
+  }, [rf]);
+
   return (
     <div className="family-tree">
       <div className="sheet-header">
         <h2>Family Tree</h2>
         <span className="field-hint">Drag nodes to arrange. Tree auto-populates from Sims Info.</span>
-        <button className="btn-secondary btn-sm" onClick={() => rf?.fitView({ padding: 0.2, duration: 300 })}>
+        <button className="btn-secondary btn-sm" onClick={centerView}>
           Center View
         </button>
       </div>
@@ -119,17 +129,16 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
       <div className="family-tree-layout">
         <div className="family-tree-canvas">
           <ReactFlow
-            nodes={nodes as Node[]}
-            edges={edges as Edge[]}
+            nodes={nodes}
+            edges={edges}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
-            minZoom={0.15}
+            minZoom={0.1}
             maxZoom={2}
-            fitView={nodes.length <= 60}
+            fitView
             fitViewOptions={{ padding: 0.2 }}
-            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           >
             <Background />
             <Controls />
