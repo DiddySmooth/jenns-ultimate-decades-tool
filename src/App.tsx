@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { nanoid } from 'nanoid';
 import SetupWizard from './components/setup/SetupWizard';
@@ -90,6 +90,9 @@ export default function App() {
   const { user, loading, googleReady, signIn, signOut } = useAuth();
   const { themeId, setThemeId } = useTheme();
   const [save, setSave] = useState<TrackerSave | null>(null);
+  // Mutable ref mirrors save — cell edits write here directly (zero re-render)
+  // React state is only updated for save scheduling and non-timeline changes
+  const saveRef = useRef<TrackerSave | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [tab, setTab] = useState<Tab>('timeline');
 
@@ -103,56 +106,71 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     setSaveLoading(true);
-    loadSave(user.sub).then((s) => { setSave(s); setSaveLoading(false); });
+    loadSave(user.sub).then((s) => {
+      setSave(s);
+      saveRef.current = s;
+      setSaveLoading(false);
+    });
   }, [user]);
 
-  // Update state instantly, schedule debounced blob write
+  // Full state update (triggers re-render) — for structural changes
   const updateSave = (updated: TrackerSave) => {
+    saveRef.current = updated;
     setSave(updated);
     schedule(updated);
   };
 
+  // Cell update — mutates ref directly, schedules save, NO re-render
+  const updateCell = useCallback((dayNumber: number, field: string, value: string) => {
+    const current = saveRef.current;
+    if (!current) return;
+    const day = current.timeline[dayNumber - 1];
+    if (!day) return;
+    let updatedDay;
+    if (field === 'deaths') updatedDay = { ...day, deaths: value };
+    else if (field === 'births') updatedDay = { ...day, births: value };
+    else updatedDay = { ...day, lifeStageCells: { ...day.lifeStageCells, [field]: value } };
+    // Mutate the timeline array in-place on the ref (no new array, no re-render)
+    const newTimeline = current.timeline.slice();
+    newTimeline[dayNumber - 1] = updatedDay;
+    const updated = { ...current, timeline: newTimeline };
+    saveRef.current = updated;
+    schedule(updated); // debounced blob write only
+  }, [schedule]);
+
   const markDay = (dayNumber: number) => {
-    if (!save) return;
-    const timeline = save.timeline.map((d) =>
+    const current = saveRef.current;
+    if (!current) return;
+    const timeline = current.timeline.map((d) =>
       d.dayNumber <= dayNumber ? { ...d, marked: true } : d
     );
-    updateSave({ ...save, timeline, currentDay: dayNumber + 1 });
+    updateSave({ ...current, timeline, currentDay: dayNumber + 1 });
   };
 
   const addEvent = (dayNumber: number, event: TimelineEvent) => {
-    if (!save) return;
-    const timeline = save.timeline.map((d) =>
+    const current = saveRef.current;
+    if (!current) return;
+    const timeline = current.timeline.map((d) =>
       d.dayNumber === dayNumber ? { ...d, events: [...d.events, event] } : d
     );
-    updateSave({ ...save, timeline });
-  };
-
-  const updateCell = (dayNumber: number, field: string, value: string) => {
-    if (!save) return;
-    const timeline = save.timeline.map((d) => {
-      if (d.dayNumber !== dayNumber) return d;
-      if (field === 'deaths') return { ...d, deaths: value };
-      if (field === 'births') return { ...d, births: value };
-      return { ...d, lifeStageCells: { ...d.lifeStageCells, [field]: value } };
-    });
-    updateSave({ ...save, timeline });
+    updateSave({ ...current, timeline });
   };
 
   const addCustomColumn = (label: string) => {
-    if (!save) return;
+    const current = saveRef.current;
+    if (!current) return;
     updateSave({
-      ...save,
+      ...current,
       config: {
-        ...save.config,
-        customColumns: [...(save.config.customColumns ?? []), { id: nanoid(), label }],
+        ...current.config,
+        customColumns: [...(current.config.customColumns ?? []), { id: nanoid(), label }],
       },
     });
   };
 
-  const addSim = (sim: SimEntry) => { if (save) updateSave({ ...save, sims: [...save.sims, sim] }); };
-  const updateSim = (sim: SimEntry) => { if (save) updateSave({ ...save, sims: save.sims.map((s) => s.id === sim.id ? sim : s) }); };
-  const deleteSim = (id: string) => { if (save) updateSave({ ...save, sims: save.sims.filter((s) => s.id !== id) }); };
+  const addSim = (sim: SimEntry) => { const c = saveRef.current; if (c) updateSave({ ...c, sims: [...c.sims, sim] }); };
+  const updateSim = (sim: SimEntry) => { const c = saveRef.current; if (c) updateSave({ ...c, sims: c.sims.map((s) => s.id === sim.id ? sim : s) }); };
+  const deleteSim = (id: string) => { const c = saveRef.current; if (c) updateSave({ ...c, sims: c.sims.filter((s) => s.id !== id) }); };
 
   if (loading || saveLoading) {
     return <div className="loading-screen"><p>Loading…</p></div>;
@@ -185,7 +203,7 @@ export default function App() {
           <h1>Jenn's Ultimate Decades Tool</h1>
           <p>Let's set up your tracker.</p>
         </div>
-        <SetupWizard onComplete={(s) => updateSave(s)} />
+        <SetupWizard onComplete={(s) => { saveRef.current = s; updateSave(s); }} />
       </div>
     );
   }
