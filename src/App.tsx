@@ -6,6 +6,7 @@ import TimelineView from './components/timeline/TimelineView';
 import SimsSheet from './components/sims/SimsSheet';
 import AgingReference from './components/aging/AgingReference';
 import ThemePicker from './components/ThemePicker';
+import ColumnLabelEditor from './components/ColumnLabelEditor';
 import { useDebouncedSave } from './hooks/useDebouncedSave';
 import { useTheme } from './hooks/useTheme';
 import type { TrackerSave, SimEntry, TimelineEvent } from './types/tracker';
@@ -250,6 +251,47 @@ export default function App() {
         {tab === 'settings' && (
           <div className="settings-page">
             <h2>Settings</h2>
+            <section className="settings-section">
+              <h3>Timeline Columns</h3>
+              <ColumnLabelEditor
+                config={save.config}
+                onRename={(scope, newLabel) => {
+                  const current = saveRef.current;
+                  if (!current) return;
+
+                  if (scope.kind === 'human') {
+                    const humanAging = {
+                      ...current.config.humanAging,
+                      lifeStages: current.config.humanAging.lifeStages.map((ls) =>
+                        ls.id === scope.stageId ? { ...ls, name: newLabel } : ls
+                      ),
+                    };
+                    updateSave({
+                      ...current,
+                      config: { ...current.config, humanAging },
+                    });
+                    return;
+                  }
+
+                  if (scope.kind === 'pet') {
+                    const pets = current.config.pets.map((pet) => {
+                      if (String(pet.type) !== String(scope.type)) return pet;
+                      return {
+                        ...pet,
+                        lifeStages: pet.lifeStages.map((ls) =>
+                          ls.id === scope.stageId ? { ...ls, name: newLabel } : ls
+                        ),
+                      };
+                    });
+                    updateSave({
+                      ...current,
+                      config: { ...current.config, pets },
+                    });
+                  }
+                }}
+              />
+            </section>
+
             <section className="settings-section">
               <h3>Account</h3>
               <p className="settings-meta">Signed in as <strong>{user.email}</strong></p>

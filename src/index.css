@@ -603,3 +603,21 @@ body {
   color: var(--color-text);
   cursor: pointer;
 }
+
+/* ── Column label editor ── */
+.col-editor { }
+.col-group { margin-bottom: 1.5rem; }
+.col-group h4 { margin: 0 0 0.5rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); }
+.col-group-grid { display: flex; flex-direction: column; gap: 0.35rem; }
+.col-row { display: grid; grid-template-columns: 140px 1fr; gap: 0.6rem; align-items: center; }
+.col-id { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-label-input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+.col-label-input:focus { outline: 2px solid var(--color-accent); outline-offset: 0; border-color: transparent; }
