@@ -775,6 +775,19 @@ body {
 
 /* ── Save status ── */
 .save-status { font-size: 0.75rem; color: var(--color-text-muted); margin-left: auto; }
+.save-switcher { display: inline-flex; gap: 0.5rem; align-items: center; }
+.save-select {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  max-width: 220px;
+}
+@media (max-width: 700px) {
+  .save-switcher { display: none; }
+}
 
 /* ── Theme picker compact (top bar) ── */
 .theme-picker-compact {

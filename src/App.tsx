@@ -63,25 +63,25 @@ function useAuth() {
   return { user, loading, googleReady, signIn, signOut };
 }
 
-async function loadSave(userId: string): Promise<TrackerSave | null> {
+async function loadSave(userId: string, saveId: string): Promise<TrackerSave | null> {
   if (import.meta.env.DEV) {
-    const raw = localStorage.getItem(DEV_STORAGE_KEY);
+    const raw = localStorage.getItem(`${DEV_STORAGE_KEY}:${saveId}`);
     return raw ? JSON.parse(raw) : null;
   }
   try {
-    const r = await fetch(`/api/getSave?userId=${userId}`);
+    const r = await fetch(`/api/getSave?userId=${userId}&saveId=${encodeURIComponent(saveId)}`);
     if (r.status === 404) return null;
     if (!r.ok) throw new Error('Failed to load save');
     return r.json();
   } catch { return null; }
 }
 
-async function persistSave(save: TrackerSave, userId: string): Promise<void> {
+async function persistSave(save: TrackerSave, userId: string, saveId: string): Promise<void> {
   if (import.meta.env.DEV) {
-    localStorage.setItem(DEV_STORAGE_KEY, JSON.stringify(save));
+    localStorage.setItem(`${DEV_STORAGE_KEY}:${saveId}`, JSON.stringify(save));
     return;
   }
-  await fetch(`/api/putSave?userId=${userId}`, {
+  await fetch(`/api/putSave?userId=${userId}&saveId=${encodeURIComponent(saveId)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(save),
@@ -91,6 +91,10 @@ async function persistSave(save: TrackerSave, userId: string): Promise<void> {
 export default function App() {
   const { user, loading, googleReady, signIn, signOut } = useAuth();
   const { themeId, setThemeId } = useTheme();
+
+  const [saveId, setSaveId] = useState(() => localStorage.getItem('judt_saveId') ?? 'default');
+  const [availableSaves, setAvailableSaves] = useState<{ id: string; label: string }[]>([{ id: 'default', label: 'Default' }]);
+
   const [save, setSave] = useState<TrackerSave | null>(null);
   // Mutable ref mirrors save — cell edits write here directly (zero re-render)
   // React state is only updated for save scheduling and non-timeline changes
@@ -107,8 +111,8 @@ export default function App() {
 
   // Build a stable persist function bound to the current user
   const persistFn = useCallback(
-    (s: TrackerSave) => persistSave(s, user?.sub ?? ''),
-    [user?.sub]
+    (s: TrackerSave) => persistSave(s, user?.sub ?? '', saveId),
+    [user?.sub, saveId]
   );
   const { schedule, flush, saving } = useDebouncedSave(persistFn);
   const [showSavedToast, setShowSavedToast] = useState(false);
@@ -123,14 +127,47 @@ export default function App() {
   }, [saving]);
 
   useEffect(() => {
+    localStorage.setItem('judt_saveId', saveId);
+  }, [saveId]);
+
+  async function refreshSaveList(userId: string) {
+    try {
+      const r = await fetch(`/api/listSaves?userId=${userId}`);
+      if (!r.ok) throw new Error('failed');
+      const data = await r.json();
+      const ids: { id: string; label: string }[] = [];
+
+      for (const s of data.saves ?? []) {
+        const key: string = s.key;
+        // userId/saves/<id>.json
+        const m = key.match(/\/saves\/(.+)\.json$/);
+        if (m) ids.push({ id: m[1], label: m[1] });
+        // legacy userId/tracker.json
+        if (key.endsWith('/tracker.json')) ids.push({ id: 'default', label: 'Default' });
+      }
+
+      const unique = new Map(ids.map((x) => [x.id, x]));
+      if (!unique.has('default')) unique.set('default', { id: 'default', label: 'Default' });
+      setAvailableSaves(Array.from(unique.values()));
+    } catch {
+      setAvailableSaves([{ id: 'default', label: 'Default' }]);
+    }
+  }
+
+  useEffect(() => {
+    if (!user) return;
+    refreshSaveList(user.sub);
+  }, [user]);
+
+  useEffect(() => {
     if (!user) return;
     setSaveLoading(true);
-    loadSave(user.sub).then((s) => {
+    loadSave(user.sub, saveId).then((s) => {
       setSave(s);
       saveRef.current = s;
       setSaveLoading(false);
     });
-  }, [user]);
+  }, [user, saveId]);
 
   // Full state update (triggers re-render) — for structural changes
   const updateSave = (updated: TrackerSave) => {
@@ -263,6 +300,32 @@ export default function App() {
             Started {save.config.startYear} · Current Day {save.currentDay}
           </span>
           <span className="save-status">{saving ? 'Saving…' : '✓ Saved'}</span>
+
+          <div className="save-switcher">
+            <select
+              className="save-select"
+              value={saveId}
+              onChange={(e) => setSaveId(e.target.value)}
+              title="Switch save"
+            >
+              {availableSaves.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() => {
+                const id = `save-${new Date().toISOString().slice(0,10)}-${Math.random().toString(16).slice(2,6)}`;
+                setAvailableSaves((s) => (s.find((x) => x.id === id) ? s : [...s, { id, label: id }]));
+                setSaveId(id);
+                setSave(null);
+              }}
+              title="Create a new save"
+            >
+              + New Save
+            </button>
+          </div>
+
           <ThemePicker current={themeId} onChange={setThemeId} compact />
           <span className="user-info">{user.email}</span>
           <button className="btn-ghost btn-sm" onClick={() => { flush(); signOut(); }}>Sign out</button>

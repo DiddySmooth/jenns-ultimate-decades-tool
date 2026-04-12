@@ -2,16 +2,18 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 
 const CONTAINER = 'decades-saves';
 
-function getBlobClient(userId) {
+function getBlobClient(userId, saveId) {
   const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
   if (!connStr) throw new Error('AZURE_STORAGE_CONNECTION_STRING not set');
   const blobService = BlobServiceClient.fromConnectionString(connStr);
   const container = blobService.getContainerClient(CONTAINER);
-  return container.getBlockBlobClient(`${userId}/tracker.json`);
+  const sid = (saveId || 'default').toString();
+  return container.getBlockBlobClient(`${userId}/saves/${sid}.json`);
 }
 
 module.exports = async function (context, req) {
   const userId = req.query.userId;
+  const saveId = req.query.saveId;
   if (!userId) {
     context.res = { status: 400, body: 'Missing userId' };
     return;
@@ -21,7 +23,7 @@ module.exports = async function (context, req) {
     const bodyStr = req.rawBody || JSON.stringify(req.body);
     JSON.parse(bodyStr); // validate
 
-    const blobClient = getBlobClient(userId);
+    const blobClient = getBlobClient(userId, saveId);
     await blobClient.upload(bodyStr, Buffer.byteLength(bodyStr), {
       blobHTTPHeaders: { blobContentType: 'application/json' },
       overwrite: true,
