@@ -172,9 +172,15 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
                       }}
                     >
                       <option value="">— select union —</option>
-                      {cand.map((u) => (
-                        <option key={u.id} value={u.id}>{u.id}</option>
-                      ))}
+                      {cand.map((u) => {
+                        const a = simOptions.find((s) => s.id === u.partnerAId)?.label ?? '—';
+                        const b = simOptions.find((s) => s.id === u.partnerBId)?.label ?? '—';
+                        const range = `${u.startYear ?? '?'}–${u.endYear ?? 'present'}`;
+                        const label = `${a} + ${b} (${range})`;
+                        return (
+                          <option key={u.id} value={u.id}>{label}</option>
+                        );
+                      })}
                     </select>
                   </div>
                 ))}
