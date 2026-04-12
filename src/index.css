@@ -465,6 +465,7 @@ body {
   margin-bottom: 0.5rem;
   gap: 1rem;
 }
+.timeline-actions { display: inline-flex; gap: 0.5rem; align-items: center; }
 .timeline-hint { font-size: 0.78rem; color: var(--color-text-muted); }
 .add-col-bar {
   display: flex;

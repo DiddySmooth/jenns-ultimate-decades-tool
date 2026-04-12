@@ -7,6 +7,7 @@ interface Props {
   config: TrackerConfig;
   currentDay: number;
   onMarkDay: (dayNumber: number) => void;
+  onNextDay: () => void;
   onAddEvent: (dayNumber: number, event: TimelineEvent) => void;
   onUpdateCell: (dayNumber: number, field: string, value: string) => void;
   onAddCustomColumn: (label: string) => void;
@@ -119,7 +120,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, lifeSt
   );
 });
 
-export default function TimelineView({ timeline, config, currentDay, onMarkDay, onAddEvent, onUpdateCell, onAddCustomColumn }: Props) {
+export default function TimelineView({ timeline, config, currentDay, onMarkDay, onNextDay, onAddEvent, onUpdateCell, onAddCustomColumn }: Props) {
   const [addColMode, setAddColMode] = useState(false);
   const [newColLabel, setNewColLabel] = useState('');
   const [activeRow, setActiveRow] = useState<number | null>(null);
@@ -137,8 +138,13 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
   return (
     <div className="timeline-view">
       <div className="timeline-toolbar">
-        <span className="timeline-hint">Click any cell to edit · Click Day # to mark passed</span>
-        <button className="btn-secondary btn-sm" onClick={() => setAddColMode(true)}>+ Add Column</button>
+        <span className="timeline-hint">Click any cell to edit · Click Day # to change current day</span>
+        <div className="timeline-actions">
+          <button className="btn-secondary btn-sm" onClick={onNextDay} title="Complete current day and advance">
+            Next Day →
+          </button>
+          <button className="btn-secondary btn-sm" onClick={() => setAddColMode(true)}>+ Add Column</button>
+        </div>
       </div>
 
       {addColMode && (

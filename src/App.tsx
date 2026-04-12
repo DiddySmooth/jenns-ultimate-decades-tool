@@ -165,6 +165,10 @@ export default function App() {
     loadSave(user.sub, saveId).then((s) => {
       setSave(s);
       saveRef.current = s;
+      // Update dropdown label from the tracker name (if present)
+      if (s?.config?.name) {
+        setAvailableSaves((prev) => prev.map((x) => (x.id === saveId ? { ...x, label: s.config.name } : x)));
+      }
       setSaveLoading(false);
     });
   }, [user, saveId]);
@@ -306,7 +310,7 @@ export default function App() {
               className="save-select"
               value={saveId}
               onChange={(e) => setSaveId(e.target.value)}
-              title="Switch save"
+              title="Switch tracker"
             >
               {availableSaves.map((s) => (
                 <option key={s.id} value={s.id}>{s.label}</option>
@@ -315,16 +319,15 @@ export default function App() {
             <button
               className="btn-secondary btn-sm"
               onClick={() => {
-                const id = `save-${new Date().toISOString().slice(0,10)}-${Math.random().toString(16).slice(2,6)}`;
-                setAvailableSaves((s) => (s.find((x) => x.id === id) ? s : [...s, { id, label: id }]));
-                // Switch to new save and force wizard (fresh json)
+                const id = `tracker-${new Date().toISOString().slice(0,10)}-${Math.random().toString(16).slice(2,6)}`;
+                setAvailableSaves((s) => (s.find((x) => x.id === id) ? s : [...s, { id, label: 'New Tracker' }]));
                 setSaveId(id);
                 saveRef.current = null;
                 setSave(null);
               }}
-              title="Create a new save"
+              title="Create a new tracker"
             >
-              + New Save
+              + New Tracker
             </button>
           </div>
 
@@ -347,6 +350,7 @@ export default function App() {
             config={save.config}
             currentDay={save.currentDay}
             onMarkDay={markDay}
+            onNextDay={() => markDay(save.currentDay)}
             onAddEvent={addEvent}
             onUpdateCell={updateCell}
             onAddCustomColumn={addCustomColumn}
@@ -373,6 +377,26 @@ export default function App() {
         {tab === 'settings' && (
           <div className="settings-page">
             <h2>Settings</h2>
+
+            <section className="settings-section">
+              <h3>Tracker</h3>
+              <div className="field-group">
+                <label>Tracker Name</label>
+                <input
+                  type="text"
+                  value={save.config.name}
+                  onChange={(e) => {
+                    const current = saveRef.current;
+                    if (!current) return;
+                    const name = e.target.value;
+                    const updated = { ...current, config: { ...current.config, name } };
+                    updateSave(updated);
+                    setAvailableSaves((prev) => prev.map((x) => (x.id === saveId ? { ...x, label: name || x.id } : x)));
+                  }}
+                />
+              </div>
+            </section>
+
             <section className="settings-section">
               <h3>Timeline Columns</h3>
               <ColumnLabelEditor
