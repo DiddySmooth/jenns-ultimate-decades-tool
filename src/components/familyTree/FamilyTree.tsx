@@ -14,6 +14,8 @@ import type { FamilyTreeState, SimEntry, UnionNode } from '../../types/tracker';
 import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
 import { buildFamilyTree } from './familyTreeBuild';
+import { deriveUnionsFromSims } from './deriveUnions';
+import { autoLayoutFamilyTree } from './autoLayout';
 
 const nodeTypes = {
   sim: SimNode,
@@ -121,9 +123,39 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
       <div className="sheet-header">
         <h2>Family Tree</h2>
         <span className="field-hint">Drag nodes to arrange. Tree auto-populates from Sims Info.</span>
-        <button className="btn-secondary btn-sm" onClick={centerView}>
-          Center View
-        </button>
+        <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            className="btn-secondary btn-sm"
+            onClick={() => {
+              // 1) derive unions automatically from sims
+              const derived = deriveUnionsFromSims(sims, unions);
+              onUnionsChange(derived.unions);
+              onSimsChange(derived.sims);
+            }}
+            title="Auto-create unions from Sims info"
+          >
+            Auto-link
+          </button>
+          <button
+            className="btn-secondary btn-sm"
+            onClick={() => {
+              // 2) basic auto-layout (positions)
+              const state = {
+                nodes: nodes.map((n) => ({ id: n.id, type: (n.type as any) ?? 'sim', position: n.position })),
+                edges: saved.edges ?? [],
+              };
+              const next = autoLayoutFamilyTree(state);
+              onSavedChange(next);
+              setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
+            }}
+            title="Auto-arrange nodes"
+          >
+            Auto-arrange
+          </button>
+          <button className="btn-secondary btn-sm" onClick={centerView}>
+            Center View
+          </button>
+        </div>
       </div>
 
       <div className="family-tree-layout">
