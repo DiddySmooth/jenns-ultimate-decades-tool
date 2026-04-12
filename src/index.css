@@ -170,6 +170,21 @@
   --color-swatch: #355834;
 }
 
+/* ── Twilight Rose (from palette) ── */
+:root[data-theme='twilight-rose'] {
+  --color-bg: #190e4f;          /* deep twilight */
+  --color-surface: #140b3f;
+  --color-border: rgba(234, 99, 140, 0.28); /* blush rose */
+  --color-text: #fff6fb;
+  --color-text-muted: rgba(255, 246, 251, 0.72);
+  --color-accent: #ea638c;      /* blush rose */
+  --color-accent-hover: #b33c86;/* raspberry plum */
+  --color-danger: #b33c86;
+  --color-past: #160a45;
+  --color-current: #23105d;
+  --color-swatch: #ea638c;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
@@ -780,6 +795,7 @@ body {
 [data-theme-preview='amaranth-sun'] .theme-chip-swatch { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
 [data-theme-preview='tropical-mauve'] .theme-chip-swatch { background: linear-gradient(135deg, #51a3a3 0%, #dfcc74 55%, #c3e991 100%); }
 [data-theme-preview='evergreen-fawn'] .theme-chip-swatch { background: linear-gradient(135deg, #14281d 0%, #355834 55%, #c2a878 100%); }
+[data-theme-preview='twilight-rose'] .theme-chip-swatch { background: linear-gradient(135deg, #190e4f 0%, #b33c86 55%, #ea638c 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
@@ -829,6 +845,7 @@ body {
 [data-theme-preview='amaranth-sun'].theme-swatch-dot { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
 [data-theme-preview='tropical-mauve'].theme-swatch-dot { background: linear-gradient(135deg, #51a3a3 0%, #dfcc74 55%, #c3e991 100%); }
 [data-theme-preview='evergreen-fawn'].theme-swatch-dot { background: linear-gradient(135deg, #14281d 0%, #355834 55%, #c2a878 100%); }
+[data-theme-preview='twilight-rose'].theme-swatch-dot { background: linear-gradient(135deg, #190e4f 0%, #b33c86 55%, #ea638c 100%); }
 .theme-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.4rem;

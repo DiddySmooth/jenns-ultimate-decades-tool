@@ -62,6 +62,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Evergreen Fawn',
     description: 'Evergreen, hunter green, olive bark, soft fawn',
   },
+  {
+    id: 'twilight-rose',
+    label: 'Twilight Rose',
+    description: 'Blush rose, raspberry plum, deep twilight',
+  },
 ];
 
 export type ThemeId = string;
