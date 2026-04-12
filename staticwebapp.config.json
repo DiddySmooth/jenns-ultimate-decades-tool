@@ -9,11 +9,28 @@
       "allowedRoles": ["anonymous"]
     },
     {
-      "route": "/*",
-      "serve": "/index.html",
-      "statusCode": 200
+      "route": "/assets/*",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/*.js",
+      "headers": {
+        "Content-Type": "text/javascript"
+      }
+    },
+    {
+      "route": "/*.css",
+      "headers": {
+        "Content-Type": "text/css"
+      }
     }
   ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/*.js", "/*.css", "/*.svg", "/*.ico", "/*.png", "/*.json"]
+  },
   "auth": {
     "identityProviders": {
       "google": {
@@ -23,6 +40,14 @@
         }
       }
     }
+  },
+  "mimeTypes": {
+    ".js": "text/javascript",
+    ".mjs": "text/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".wasm": "application/wasm"
   },
   "globalHeaders": {
     "Cache-Control": "no-store"
