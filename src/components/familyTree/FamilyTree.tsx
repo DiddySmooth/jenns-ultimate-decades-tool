@@ -104,12 +104,17 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         const aw = typeof aBox === 'number' && aBox > 0 ? aBox : SIM_W;
         const bw = typeof bBox === 'number' && bBox > 0 ? bBox : SIM_W;
 
-        const ax = a.x + aw / 2;
-        const bx = b.x + bw / 2;
-        const ay = a.y + SIM_H / 2;
-        const by = b.y + SIM_H / 2;
+        // Center union on the *marriage line midpoint* (handles are on spouse-out/right and spouse-in/left).
+        // Using node centers can appear biased when node widths differ.
+        const left = a.x <= b.x ? { p: a, w: aw } : { p: b, w: bw };
+        const right = a.x <= b.x ? { p: b, w: bw } : { p: a, w: aw };
 
-        const midX = (ax + bx) / 2;
+        const leftEndX = left.p.x + left.w; // right edge of left node
+        const rightEndX = right.p.x;        // left edge of right node
+        const midX = (leftEndX + rightEndX) / 2;
+
+        const ay = left.p.y + SIM_H / 2;
+        const by = right.p.y + SIM_H / 2;
         const lineY = (ay + by) / 2;
 
         const pos = { x: midX - UNION_W / 2, y: lineY - UNION_H / 2 };
