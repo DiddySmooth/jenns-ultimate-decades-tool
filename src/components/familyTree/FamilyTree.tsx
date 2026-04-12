@@ -77,7 +77,9 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
   // Keep union nodes centered on the marriage line while dragging.
   useEffect(() => {
+    const SIM_W = 160;
     const SIM_H = 56;
+    const UNION_W = 26;
     const UNION_H = 26;
 
     setNodes((cur) => {
@@ -96,9 +98,15 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         const b = simPos.get(`sim:${u.partnerBId}`);
         if (!a || !b) return n;
 
-        const midX = (a.x + b.x) / 2;
-        const lineY = (a.y + b.y) / 2 + SIM_H / 2;
-        const pos = { x: midX, y: lineY - UNION_H / 2 };
+        const ax = a.x + SIM_W / 2;
+        const bx = b.x + SIM_W / 2;
+        const ay = a.y + SIM_H / 2;
+        const by = b.y + SIM_H / 2;
+
+        const midX = (ax + bx) / 2;
+        const lineY = (ay + by) / 2;
+
+        const pos = { x: midX - UNION_W / 2, y: lineY - UNION_H / 2 };
 
         if (Math.abs(n.position.x - pos.x) < 0.5 && Math.abs(n.position.y - pos.y) < 0.5) return n;
         changed = true;
@@ -107,7 +115,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
       return changed ? next : cur;
     });
-  }, [nodes.length, unions, setNodes]);
+  }, [nodes, unions, setNodes]);
 
   // Persist node positions (only) back into save
   const lastPosSig = useRef<string>('');
