@@ -98,8 +98,14 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         const b = simPos.get(`sim:${u.partnerBId}`);
         if (!a || !b) return n;
 
-        const ax = a.x + SIM_W / 2;
-        const bx = b.x + SIM_W / 2;
+        // ReactFlow position is top-left; for true centering we need actual node widths.
+        const aBox = rf?.getNode(`sim:${u.partnerAId}`)?.width;
+        const bBox = rf?.getNode(`sim:${u.partnerBId}`)?.width;
+        const aw = typeof aBox === 'number' && aBox > 0 ? aBox : SIM_W;
+        const bw = typeof bBox === 'number' && bBox > 0 ? bBox : SIM_W;
+
+        const ax = a.x + aw / 2;
+        const bx = b.x + bw / 2;
         const ay = a.y + SIM_H / 2;
         const by = b.y + SIM_H / 2;
 
@@ -115,7 +121,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
       return changed ? next : cur;
     });
-  }, [nodes, unions, setNodes]);
+  }, [nodes, unions, setNodes, rf]);
 
   // Persist node positions (only) back into save
   const lastPosSig = useRef<string>('');
