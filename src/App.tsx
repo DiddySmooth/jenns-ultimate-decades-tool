@@ -20,7 +20,14 @@ const GOOGLE_CLIENT_ID = '106970576831-dbrfg4aqshbcqpq9m6fi3sr2itg0v4a6.apps.goo
 const DEV_STORAGE_KEY = 'judt_dev_save';
 const AUTH_KEY = 'judt_user';
 
-declare const google: any;
+type GoogleAccounts = {
+  id: {
+    initialize: (opts: { client_id: string; callback: (response: { credential: string }) => void }) => void;
+    prompt: () => void;
+  };
+};
+
+declare const google: { accounts: GoogleAccounts } | undefined;
 
 interface GoogleUser {
   sub: string;
@@ -34,10 +41,9 @@ function useAuth() {
     const stored = localStorage.getItem(AUTH_KEY);
     return stored ? JSON.parse(stored) : null;
   });
-  const [loading, setLoading] = useState(true);
   const [googleReady, setGoogleReady] = useState(false);
 
-  useEffect(() => { setLoading(false); }, []);
+  const loading = false;
 
   useEffect(() => {
     if (user) return;
@@ -46,7 +52,7 @@ function useAuth() {
         setGoogleReady(true);
         google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
-          callback: (response: any) => {
+          callback: (response: { credential: string }) => {
             const decoded = jwtDecode<GoogleUser>(response.credential);
             localStorage.setItem(AUTH_KEY, JSON.stringify(decoded));
             setUser(decoded);
@@ -59,7 +65,7 @@ function useAuth() {
     check();
   }, [user]);
 
-  const signIn = () => { if (typeof google !== 'undefined') google.accounts.id.prompt(); };
+  const signIn = () => { if (google) google.accounts.id.prompt(); };
   const signOut = () => { localStorage.removeItem(AUTH_KEY); setUser(null); };
 
   return { user, loading, googleReady, signIn, signOut };

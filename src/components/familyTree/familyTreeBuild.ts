@@ -73,22 +73,35 @@ export function buildFamilyTree(
   });
 
   // Unions
+  const SIM_H = 56;
+  const UNION_H = 26;
+
   unions.forEach((u, idx) => {
     const id = `union:${u.id}`;
 
-    // Default union position: use saved position, otherwise place near the midpoint of partners if possible.
+    // Default union position: use saved position, otherwise place at the midpoint of partners.
+    // We keep the union dot sitting ON the marriage line (center Y of sim nodes).
     const fallbackPos = (() => {
       const a = u.partnerAId ? savedPos.get(`sim:${u.partnerAId}`) : null;
       const b = u.partnerBId ? savedPos.get(`sim:${u.partnerBId}`) : null;
-      if (a && b) return { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) + 60 };
+      if (a && b) {
+        const midX = (a.x + b.x) / 2;
+        const lineY = (a.y + b.y) / 2 + SIM_H / 2;
+        return { x: midX, y: lineY - UNION_H / 2 };
+      }
       return { x: 180 + (idx % 5) * 220, y: 100 + Math.floor(idx / 5) * 140 };
     })();
+
+    const hasPartners = !!(u.partnerAId && u.partnerBId);
 
     nodes.push({
       id,
       type: 'union',
       data: { union: u },
-      position: savedPos.get(id) ?? fallbackPos,
+      // If a union has partners, always compute midpoint (ignore saved) so it stays centered.
+      position: hasPartners ? fallbackPos : (savedPos.get(id) ?? fallbackPos),
+      draggable: false,
+      selectable: false,
     });
 
     // Marriage edge drawn directly between partners (union node is used as child anchor)

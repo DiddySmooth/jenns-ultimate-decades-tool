@@ -1,6 +1,6 @@
 import type { NodeProps } from 'reactflow';
 import { Handle, Position } from 'reactflow';
-import type { FamilyTreeConfig, SimEntry, TrackerConfig } from '../../types/tracker';
+import type { AvatarCrop, FamilyTreeConfig, SimEntry, TrackerConfig } from '../../types/tracker';
 import { computeLifeStage, getFullName } from '../../utils/lifeStage';
 import { computeAgeYears, formatYear, getBirthYear, getDeathYear } from '../../utils/simDates';
 
@@ -12,6 +12,7 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
 
   const name = getFullName(sim);
   const avatar = sim.avatarUrl;
+  const crop = sim.avatarCrop as AvatarCrop | undefined;
 
   const stage = computeLifeStage(sim, trackerConfig, currentDay);
   const age = computeAgeYears(sim, trackerConfig, currentDay);
@@ -33,7 +34,23 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
       <Handle type="target" position={Position.Left} id="spouse-in" />
 
       <div className={`ft-avatar ${avatarClass}`}>
-        {avatar ? <img src={avatar} alt={name} /> : <div className="ft-avatar-fallback">{name.slice(0, 1).toUpperCase()}</div>}
+        {avatar ? (
+          crop ? (
+            <div
+              className="ft-avatar-cropped"
+              style={{
+                backgroundImage: `url(${avatar})`,
+                backgroundPosition: `${crop.x ?? 50}% ${crop.y ?? 50}%`,
+                backgroundSize: `${(crop.zoom ?? 1) * 100}% ${(crop.zoom ?? 1) * 100}%`,
+              }}
+              aria-label={name}
+            />
+          ) : (
+            <img src={avatar} alt={name} />
+          )
+        ) : (
+          <div className="ft-avatar-fallback">{name.slice(0, 1).toUpperCase()}</div>
+        )}
       </div>
       <div className="ft-name" title={name}>{name}</div>
       <div className="ft-meta">
