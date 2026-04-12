@@ -135,6 +135,10 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              style: { stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 },
+            }}
             minZoom={0.1}
             maxZoom={2}
             fitView

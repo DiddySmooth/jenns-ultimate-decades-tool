@@ -1001,6 +1001,30 @@ body {
 .ft-union { padding: 0; min-width: auto; border-radius: 999px; box-shadow: none; }
 .ft-union-dot { width: 14px; height: 14px; border-radius: 999px; background: var(--color-accent); border: 2px solid var(--color-surface); box-shadow: 0 0 0 1px var(--color-border); }
 
+/* ReactFlow handle styling */
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--color-surface);
+  background: var(--color-accent);
+}
+.react-flow__edge-path { stroke: rgba(0,0,0,0.35); }
+:root[data-theme='dark'] .react-flow__edge-path,
+:root[data-theme='berry-jungle'] .react-flow__edge-path,
+:root[data-theme='amaranth-sun'] .react-flow__edge-path,
+:root[data-theme='evergreen-fawn'] .react-flow__edge-path,
+:root[data-theme='twilight-rose'] .react-flow__edge-path {
+  stroke: rgba(255,255,255,0.35);
+}
+:root[data-theme='dark'] .react-flow__handle,
+:root[data-theme='berry-jungle'] .react-flow__handle,
+:root[data-theme='amaranth-sun'] .react-flow__handle,
+:root[data-theme='evergreen-fawn'] .react-flow__handle,
+:root[data-theme='twilight-rose'] .react-flow__handle {
+  border-color: rgba(255,255,255,0.55);
+}
+
+
 /* Sims avatar upload */
 .avatar-upload-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
 .avatar-preview {

@@ -33,10 +33,10 @@ export function buildFamilyTree(
     });
 
     if (u.partnerAId) {
-      edges.push({ id: `e:${id}:a`, source: `sim:${u.partnerAId}`, target: id, type: 'partner' });
+      edges.push({ id: `e:${id}:a`, source: `sim:${u.partnerAId}`, target: id, type: 'smoothstep' });
     }
     if (u.partnerBId) {
-      edges.push({ id: `e:${id}:b`, source: `sim:${u.partnerBId}`, target: id, type: 'partner' });
+      edges.push({ id: `e:${id}:b`, source: `sim:${u.partnerBId}`, target: id, type: 'smoothstep' });
     }
   });
 
@@ -59,7 +59,7 @@ export function buildFamilyTree(
     // If explicitly assigned, connect that union
     if (child.birthUnionId) {
       const unionNode = `union:${child.birthUnionId}`;
-      edges.push({ id: `e:${unionNode}->${childNode}`, source: unionNode, target: childNode, type: 'parent' });
+      edges.push({ id: `e:${unionNode}->${childNode}`, source: unionNode, target: childNode, type: 'smoothstep' });
       return;
     }
 
@@ -84,17 +84,17 @@ export function buildFamilyTree(
       })();
 
       if (pick) {
-        edges.push({ id: `e:union:${pick.id}->${childNode}`, source: `union:${pick.id}`, target: childNode, type: 'parent' });
+        edges.push({ id: `e:union:${pick.id}->${childNode}`, source: `union:${pick.id}`, target: childNode, type: 'smoothstep' });
       } else {
         // fallback direct parent edges
-        edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'parent' });
-        edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'parent' });
+        edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'smoothstep' });
+        edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'smoothstep' });
       }
       return;
     }
 
-    if (f) edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'parent' });
-    if (m) edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'parent' });
+    if (f) edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'smoothstep' });
+    if (m) edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'smoothstep' });
   });
 
   return { nodes, edges };
