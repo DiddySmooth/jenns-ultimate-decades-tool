@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
 import SetupWizard from './components/setup/SetupWizard';
 import TimelineView from './components/timeline/TimelineView';
 import SimsSheet from './components/sims/SimsSheet';
@@ -7,39 +8,74 @@ import type { TrackerSave, SimEntry, TimelineEvent } from './types/tracker';
 
 type Tab = 'timeline' | 'sims' | 'aging';
 
-interface AuthUser {
-  userId: string;
-  userDetails: string;
-  identityProvider: string;
+const GOOGLE_CLIENT_ID = '106970576831-dbrfg4aqshbcqpq9m6fi3sr2itg0v4a6.apps.googleusercontent.com';
+const DEV_STORAGE_KEY = 'judt_dev_save';
+const AUTH_KEY = 'judt_user';
+
+declare const google: any;
+
+interface GoogleUser {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
 }
 
 function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<GoogleUser | null>(() => {
+    const stored = localStorage.getItem(AUTH_KEY);
+    return stored ? JSON.parse(stored) : null;
+  });
   const [loading, setLoading] = useState(true);
+  const btnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/.auth/me')
-      .then((r) => r.json())
-      .then((data) => {
-        const principal = data?.clientPrincipal;
-        if (principal) setUser(principal);
-      })
-      .catch(() => {
-        // In local dev, auth isn't available — use a mock user
-        if (import.meta.env.DEV) {
-          setUser({ userId: 'dev-user', userDetails: 'dev@local', identityProvider: 'dev' });
-        }
-      })
-      .finally(() => setLoading(false));
+    setLoading(false);
   }, []);
 
-  return { user, loading };
+  useEffect(() => {
+    if (user || !btnRef.current) return;
+
+    const init = () => {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (response: any) => {
+          const decoded = jwtDecode<GoogleUser>(response.credential);
+          localStorage.setItem(AUTH_KEY, JSON.stringify(decoded));
+          setUser(decoded);
+        },
+      });
+      google.accounts.id.renderButton(btnRef.current, {
+        theme: 'outline',
+        size: 'large',
+        shape: 'rectangular',
+        width: 280,
+      });
+    };
+
+    if (typeof google !== 'undefined') {
+      init();
+    } else {
+      // Wait for script to load
+      const interval = setInterval(() => {
+        if (typeof google !== 'undefined') {
+          clearInterval(interval);
+          init();
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [user, btnRef.current]);
+
+  const signOut = () => {
+    localStorage.removeItem(AUTH_KEY);
+    setUser(null);
+  };
+
+  return { user, loading, btnRef, signOut };
 }
 
-const DEV_STORAGE_KEY = 'judt_dev_save';
-
 async function loadSave(userId: string): Promise<TrackerSave | null> {
-  // In local dev, use localStorage instead of the API
   if (import.meta.env.DEV) {
     const raw = localStorage.getItem(DEV_STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -54,13 +90,12 @@ async function loadSave(userId: string): Promise<TrackerSave | null> {
   }
 }
 
-async function persistSave(save: TrackerSave): Promise<void> {
-  // In local dev, persist to localStorage
+async function persistSave(save: TrackerSave, userId: string): Promise<void> {
   if (import.meta.env.DEV) {
     localStorage.setItem(DEV_STORAGE_KEY, JSON.stringify(save));
     return;
   }
-  await fetch('/api/putSave', {
+  await fetch(`/api/putSave?userId=${userId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(save),
@@ -68,7 +103,7 @@ async function persistSave(save: TrackerSave): Promise<void> {
 }
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, btnRef, signOut } = useAuth();
   const [save, setSave] = useState<TrackerSave | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [tab, setTab] = useState<Tab>('timeline');
@@ -76,7 +111,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     setSaveLoading(true);
-    loadSave(user.userId).then((s) => {
+    loadSave(user.sub).then((s) => {
       setSave(s);
       setSaveLoading(false);
     });
@@ -84,7 +119,7 @@ export default function App() {
 
   const updateSave = (updated: TrackerSave) => {
     setSave(updated);
-    persistSave(updated);
+    persistSave(updated, user!.sub);
   };
 
   const handleWizardComplete = (newSave: TrackerSave) => {
@@ -136,9 +171,7 @@ export default function App() {
         <div className="auth-card">
           <h1>Jenn's Ultimate Decades Tool</h1>
           <p>Track your Sims 4 Decades Challenge — generations, timeline, family history, and more.</p>
-          <a href="/.auth/login/google" className="btn-primary">
-            Sign in with Google
-          </a>
+          <div ref={btnRef} className="google-btn-wrapper" />
         </div>
       </div>
     );
@@ -166,7 +199,8 @@ export default function App() {
           <span className="challenge-meta">
             Started {save.config.startYear} · Day {save.currentDay}
           </span>
-          <span className="user-info">{user.userDetails}</span>
+          <span className="user-info">{user.email}</span>
+          <button className="btn-ghost btn-sm" onClick={signOut}>Sign out</button>
         </div>
         <nav className="tab-nav">
           <button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>Timeline</button>

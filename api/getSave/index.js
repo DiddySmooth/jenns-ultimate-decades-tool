@@ -11,18 +11,9 @@ function getBlobClient(userId) {
 }
 
 module.exports = async function (context, req) {
-  const principal = req.headers['x-ms-client-principal'];
-  if (!principal) {
-    context.res = { status: 401, body: 'Unauthorized' };
-    return;
-  }
-
-  let userId;
-  try {
-    const decoded = JSON.parse(Buffer.from(principal, 'base64').toString('utf8'));
-    userId = decoded.userId;
-  } catch {
-    context.res = { status: 400, body: 'Invalid principal' };
+  const userId = req.query.userId;
+  if (!userId) {
+    context.res = { status: 400, body: 'Missing userId' };
     return;
   }
 

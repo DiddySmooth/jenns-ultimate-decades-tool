@@ -144,6 +144,7 @@ body {
 }
 .auth-card h1 { font-size: 1.6rem; margin-bottom: 0.5rem; }
 .auth-card p { color: var(--color-text-muted); margin-bottom: 2rem; }
+.google-btn-wrapper { display: flex; justify-content: center; margin-top: 0.5rem; min-height: 44px; }
 
 /* ── Setup screen ── */
 .setup-screen {

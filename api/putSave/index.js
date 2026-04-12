@@ -11,26 +11,15 @@ function getBlobClient(userId) {
 }
 
 module.exports = async function (context, req) {
-  const principal = req.headers['x-ms-client-principal'];
-  if (!principal) {
-    context.res = { status: 401, body: 'Unauthorized' };
-    return;
-  }
-
-  let userId;
-  try {
-    const decoded = JSON.parse(Buffer.from(principal, 'base64').toString('utf8'));
-    userId = decoded.userId;
-  } catch {
-    context.res = { status: 400, body: 'Invalid principal' };
+  const userId = req.query.userId;
+  if (!userId) {
+    context.res = { status: 400, body: 'Missing userId' };
     return;
   }
 
   try {
-    const body = req.rawBody || await streamToString(req.body);
-    // Validate JSON before storing
-    JSON.parse(typeof body === 'string' ? body : JSON.stringify(body));
-    const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+    const bodyStr = req.rawBody || JSON.stringify(req.body);
+    JSON.parse(bodyStr); // validate
 
     const blobClient = getBlobClient(userId);
     await blobClient.upload(bodyStr, Buffer.byteLength(bodyStr), {
@@ -44,11 +33,3 @@ module.exports = async function (context, req) {
     context.res = { status: 500, body: 'Internal error' };
   }
 };
-
-async function streamToString(body) {
-  if (typeof body === 'string') return body;
-  if (Buffer.isBuffer(body)) return body.toString('utf8');
-  const chunks = [];
-  for await (const chunk of body) chunks.push(chunk);
-  return Buffer.concat(chunks).toString('utf8');
-}
