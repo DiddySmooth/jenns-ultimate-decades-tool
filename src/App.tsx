@@ -160,20 +160,34 @@ export default function App() {
     const current = saveRef.current;
     if (!current) return;
 
-    const undoMode = current.currentDay > dayNumber;
-    const nextCurrentDay = undoMode ? dayNumber : dayNumber + 1;
+    // New UX:
+    // - Clicking a future day sets that day as the CURRENT day (no auto-marking).
+    // - Clicking the current day completes it and advances.
+    // - Clicking a past day rewinds (undo) back to that day.
 
-    // Keep timeline.marked consistent with currentDay to avoid off-by-one confusion.
+    if (dayNumber > current.currentDay) {
+      // Jump forward to a new current day without marking intermediate days
+      updateSave({ ...current, currentDay: dayNumber });
+      return;
+    }
+
+    const rewinding = dayNumber < current.currentDay;
+    if (rewinding) {
+      const timeline = current.timeline.map((d) => ({
+        ...d,
+        marked: d.dayNumber < dayNumber,
+      }));
+      updateSave({ ...current, timeline, currentDay: dayNumber });
+      return;
+    }
+
+    // Completing current day
+    const nextCurrent = current.currentDay + 1;
     const timeline = current.timeline.map((d) => ({
       ...d,
-      marked: d.dayNumber < nextCurrentDay,
+      marked: d.dayNumber < nextCurrent,
     }));
-
-    updateSave({
-      ...current,
-      timeline,
-      currentDay: nextCurrentDay,
-    });
+    updateSave({ ...current, timeline, currentDay: nextCurrent });
   };
 
   const addEvent = (dayNumber: number, event: TimelineEvent) => {
@@ -246,7 +260,7 @@ export default function App() {
         <div className="app-header-inner">
           <h1 className="app-title">JUDT</h1>
           <span className="challenge-meta">
-            Started {save.config.startYear} · Next Day {save.currentDay} · Done through Day {Math.max(0, save.currentDay - 1)}
+            Started {save.config.startYear} · Current Day {save.currentDay}
           </span>
           <span className="save-status">{saving ? 'Saving…' : '✓ Saved'}</span>
           <ThemePicker current={themeId} onChange={setThemeId} compact />
