@@ -95,7 +95,25 @@ export default function SortableSimRow({
 
       {expanded && (
         <div className="sim-row-details">
-          <div className="detail"><strong>Notes:</strong> {short(sim.notes)}</div>
+          <div className="details-grid">
+            <div className="detail"><strong>Name:</strong> {fullName}</div>
+            <div className="detail"><strong>Life Stage:</strong> {stage || '—'}</div>
+            <div className="detail"><strong>Sex:</strong> {sim.sex ?? 'Unknown'}</div>
+            <div className="detail"><strong>Generation:</strong> {sim.generation}</div>
+
+            <div className="detail"><strong>Born:</strong> {formatYear(birthYear)}</div>
+            <div className="detail"><strong>Place of Birth:</strong> {short(sim.placeOfBirth)}</div>
+
+            <div className="detail"><strong>Father:</strong> {resolveName(sim.fatherId)}</div>
+            <div className="detail"><strong>Mother:</strong> {resolveName(sim.motherId)}</div>
+            <div className="detail"><strong>Spouse:</strong> {resolveName(sim.spouseId)}</div>
+            <div className="detail"><strong>Marriage Year:</strong> {sim.marriageYear ? `Year ${sim.marriageYear}` : '—'}</div>
+
+            <div className="detail"><strong>Died:</strong> {formatYear(deathYear)}</div>
+            <div className="detail"><strong>Cause of Death:</strong> {short(sim.causeOfDeath)}</div>
+
+            <div className="detail detail-full"><strong>Notes:</strong> {short(sim.notes)}</div>
+          </div>
         </div>
       )}
     </div>

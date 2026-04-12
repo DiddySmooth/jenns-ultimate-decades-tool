@@ -622,8 +622,15 @@ body {
 .sim-actions { display: flex; justify-content: flex-end; gap: 0.35rem; }
 .expand-toggle { color: var(--color-text-muted); }
 
-.sim-row-details { padding: 0.35rem 0.85rem 0.7rem; color: var(--color-text-muted); font-size: 0.85rem; }
-.sim-row-details .detail { white-space: pre-wrap; }
+.sim-row-details { padding: 0.6rem 0.85rem 0.85rem; color: var(--color-text-muted); font-size: 0.86rem; border-top: 1px dashed var(--color-border); }
+.details-grid { display: grid; grid-template-columns: repeat(2, minmax(240px, 1fr)); gap: 0.35rem 1rem; }
+.detail { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.detail strong { color: var(--color-text); font-weight: 700; }
+.detail-full { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .details-grid { grid-template-columns: 1fr; }
+}
 
 /* Make it adapt on smaller screens */
 @media (max-width: 900px) {
