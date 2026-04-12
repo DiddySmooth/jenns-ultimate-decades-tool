@@ -16,6 +16,7 @@ import UnionNodeView from './UnionNode';
 import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
 import { autoLayoutFamilyTree } from './autoLayout';
+import { genealogyLayout } from './genealogyLayout';
 
 const nodeTypes = {
   sim: SimNode,
@@ -140,11 +141,13 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
             className="btn-secondary btn-sm"
             onClick={() => {
               // 2) basic auto-layout (positions)
-              const state = {
-                nodes: nodes.map((n) => ({ id: n.id, type: (n.type as any) ?? 'sim', position: n.position })),
+              // Use the actual rendered nodes/edges and do a real DAG layout
+              const laidOut = genealogyLayout(nodes as any, edges as any);
+              const next = {
+                ...saved,
+                nodes: laidOut.map((n: any) => ({ id: n.id, type: (n.type as any) ?? 'sim', position: n.position })),
                 edges: saved.edges ?? [],
               };
-              const next = autoLayoutFamilyTree(state);
               onSavedChange(next);
               setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
             }}
