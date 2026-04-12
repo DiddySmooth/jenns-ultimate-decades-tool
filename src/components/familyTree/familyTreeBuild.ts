@@ -25,18 +25,33 @@ export function buildFamilyTree(
   // Unions
   unions.forEach((u, idx) => {
     const id = `union:${u.id}`;
+
+    // Default union position: use saved position, otherwise place near the midpoint of partners if possible.
+    const fallbackPos = (() => {
+      const a = u.partnerAId ? savedPos.get(`sim:${u.partnerAId}`) : null;
+      const b = u.partnerBId ? savedPos.get(`sim:${u.partnerBId}`) : null;
+      if (a && b) return { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) + 60 };
+      return { x: 180 + (idx % 5) * 220, y: 100 + Math.floor(idx / 5) * 140 };
+    })();
+
     nodes.push({
       id,
       type: 'union',
       data: { union: u },
-      position: savedPos.get(id) ?? { x: 180 + (idx % 5) * 220, y: 100 + Math.floor(idx / 5) * 140 },
+      position: savedPos.get(id) ?? fallbackPos,
     });
 
-    if (u.partnerAId) {
-      edges.push({ id: `e:${id}:a`, source: `sim:${u.partnerAId}`, target: id, type: 'smoothstep' });
-    }
-    if (u.partnerBId) {
-      edges.push({ id: `e:${id}:b`, source: `sim:${u.partnerBId}`, target: id, type: 'smoothstep' });
+    // Marriage edge drawn directly between partners (union node is used as child anchor)
+    if (u.partnerAId && u.partnerBId) {
+      edges.push({
+        id: `e:marriage:${u.id}`,
+        source: `sim:${u.partnerAId}`,
+        target: `sim:${u.partnerBId}`,
+        sourceHandle: 'spouse-out',
+        targetHandle: 'spouse-in',
+        type: 'straight',
+        data: { kind: 'marriage', unionId: u.id },
+      });
     }
   });
 
@@ -59,7 +74,7 @@ export function buildFamilyTree(
     // If explicitly assigned, connect that union
     if (child.birthUnionId) {
       const unionNode = `union:${child.birthUnionId}`;
-      edges.push({ id: `e:${unionNode}->${childNode}`, source: unionNode, target: childNode, type: 'smoothstep' });
+      edges.push({ id: `e:${unionNode}->${childNode}`, source: unionNode, target: childNode, sourceHandle: 'child-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
       return;
     }
 
@@ -84,17 +99,17 @@ export function buildFamilyTree(
       })();
 
       if (pick) {
-        edges.push({ id: `e:union:${pick.id}->${childNode}`, source: `union:${pick.id}`, target: childNode, type: 'smoothstep' });
+        edges.push({ id: `e:union:${pick.id}->${childNode}`, source: `union:${pick.id}`, target: childNode, sourceHandle: 'child-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
       } else {
         // fallback direct parent edges
-        edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'smoothstep' });
-        edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'smoothstep' });
+        edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+        edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
       }
       return;
     }
 
-    if (f) edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'smoothstep' });
-    if (m) edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'smoothstep' });
+    if (f) edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+    if (m) edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
   });
 
   return { nodes, edges };

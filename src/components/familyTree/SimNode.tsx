@@ -11,9 +11,13 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry }>) {
   return (
     <div className="ft-node ft-sim">
       {/* incoming: parents/union */}
-      <Handle type="target" position={Position.Top} />
-      {/* outgoing: to union / to children (fallback) */}
-      <Handle type="source" position={Position.Bottom} />
+      <Handle type="target" position={Position.Top} id="parent-in" />
+      {/* outgoing: to children (fallback) */}
+      <Handle type="source" position={Position.Bottom} id="parent-out" />
+
+      {/* spouse/marriage */}
+      <Handle type="source" position={Position.Right} id="spouse-out" />
+      <Handle type="target" position={Position.Left} id="spouse-in" />
 
       <div className="ft-avatar">
         {avatar ? <img src={avatar} alt={name} /> : <div className="ft-avatar-fallback">{name.slice(0, 1).toUpperCase()}</div>}

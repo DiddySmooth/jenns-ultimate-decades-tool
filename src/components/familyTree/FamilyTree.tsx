@@ -42,7 +42,21 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
   // When underlying sims/unions change, rebuild the graph.
   useEffect(() => {
     setNodes(built.nodes);
-    setEdges(built.edges);
+    setEdges(
+      built.edges.map((e: any) => {
+        const kind = e?.data?.kind;
+        if (kind === 'marriage') {
+          return {
+            ...e,
+            style: { strokeWidth: 3, stroke: 'rgba(0,0,0,0.45)' },
+          };
+        }
+        return {
+          ...e,
+          style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' },
+        };
+      })
+    );
     // Try to bring something into view shortly after rebuild.
     setTimeout(() => {
       if (!rf) return;
