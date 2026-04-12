@@ -1,9 +1,11 @@
 import type { SimEntry, TrackerConfig, SimSex } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 import { useMemo, useState } from 'react';
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import SortableSimCard from './SortableSimCard';
 import { computeLifeStage, getFullName } from '../../utils/lifeStage';
 import { migrateSimEntry } from '../../utils/migrateSim';
-import { formatYear, getBirthYear, getDeathYear } from '../../utils/simDates';
 
 interface Props {
   sims: SimEntry[];
@@ -59,14 +61,15 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
     return sim ? getFullName(sim) : '—';
   };
 
-  const moveSim = (id: string, dir: -1 | 1) => {
-    const idx = simsNormalized.findIndex((s) => s.id === id);
-    if (idx < 0) return;
-    const nextIdx = idx + dir;
-    if (nextIdx < 0 || nextIdx >= simsNormalized.length) return;
-    const next = simsNormalized.slice();
-    [next[idx], next[nextIdx]] = [next[nextIdx], next[idx]];
-    onReorder(next);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = simsNormalized.findIndex((s) => s.id === active.id);
+    const newIndex = simsNormalized.findIndex((s) => s.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    onReorder(arrayMove(simsNormalized, oldIndex, newIndex));
   };
 
   return (
@@ -76,44 +79,24 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
         <button className="btn-primary btn-sm" onClick={startNew}>+ Add Sim</button>
       </div>
 
-      <div className="sims-list">
-        {simsNormalized.map((sim, i) => {
-          const stage = computeLifeStage(sim, config, currentDay);
-          const fullName = getFullName(sim);
-          const birthYear = getBirthYear(sim, config);
-          const deathYear = getDeathYear(sim, config);
-
-          return (
-            <div key={sim.id} className={`sim-card${sim.dateOfDeath || deathYear ? ' deceased' : ''}`}>
-              <div className="sim-card-header">
-                <strong>{fullName}</strong>
-                <span className="sim-stage">{stage || sim.currentLifeStage || ''}</span>
-              </div>
-
-              <div className="sim-card-meta stacked">
-                <span><strong>Sex:</strong> {sim.sex ?? 'Unknown'}</span>
-                <span><strong>Generation:</strong> {sim.generation}</span>
-                <span><strong>Born:</strong> {formatYear(birthYear)} {sim.placeOfBirth ? `(${sim.placeOfBirth})` : ''}</span>
-                <span><strong>Father:</strong> {resolveName(sim.fatherId)}</span>
-                <span><strong>Mother:</strong> {resolveName(sim.motherId)}</span>
-                <span><strong>Spouse:</strong> {resolveName(sim.spouseId)}</span>
-                <span><strong>Married:</strong> {sim.marriageYear ? `Year ${sim.marriageYear}` : '—'}</span>
-                <span><strong>Died:</strong> {formatYear(deathYear)}{sim.causeOfDeath ? ` (${sim.causeOfDeath})` : ''}</span>
-                {sim.notes ? <span><strong>Notes:</strong> {sim.notes}</span> : null}
-              </div>
-
-              <div className="sim-card-actions">
-                <div className="reorder-controls">
-                  <button className="btn-icon" disabled={i === 0} onClick={() => moveSim(sim.id, -1)} title="Move up">↑</button>
-                  <button className="btn-icon" disabled={i === simsNormalized.length - 1} onClick={() => moveSim(sim.id, 1)} title="Move down">↓</button>
-                </div>
-                <button className="btn-ghost btn-sm" onClick={() => { setEditing({ ...sim }); setIsNew(false); }}>Edit</button>
-                <button className="btn-ghost btn-sm btn-danger" onClick={() => onDelete(sim.id)}>Remove</button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={simsNormalized.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+          <div className="sims-list vertical">
+            {simsNormalized.map((sim) => (
+              <SortableSimCard
+                key={sim.id}
+                sim={sim}
+                index={0}
+                config={config}
+                currentDay={currentDay}
+                resolveName={resolveName}
+                onEdit={() => { setEditing({ ...sim }); setIsNew(false); }}
+                onDelete={() => onDelete(sim.id)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {sims.length === 0 && (
         <p className="empty-state">No sims yet. Add your founder to get started.</p>

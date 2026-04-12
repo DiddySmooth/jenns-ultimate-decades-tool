@@ -497,6 +497,9 @@ body {
 .sheet-header h2 { margin: 0; }
 .gen-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin: 1.5rem 0 0.6rem; }
 .sims-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.sims-list.vertical { max-width: 720px; }
+.drag-handle { cursor: grab; }
+.drag-handle:active { cursor: grabbing; }
 .sim-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
