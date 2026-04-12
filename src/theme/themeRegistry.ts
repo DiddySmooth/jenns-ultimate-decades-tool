@@ -37,6 +37,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Petal Pop',
     description: 'Beige, powder blush, petal rouge, vibrant coral, neon pink',
   },
+  {
+    id: 'sims',
+    label: 'Sims',
+    description: 'Rich cerulean, fresh sky, sky surge, emerald, yellow-green',
+  },
 ];
 
 export type ThemeId = string;

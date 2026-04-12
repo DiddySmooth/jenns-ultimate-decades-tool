@@ -95,6 +95,21 @@
   --color-swatch: #ee2677;
 }
 
+/* ── Sims (from palette) ── */
+:root[data-theme='sims'] {
+  --color-bg: #f2fbff;
+  --color-surface: #ffffff;
+  --color-border: rgba(66, 118, 183, 0.28);
+  --color-text: #0b2230;
+  --color-text-muted: rgba(11, 34, 48, 0.68);
+  --color-accent: #3cb9e1;     /* sky surge */
+  --color-accent-hover: #21b96b; /* emerald */
+  --color-danger: #4276b7;     /* rich cerulean */
+  --color-past: #eaf6ff;
+  --color-current: #f1fff7;
+  --color-swatch: #3cb9e1;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
@@ -630,6 +645,7 @@ body {
 [data-theme-preview='klein-blue'] .theme-chip-swatch { background: linear-gradient(135deg, #05299e 0%, #f26ca7 100%); }
 [data-theme-preview='berry-jungle'] .theme-chip-swatch { background: linear-gradient(135deg, #fb8b24 0%, #d90368 50%, #04a777 100%); }
 [data-theme-preview='petal-pop'] .theme-chip-swatch { background: linear-gradient(135deg, #ee2677 0%, #e86252 60%, #e87ea1 100%); }
+[data-theme-preview='sims'] .theme-chip-swatch { background: linear-gradient(135deg, #4276b7 0%, #3cb9e1 55%, #21b96b 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
@@ -661,6 +677,7 @@ body {
 [data-theme-preview='klein-blue'].theme-swatch-dot { background: linear-gradient(135deg, #05299e 0%, #f26ca7 100%); }
 [data-theme-preview='berry-jungle'].theme-swatch-dot { background: linear-gradient(135deg, #fb8b24 0%, #d90368 50%, #04a777 100%); }
 [data-theme-preview='petal-pop'].theme-swatch-dot { background: linear-gradient(135deg, #ee2677 0%, #e86252 60%, #e87ea1 100%); }
+[data-theme-preview='sims'].theme-swatch-dot { background: linear-gradient(135deg, #4276b7 0%, #3cb9e1 55%, #21b96b 100%); }
 .theme-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.4rem;
