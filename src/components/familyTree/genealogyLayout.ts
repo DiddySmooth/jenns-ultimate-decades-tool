@@ -26,7 +26,24 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     });
   }
 
-  for (const e of edges) {
+  // Keep child edges ordered oldest->youngest where possible
+  // Dagre respects edge insertion order as a heuristic for ordering.
+  const sortedEdges = [...edges].sort((a: any, b: any) => {
+    const ak = a?.data?.kind;
+    const bk = b?.data?.kind;
+    if (ak === 'parent' && bk !== 'parent') return -1;
+    if (ak !== 'parent' && bk === 'parent') return 1;
+
+    if (ak === 'parent' && bk === 'parent') {
+      const ay = a?.data?.birthYear ?? 999999;
+      const by = b?.data?.birthYear ?? 999999;
+      if (ay !== by) return ay - by;
+    }
+
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  for (const e of sortedEdges) {
     g.setEdge(e.source, e.target);
   }
 

@@ -68,24 +68,31 @@ export function buildFamilyTree(
     unionsByParents.set(key, arr);
   });
 
-  sims.forEach((child) => {
-    const childNode = `sim:${child.id}`;
+  // Build child edges, sorted oldest->youngest per union when possible.
+  const childrenByUnion = new Map<string, SimEntry[]>();
+  const fallbackParentEdges: Edge[] = [];
 
-    // If explicitly assigned, connect that union
+  const addUnionChild = (unionId: string, child: SimEntry) => {
+    const key = `union:${unionId}`;
+    const arr = childrenByUnion.get(key) ?? [];
+    arr.push(child);
+    childrenByUnion.set(key, arr);
+  };
+
+  sims.forEach((child) => {
+    const f = child.fatherId;
+    const m = child.motherId;
+
     if (child.birthUnionId) {
-      const unionNode = `union:${child.birthUnionId}`;
-      edges.push({ id: `e:${unionNode}->${childNode}`, source: unionNode, target: childNode, sourceHandle: 'child-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+      addUnionChild(child.birthUnionId, child);
       return;
     }
 
-    const f = child.fatherId;
-    const m = child.motherId;
     if (f && m) {
       const key = [f, m].sort().join('|');
       const candidates = unionsByParents.get(key) ?? [];
 
-      // Pick best candidate by birthYear if available
-      const birthYear = (child.birthYear ?? undefined);
+      const birthYear = child.birthYear ?? undefined;
       const pick = (() => {
         if (!birthYear || candidates.length === 0) return null;
         const matching = candidates.filter((u) => {
@@ -99,18 +106,46 @@ export function buildFamilyTree(
       })();
 
       if (pick) {
-        edges.push({ id: `e:union:${pick.id}->${childNode}`, source: `union:${pick.id}`, target: childNode, sourceHandle: 'child-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+        addUnionChild(pick.id, child);
       } else {
-        // fallback direct parent edges
-        edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
-        edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+        const childNode = `sim:${child.id}`;
+        fallbackParentEdges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+        fallbackParentEdges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
       }
       return;
     }
 
-    if (f) edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
-    if (m) edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+    const childNode = `sim:${child.id}`;
+    if (f) fallbackParentEdges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+    if (m) fallbackParentEdges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
   });
+
+  // Emit union->child edges sorted by birthYear
+  for (const [unionNode, kids] of childrenByUnion.entries()) {
+    kids.sort((a, b) => {
+      const ay = a.birthYear ?? 999999;
+      const by = b.birthYear ?? 999999;
+      if (ay !== by) return ay - by;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    kids.forEach((kid, idx) => {
+      const childNode = `sim:${kid.id}`;
+      const birthYear = kid.birthYear ?? null;
+      edges.push({
+        id: `e:${unionNode}->${childNode}:${idx}`,
+        source: unionNode,
+        target: childNode,
+        sourceHandle: 'child-out',
+        targetHandle: 'parent-in',
+        type: 'smoothstep',
+        data: { kind: 'parent', birthYear },
+      });
+    });
+  }
+
+  edges.push(...fallbackParentEdges);
+
 
   return { nodes, edges };
 }
