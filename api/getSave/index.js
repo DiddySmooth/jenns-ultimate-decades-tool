@@ -35,8 +35,15 @@ module.exports = async function (context, req) {
       };
       return;
     } catch (err) {
-      // Legacy fallback for existing users
       if (err.statusCode !== 404) throw err;
+
+      // Legacy fallback ONLY for the default save
+      const sid = (saveId || 'default').toString();
+      if (sid !== 'default') {
+        context.res = { status: 404, body: 'No save found' };
+        return;
+      }
+
       const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
       const blobService = BlobServiceClient.fromConnectionString(connStr);
       const container = blobService.getContainerClient(CONTAINER);

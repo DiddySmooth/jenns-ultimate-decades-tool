@@ -317,7 +317,9 @@ export default function App() {
               onClick={() => {
                 const id = `save-${new Date().toISOString().slice(0,10)}-${Math.random().toString(16).slice(2,6)}`;
                 setAvailableSaves((s) => (s.find((x) => x.id === id) ? s : [...s, { id, label: id }]));
+                // Switch to new save and force wizard (fresh json)
                 setSaveId(id);
+                saveRef.current = null;
                 setSave(null);
               }}
               title="Create a new save"
