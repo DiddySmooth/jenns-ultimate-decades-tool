@@ -6,6 +6,7 @@ import TimelineView from './components/timeline/TimelineView';
 import SimsSheet from './components/sims/SimsSheet';
 import AgingReference from './components/aging/AgingReference';
 import ThemePicker from './components/ThemePicker';
+import Toast from './components/Toast';
 import ColumnLabelEditor from './components/ColumnLabelEditor';
 import { useDebouncedSave } from './hooks/useDebouncedSave';
 import { useTheme } from './hooks/useTheme';
@@ -110,6 +111,16 @@ export default function App() {
     [user?.sub]
   );
   const { schedule, flush, saving } = useDebouncedSave(persistFn);
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const wasSavingRef = useRef(false);
+
+  // Pop a small toast only when we transition from saving -> not saving
+  useEffect(() => {
+    if (wasSavingRef.current && !saving) {
+      setShowSavedToast(true);
+    }
+    wasSavingRef.current = saving;
+  }, [saving]);
 
   useEffect(() => {
     if (!user) return;
@@ -232,6 +243,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <Toast message="Saved" open={showSavedToast} onClose={() => setShowSavedToast(false)} />
       <header className="app-header">
         <div className="app-header-inner">
           <h1 className="app-title">JUDT</h1>
