@@ -58,6 +58,9 @@ export interface SimEntry {
   motherId?: string;
   spouseId?: string;
 
+  // If parents had multiple unions, allow explicit assignment
+  birthUnionId?: string;
+
   // Dates (year-only, preferred)
   birthYear?: number;
   deathYear?: number;

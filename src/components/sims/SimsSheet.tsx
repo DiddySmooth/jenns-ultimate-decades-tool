@@ -24,6 +24,8 @@ interface Props {
   sims: SimEntry[];
   config: TrackerConfig;
   currentDay: number;
+  userId: string;
+  saveId: string;
   onAdd: (sim: SimEntry) => void;
   onUpdate: (sim: SimEntry) => void;
   onDelete: (id: string) => void;
@@ -38,9 +40,37 @@ const blankSim = (): SimEntry => ({
   generation: 1,
 });
 
-export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, onDelete, onReorder }: Props) {
+export default function SimsSheet({ sims, config, currentDay, userId, saveId, onAdd, onUpdate, onDelete, onReorder }: Props) {
   const [editing, setEditing] = useState<SimEntry | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  async function uploadAvatar(file: File, simId: string) {
+    const dataBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const res = String(reader.result || '');
+        const base64 = res.split(',')[1];
+        if (!base64) reject(new Error('Invalid base64'));
+        else resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+    const r = await fetch(`/api/uploadAvatar?userId=${encodeURIComponent(userId)}&saveId=${encodeURIComponent(saveId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        simId,
+        mimeType: file.type,
+        dataBase64,
+      }),
+    });
+
+    if (!r.ok) throw new Error('Upload failed');
+    return r.json() as Promise<{ blobKey: string; url: string | null }>;
+  }
 
   const simsNormalized = useMemo(() => sims.map(migrateSimEntry), [sims]);
   const simOptions = useMemo(() => simsNormalized.map((s) => ({ id: s.id, label: getFullName(s) })), [simsNormalized]);
@@ -171,6 +201,33 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
                 ))}
               </select>
             </div>
+            <div className="field-group">
+              <label>Avatar</label>
+              <div className="avatar-upload-row">
+                <div className="avatar-preview">
+                  {editing.avatarUrl ? <img src={editing.avatarUrl} alt="Avatar" /> : <div className="avatar-preview-fallback">—</div>}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={avatarUploading}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (!editing.id) return;
+                    try {
+                      setAvatarUploading(true);
+                      const res = await uploadAvatar(file, editing.id);
+                      setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey });
+                    } finally {
+                      setAvatarUploading(false);
+                    }
+                  }}
+                />
+              </div>
+              <span className="field-hint">Uploads to blob and shows as a circle avatar.</span>
+            </div>
+
             <div className="field-group">
               <label>Generation</label>
               <input type="number" min={1} value={editing.generation} onChange={(e) => setEditing({ ...editing, generation: Number(e.target.value) })} />

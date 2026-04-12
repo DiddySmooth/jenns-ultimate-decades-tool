@@ -1000,3 +1000,35 @@ body {
 .ft-name { font-size: 0.88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ft-union { padding: 0; min-width: auto; border-radius: 999px; box-shadow: none; }
 .ft-union-dot { width: 14px; height: 14px; border-radius: 999px; background: var(--color-accent); border: 2px solid var(--color-surface); box-shadow: 0 0 0 1px var(--color-border); }
+
+/* Sims avatar upload */
+.avatar-upload-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.avatar-preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: rgba(0,0,0,0.05);
+  flex-shrink: 0;
+}
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-preview-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-weight: 700; }
+
+.family-tree-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1rem; align-items: start; }
+.family-tree-sidebar {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  padding: 0.75rem;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}
+.family-tree-sidebar h3 { margin: 0.75rem 0 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); }
+.family-tree-sidebar .sidebar-list { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.6rem; }
+.sidebar-card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 0.6rem; background: var(--color-bg); }
+.sidebar-card select, .sidebar-card input { width: 100%; }
+@media (max-width: 980px) {
+  .family-tree-layout { grid-template-columns: 1fr; }
+  .family-tree-sidebar { max-height: none; }
+}

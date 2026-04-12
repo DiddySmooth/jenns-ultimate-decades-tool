@@ -41,30 +41,58 @@ export function buildFamilyTree(
   });
 
   // Children edges derived from sims father/mother
-  // If a union matches parents, connect union->child. If ambiguous/missing, connect parent->child directly.
-  const unionByParents = new Map<string, string>();
+  // Prefer explicit child.birthUnionId. Otherwise, attempt to match union by parents + birthYear.
+  const unionsByParents = new Map<string, UnionNode[]>();
   unions.forEach((u) => {
     const a = u.partnerAId;
     const b = u.partnerBId;
     if (!a || !b) return;
-    unionByParents.set([a, b].sort().join('|'), `union:${u.id}`);
+    const key = [a, b].sort().join('|');
+    const arr = unionsByParents.get(key) ?? [];
+    arr.push(u);
+    unionsByParents.set(key, arr);
   });
 
   sims.forEach((child) => {
     const childNode = `sim:${child.id}`;
+
+    // If explicitly assigned, connect that union
+    if (child.birthUnionId) {
+      const unionNode = `union:${child.birthUnionId}`;
+      edges.push({ id: `e:${unionNode}->${childNode}`, source: unionNode, target: childNode, type: 'parent' });
+      return;
+    }
+
     const f = child.fatherId;
     const m = child.motherId;
     if (f && m) {
       const key = [f, m].sort().join('|');
-      const unionNode = unionByParents.get(key);
-      if (unionNode) {
-        edges.push({ id: `e:${unionNode}->${childNode}`, source: unionNode, target: childNode, type: 'parent' });
+      const candidates = unionsByParents.get(key) ?? [];
+
+      // Pick best candidate by birthYear if available
+      const birthYear = (child.birthYear ?? undefined);
+      const pick = (() => {
+        if (!birthYear || candidates.length === 0) return null;
+        const matching = candidates.filter((u) => {
+          const start = u.startYear ?? -Infinity;
+          const end = u.endYear ?? Infinity;
+          return birthYear >= start && birthYear <= end;
+        });
+        if (matching.length === 0) return null;
+        matching.sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0));
+        return matching[0];
+      })();
+
+      if (pick) {
+        edges.push({ id: `e:union:${pick.id}->${childNode}`, source: `union:${pick.id}`, target: childNode, type: 'parent' });
       } else {
+        // fallback direct parent edges
         edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'parent' });
         edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'parent' });
       }
       return;
     }
+
     if (f) edges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, type: 'parent' });
     if (m) edges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, type: 'parent' });
   });

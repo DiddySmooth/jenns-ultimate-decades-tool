@@ -382,6 +382,8 @@ export default function App() {
             sims={save.sims}
             config={save.config}
             currentDay={save.currentDay}
+            userId={user.sub}
+            saveId={saveId}
             onAdd={addSim}
             onUpdate={updateSim}
             onDelete={deleteSim}
@@ -412,6 +414,16 @@ export default function App() {
               const current = saveRef.current;
               if (!current) return;
               updateSave({ ...current, familyTree: next });
+            }}
+            onUnionsChange={(next) => {
+              const current = saveRef.current;
+              if (!current) return;
+              updateSave({ ...current, unions: next });
+            }}
+            onSimsChange={(next) => {
+              const current = saveRef.current;
+              if (!current) return;
+              updateSave({ ...current, sims: next });
             }}
           />
         )}
