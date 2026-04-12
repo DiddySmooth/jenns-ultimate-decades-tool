@@ -112,6 +112,7 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
         <span />
         <span>Name</span>
         <span>Stage</span>
+        <span>Age</span>
         <span>Sex</span>
         <span>Gen</span>
         <span>Born</span>

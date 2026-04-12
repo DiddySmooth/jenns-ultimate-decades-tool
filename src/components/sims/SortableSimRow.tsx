@@ -2,7 +2,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useSortable } from '@dnd-kit/sortable';
 import type { SimEntry, TrackerConfig } from '../../types/tracker';
 import { computeLifeStage, getFullName } from '../../utils/lifeStage';
-import { formatYear, getBirthYear, getDeathYear } from '../../utils/simDates';
+import { computeAgeYears, formatYear, getBirthYear, getDeathYear } from '../../utils/simDates';
 
 interface Props {
   sim: SimEntry;
@@ -50,6 +50,7 @@ export default function SortableSimRow({
   const stage = computeLifeStage(sim, config, currentDay);
   const birthYear = getBirthYear(sim, config);
   const deathYear = getDeathYear(sim, config);
+  const ageYears = computeAgeYears(sim, config, currentDay);
 
   return (
     <div ref={setNodeRef} style={style} className={`sim-row${expanded ? ' expanded' : ''}${deathYear ? ' deceased' : ''}`}>
@@ -70,6 +71,7 @@ export default function SortableSimRow({
 
         <div className="sim-cell name" title={fullName}>{fullName}</div>
         <div className="sim-cell stage" title={stage}>{stage || '—'}</div>
+        <div className="sim-cell age" title={ageYears != null ? `${ageYears}` : ''}>{ageYears != null ? `${ageYears}y` : '—'}</div>
         <div className="sim-cell sex" title={sim.sex ?? 'Unknown'}>{sim.sex ?? 'Unknown'}</div>
         <div className="sim-cell gen" title={`Gen ${sim.generation}`}>G{sim.generation}</div>
 
@@ -98,6 +100,7 @@ export default function SortableSimRow({
           <div className="details-grid">
             <div className="detail"><strong>Name:</strong> {fullName}</div>
             <div className="detail"><strong>Life Stage:</strong> {stage || '—'}</div>
+            <div className="detail"><strong>Age:</strong> {ageYears != null ? `${ageYears} years` : '—'}</div>
             <div className="detail"><strong>Sex:</strong> {sim.sex ?? 'Unknown'}</div>
             <div className="detail"><strong>Generation:</strong> {sim.generation}</div>
 

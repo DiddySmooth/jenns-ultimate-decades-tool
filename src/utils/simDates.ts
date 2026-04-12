@@ -28,3 +28,22 @@ export function getDeathYear(sim: SimEntry, config: Pick<TrackerConfig, 'startYe
 export function formatYear(year?: number): string {
   return year ? `Year ${year}` : '—';
 }
+
+export function currentYearFromCurrentDay(
+  config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>,
+  currentDay: number
+): number {
+  const yearsElapsed = Math.floor((Math.max(1, currentDay) - 1) / config.daysPerYear);
+  return config.startYear + yearsElapsed;
+}
+
+export function computeAgeYears(
+  sim: SimEntry,
+  config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>,
+  currentDay: number
+): number | undefined {
+  const by = getBirthYear(sim, config);
+  if (!by) return undefined;
+  const cy = currentYearFromCurrentDay(config, currentDay);
+  return Math.max(0, cy - by);
+}
