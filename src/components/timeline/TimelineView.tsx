@@ -152,21 +152,21 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
       )}
 
       <div className="vt-wrapper vt-hscroll">
-        {/* Sticky header */}
-        <div className="vt-header" style={{ minWidth: totalWidth }}>
-          <div className="vt-head-cell vt-head-sticky-day" style={{ width: COL_DAY_OF_WEEK }}>Day</div>
-          <div className="vt-head-cell vt-head-sticky-daynum" style={{ width: COL_DAY_NUM }}>Day #</div>
-          <div className="vt-head-cell vt-head-sticky-year" style={{ width: COL_YEAR }}>Year</div>
-          <div className="vt-head-cell" style={{ width: COL_EVENTS }}>Events</div>
-          <div className="vt-head-cell" style={{ width: COL_DEATHS }}>Deaths</div>
-          {lifeStageCols.map((col) => (
-            <div key={col.id} className="vt-head-cell" style={{ width: COL_LIFESTAGE }}>{col.label}</div>
-          ))}
-        </div>
+        <div className="vt-inner" style={{ width: totalWidth }}>
+          {/* Sticky header */}
+          <div className="vt-header">
+            <div className="vt-head-cell vt-head-sticky-day" style={{ width: COL_DAY_OF_WEEK }}>Day</div>
+            <div className="vt-head-cell vt-head-sticky-daynum" style={{ width: COL_DAY_NUM }}>Day #</div>
+            <div className="vt-head-cell vt-head-sticky-year" style={{ width: COL_YEAR }}>Year</div>
+            <div className="vt-head-cell" style={{ width: COL_EVENTS }}>Events</div>
+            <div className="vt-head-cell" style={{ width: COL_DEATHS }}>Deaths</div>
+            {lifeStageCols.map((col) => (
+              <div key={col.id} className="vt-head-cell" style={{ width: COL_LIFESTAGE }}>{col.label}</div>
+            ))}
+          </div>
 
-        {/* Scrollable body */}
-        <div className="vt-body">
-          <div style={{ minWidth: totalWidth }}>
+          {/* Scrollable body */}
+          <div className="vt-body">
             {timeline.map((day) => (
               <TimelineRow
                 key={day.dayNumber}
