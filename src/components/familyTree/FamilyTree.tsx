@@ -61,7 +61,7 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
     if (sig !== lastDiagRef.current) {
       lastDiagRef.current = sig;
       // eslint-disable-next-line no-console
-      console.debug('[FamilyTree]', diag);
+      console.log('[FamilyTree]', diag);
     }
   }, [sims, unions, nodes.length, edges.length]);
 
