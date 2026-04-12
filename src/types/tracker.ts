@@ -41,6 +41,15 @@ export interface TrackerConfig {
 
 export type SimSex = 'Female' | 'Male' | 'Intersex' | 'Non-binary' | 'Unknown';
 
+export interface AvatarCrop {
+  /** 0..100; background-position X percentage */
+  x: number;
+  /** 0..100; background-position Y percentage */
+  y: number;
+  /** 1..3 typical; background-size multiplier */
+  zoom: number;
+}
+
 export interface SimEntry {
   id: string;
 
@@ -79,6 +88,7 @@ export interface SimEntry {
   // Avatar
   avatarUrl?: string;          // public URL if used
   avatarBlobKey?: string;      // blob path if used
+  avatarCrop?: AvatarCrop;     // client-side crop metadata (no re-upload)
 
 
   // Derived in UI (auto-computed from birthDayNumber + currentDay)

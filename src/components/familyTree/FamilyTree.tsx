@@ -15,7 +15,6 @@ import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
 import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
-import { autoLayoutFamilyTree } from './autoLayout';
 import { genealogyLayout } from './genealogyLayout';
 
 const nodeTypes = {
@@ -48,8 +47,8 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   useEffect(() => {
     setNodes(built.nodes);
     setEdges(
-      built.edges.map((e: any) => {
-        const kind = e?.data?.kind;
+      built.edges.map((e) => {
+        const kind = (e.data as { kind?: string } | undefined)?.kind;
         if (kind === 'marriage') {
           return {
             ...e,
@@ -68,46 +67,84 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
       if (built.nodes.length === 0) return;
       rf.fitView({ padding: 0.2, duration: 250 });
     }, 60);
-  }, [built.nodes, built.edges]);
+  }, [built.nodes, built.edges, rf, setEdges, setNodes]);
+
+  // Keep union nodes centered on the marriage line while dragging.
+  useEffect(() => {
+    const SIM_H = 56;
+    const UNION_H = 26;
+
+    setNodes((cur) => {
+      const simPos = new Map<string, { x: number; y: number }>();
+      for (const n of cur) {
+        if (String(n.id).startsWith('sim:')) simPos.set(String(n.id), n.position);
+      }
+
+      let changed = false;
+      const next = cur.map((n) => {
+        if (!String(n.id).startsWith('union:')) return n;
+        const u = (n.data as { union?: UnionNode } | undefined)?.union;
+        if (!u?.partnerAId || !u?.partnerBId) return n;
+
+        const a = simPos.get(`sim:${u.partnerAId}`);
+        const b = simPos.get(`sim:${u.partnerBId}`);
+        if (!a || !b) return n;
+
+        const midX = (a.x + b.x) / 2;
+        const lineY = (a.y + b.y) / 2 + SIM_H / 2;
+        const pos = { x: midX, y: lineY - UNION_H / 2 };
+
+        if (Math.abs(n.position.x - pos.x) < 0.5 && Math.abs(n.position.y - pos.y) < 0.5) return n;
+        changed = true;
+        return { ...n, position: pos };
+      });
+
+      return changed ? next : cur;
+    });
+  }, [nodes.length, unions, setNodes]);
 
   // Persist node positions (only) back into save
   const lastPosSig = useRef<string>('');
   useEffect(() => {
-    const pos = nodes.map((n) => ({ id: n.id, type: (n.type as any) ?? 'sim', position: n.position }));
+    // Union nodes are derived from partner positions; don't persist them.
+    const pos = nodes
+      .filter((n) => !String(n.id).startsWith('union:'))
+      .map((n) => ({ id: n.id, type: ((n.type as 'sim' | 'union') ?? 'sim'), position: n.position }));
+
     const sig = JSON.stringify(pos);
     if (sig === lastPosSig.current) return;
     lastPosSig.current = sig;
     onSavedChange({ ...saved, nodes: pos, edges: saved.edges ?? [] });
-  }, [nodes]);
+  }, [nodes, onSavedChange, saved]);
 
-  // Console diagnostics (enabled in prod temporarily)
-  const lastDiagRef = useRef<string>('');
-  useEffect(() => {
-    const simIds = new Set(sims.map((s) => s.id));
-    const withParents = sims.filter((s) => s.fatherId || s.motherId).length;
-    const missingParentRefs = sims.filter(
-      (s) => (s.fatherId && !simIds.has(s.fatherId)) || (s.motherId && !simIds.has(s.motherId))
-    ).length;
-    const parentEdges = edges.filter((e) => (e as any).type === 'parent').length;
-    const partnerEdges = edges.filter((e) => (e as any).type === 'partner').length;
+  // Console diagnostics (disabled by default)
+  // const lastDiagRef = useRef<string>('');
+  // useEffect(() => {
+  //   const simIds = new Set(sims.map((s) => s.id));
+  //   const withParents = sims.filter((s) => s.fatherId || s.motherId).length;
+  //   const missingParentRefs = sims.filter(
+  //     (s) => (s.fatherId && !simIds.has(s.fatherId)) || (s.motherId && !simIds.has(s.motherId))
+  //   ).length;
+  //   const parentEdges = edges.filter((e) => (e.data as { kind?: string } | undefined)?.kind === 'parent').length;
+  //   const partnerEdges = edges.filter((e) => (e.data as { kind?: string } | undefined)?.kind === 'partner').length;
 
-    const diag = {
-      sims: sims.length,
-      unions: unions.length,
-      nodes: nodes.length,
-      edges: edges.length,
-      withParents,
-      missingParentRefs,
-      parentEdges,
-      partnerEdges,
-    };
-    const sig = JSON.stringify(diag);
-    if (sig !== lastDiagRef.current) {
-      lastDiagRef.current = sig;
-      // eslint-disable-next-line no-console
-      console.log('[FamilyTree]', diag);
-    }
-  }, [sims, unions, nodes.length, edges.length]);
+  //   const diag = {
+  //     sims: sims.length,
+  //     unions: unions.length,
+  //     nodes: nodes.length,
+  //     edges: edges.length,
+  //     withParents,
+  //     missingParentRefs,
+  //     parentEdges,
+  //     partnerEdges,
+  //   };
+  //   const sig = JSON.stringify(diag);
+  //   if (sig !== lastDiagRef.current) {
+  //     lastDiagRef.current = sig;
+  //     // eslint-disable-next-line no-console
+  //     console.log('[FamilyTree]', diag);
+  //   }
+  // }, [sims, unions, nodes.length, edges.length, edges]);
 
   const simOptions = useMemo(
     () => sims.map((s) => ({ id: s.id, label: (s.firstName || s.name || s.id) + (s.lastName ? ` ${s.lastName}` : '') })),
@@ -161,10 +198,10 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             onClick={() => {
               // 2) basic auto-layout (positions)
               // Use the actual rendered nodes/edges and do a real DAG layout
-              const laidOut = genealogyLayout(nodes as any, edges as any);
+              const laidOut = genealogyLayout(nodes, edges);
               const next = {
                 ...saved,
-                nodes: laidOut.map((n: any) => ({ id: n.id, type: (n.type as any) ?? 'sim', position: n.position })),
+                nodes: laidOut.map((n) => ({ id: n.id, type: ((n.type as 'sim' | 'union') ?? 'sim'), position: n.position })),
                 edges: saved.edges ?? [],
               };
               onSavedChange(next);
@@ -216,7 +253,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
               <label>Avatar shape</label>
               <select
                 value={config.avatarShape}
-                onChange={(e) => onConfigChange({ ...config, avatarShape: e.target.value as any })}
+                onChange={(e) => onConfigChange({ ...config, avatarShape: e.target.value as 'circle' | 'rounded' | 'square' })}
               >
                 <option value="circle">Circle</option>
                 <option value="rounded">Rounded</option>

@@ -1,4 +1,4 @@
-import type { SimEntry, TrackerConfig, SimSex } from '../../types/tracker';
+import type { AvatarCrop, SimEntry, TrackerConfig, SimSex } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 import { useMemo, useState } from 'react';
 import {
@@ -19,6 +19,7 @@ import {
 import SortableSimRow from './SortableSimRow';
 import { computeLifeStage, getFullName } from '../../utils/lifeStage';
 import { migrateSimEntry } from '../../utils/migrateSim';
+import AvatarCropEditor from './AvatarCropEditor';
 
 interface Props {
   sims: SimEntry[];
@@ -218,14 +219,24 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                     try {
                       setAvatarUploading(true);
                       const res = await uploadAvatar(file, editing.id);
-                      setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey });
+                      // New image: clear crop so it starts centered
+                      setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey, avatarCrop: undefined });
                     } finally {
                       setAvatarUploading(false);
                     }
                   }}
                 />
               </div>
-              <span className="field-hint">Uploads to blob and shows as a circle avatar.</span>
+
+              <div style={{ marginTop: '0.5rem' }}>
+                <AvatarCropEditor
+                  imageUrl={editing.avatarUrl}
+                  value={editing.avatarCrop as AvatarCrop | undefined}
+                  onChange={(next) => setEditing({ ...editing, avatarCrop: next as AvatarCrop | undefined })}
+                />
+              </div>
+
+              <span className="field-hint">Crop is saved as metadata (no re-upload).</span>
             </div>
 
             <div className="field-group">
@@ -256,7 +267,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
               <input
                 type="text"
                 readOnly
-                value={computeLifeStage(editing, config, (config as any).currentDay ?? 1) || ''}
+                value={computeLifeStage(editing, config, currentDay) || ''}
               />
               <span className="field-hint">Computed from Birth Year + current timeline year.</span>
             </div>

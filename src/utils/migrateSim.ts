@@ -1,5 +1,6 @@
 import type { SimEntry, SimSex } from '../types/tracker';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function migrateSimEntry(sim: any): SimEntry {
   const firstName = (sim.firstName ?? '').toString();
   const lastName = (sim.lastName ?? '').toString();
@@ -13,7 +14,16 @@ export function migrateSimEntry(sim: any): SimEntry {
     if (!ln) ln = parts.slice(1).join(' ') ?? '';
   }
 
-  const sex: SimSex | undefined = sim.sex;
+  const sex: SimSex | undefined = sim.sex as SimSex | undefined;
+
+  const cropRaw = sim.avatarCrop as { x?: unknown; y?: unknown; zoom?: unknown } | undefined;
+  const avatarCrop = cropRaw && typeof cropRaw === 'object'
+    ? {
+        x: Number.isFinite(Number(cropRaw.x)) ? Number(cropRaw.x) : 50,
+        y: Number.isFinite(Number(cropRaw.y)) ? Number(cropRaw.y) : 50,
+        zoom: Number.isFinite(Number(cropRaw.zoom)) ? Math.min(3, Math.max(1, Number(cropRaw.zoom))) : 1,
+      }
+    : undefined;
 
   return {
     id: String(sim.id ?? ''),
@@ -21,24 +31,27 @@ export function migrateSimEntry(sim: any): SimEntry {
     lastName: ln,
     name: sim.name,
     sex,
-    fatherId: sim.fatherId,
-    motherId: sim.motherId,
-    spouseId: sim.spouseId,
-    birthYear: sim.birthYear,
-    deathYear: sim.deathYear,
-    marriageYear: sim.marriageYear,
-    birthDayNumber: sim.birthDayNumber,
-    deathDayNumber: sim.deathDayNumber,
-    marriageDayNumber: sim.marriageDayNumber,
-    dateOfBirth: sim.dateOfBirth,
-    dateOfDeath: sim.dateOfDeath,
-    placeOfBirth: sim.placeOfBirth,
-    causeOfDeath: sim.causeOfDeath,
-    currentLifeStage: sim.currentLifeStage,
+    fatherId: sim.fatherId as string | undefined,
+    motherId: sim.motherId as string | undefined,
+    spouseId: sim.spouseId as string | undefined,
+    birthYear: sim.birthYear as number | undefined,
+    deathYear: sim.deathYear as number | undefined,
+    marriageYear: sim.marriageYear as number | undefined,
+    birthDayNumber: sim.birthDayNumber as number | undefined,
+    deathDayNumber: sim.deathDayNumber as number | undefined,
+    marriageDayNumber: sim.marriageDayNumber as number | undefined,
+    dateOfBirth: sim.dateOfBirth as string | undefined,
+    dateOfDeath: sim.dateOfDeath as string | undefined,
+    placeOfBirth: sim.placeOfBirth as string | undefined,
+    causeOfDeath: sim.causeOfDeath as string | undefined,
+    avatarUrl: sim.avatarUrl as string | undefined,
+    avatarBlobKey: sim.avatarBlobKey as string | undefined,
+    avatarCrop,
+    currentLifeStage: sim.currentLifeStage as string | undefined,
     generation: Number(sim.generation ?? 1),
-    notes: sim.notes,
-    married: sim.married,
-    pregnancyAttempts: sim.pregnancyAttempts,
-    pregnancyAttemptsUsed: sim.pregnancyAttemptsUsed,
+    notes: sim.notes as string | undefined,
+    married: sim.married as boolean | undefined,
+    pregnancyAttempts: sim.pregnancyAttempts as number | undefined,
+    pregnancyAttemptsUsed: sim.pregnancyAttemptsUsed as number | undefined,
   };
 }
