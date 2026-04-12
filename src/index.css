@@ -185,6 +185,21 @@
   --color-swatch: #ea638c;
 }
 
+/* ── Coffee and Teal (new palette) ── */
+:root[data-theme='coffee-teal'] {
+  --color-bg: #171219;          /* coffee bean */
+  --color-surface: #225560;     /* dark teal */
+  --color-border: rgba(201, 219, 155, 0.35); /* muted yellow */
+  --color-text: #edf060;        /* canary yellow */
+  --color-text-muted: rgba(237, 240, 96, 0.68);
+  --color-accent: #edf060;      /* canary yellow */
+  --color-accent-hover: #c0bd4b;/* olive */
+  --color-danger: #e87a34;      /* burnt orange */
+  --color-past: #1f1522;
+  --color-current: #262443;
+  --color-swatch: #225560;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
