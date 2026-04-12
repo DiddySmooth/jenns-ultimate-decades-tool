@@ -13,6 +13,7 @@ import 'reactflow/dist/style.css';
 import type { FamilyTreeConfig, FamilyTreeState, SimEntry, TrackerConfig, UnionNode } from '../../types/tracker';
 import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
+import TrunkEdge from './TrunkEdge';
 import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
 import { genealogyLayout } from './genealogyLayout';
@@ -20,6 +21,10 @@ import { genealogyLayout } from './genealogyLayout';
 const nodeTypes = {
   sim: SimNode,
   union: UnionNodeView,
+};
+
+const edgeTypes = {
+  trunk: TrunkEdge,
 };
 
 interface Props {
@@ -223,6 +228,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
