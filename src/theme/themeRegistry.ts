@@ -42,6 +42,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Sims',
     description: 'Rich cerulean, fresh sky, sky surge, emerald, yellow-green',
   },
+  {
+    id: 'grape-willow',
+    label: 'Grape Willow',
+    description: 'Dusty grape, lavender purple, celadon, willow green, dusty olive',
+  },
 ];
 
 export type ThemeId = string;

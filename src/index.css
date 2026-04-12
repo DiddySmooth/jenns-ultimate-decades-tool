@@ -110,6 +110,21 @@
   --color-swatch: #3cb9e1;
 }
 
+/* ── Grape Willow (from palette) ── */
+:root[data-theme='grape-willow'] {
+  --color-bg: #f5f6fb;
+  --color-surface: #ffffff;
+  --color-border: rgba(84, 66, 142, 0.28); /* dusty grape */
+  --color-text: #1a1a25;
+  --color-text-muted: rgba(26, 26, 37, 0.68);
+  --color-accent: #8963ba;     /* lavender purple */
+  --color-accent-hover: #54428e; /* dusty grape */
+  --color-danger: #688b58;     /* dusty olive */
+  --color-past: #eef1f8;
+  --color-current: #f2fff6;
+  --color-swatch: #8963ba;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
@@ -646,6 +661,7 @@ body {
 [data-theme-preview='berry-jungle'] .theme-chip-swatch { background: linear-gradient(135deg, #fb8b24 0%, #d90368 50%, #04a777 100%); }
 [data-theme-preview='petal-pop'] .theme-chip-swatch { background: linear-gradient(135deg, #ee2677 0%, #e86252 60%, #e87ea1 100%); }
 [data-theme-preview='sims'] .theme-chip-swatch { background: linear-gradient(135deg, #4276b7 0%, #3cb9e1 55%, #21b96b 100%); }
+[data-theme-preview='grape-willow'] .theme-chip-swatch { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
@@ -678,6 +694,7 @@ body {
 [data-theme-preview='berry-jungle'].theme-swatch-dot { background: linear-gradient(135deg, #fb8b24 0%, #d90368 50%, #04a777 100%); }
 [data-theme-preview='petal-pop'].theme-swatch-dot { background: linear-gradient(135deg, #ee2677 0%, #e86252 60%, #e87ea1 100%); }
 [data-theme-preview='sims'].theme-swatch-dot { background: linear-gradient(135deg, #4276b7 0%, #3cb9e1 55%, #21b96b 100%); }
+[data-theme-preview='grape-willow'].theme-swatch-dot { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
 .theme-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.4rem;
