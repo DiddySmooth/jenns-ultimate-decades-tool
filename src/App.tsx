@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { nanoid } from 'nanoid';
 import SetupWizard from './components/setup/SetupWizard';
 import TimelineView from './components/timeline/TimelineView';
 import SimsSheet from './components/sims/SimsSheet';
@@ -134,6 +135,29 @@ export default function App() {
     updateSave({ ...save, timeline });
   };
 
+  const updateCell = (dayNumber: number, field: string, value: string) => {
+    if (!save) return;
+    const timeline = save.timeline.map((d) => {
+      if (d.dayNumber !== dayNumber) return d;
+      if (field === 'deaths') return { ...d, deaths: value };
+      if (field === 'births') return { ...d, births: value };
+      return { ...d, lifeStageCells: { ...d.lifeStageCells, [field]: value } };
+    });
+    updateSave({ ...save, timeline });
+  };
+
+  const addCustomColumn = (label: string) => {
+    if (!save) return;
+    const newCol = { id: nanoid(), label };
+    updateSave({
+      ...save,
+      config: {
+        ...save.config,
+        customColumns: [...(save.config.customColumns ?? []), newCol],
+      },
+    });
+  };
+
   const addSim = (sim: SimEntry) => {
     if (!save) return;
     updateSave({ ...save, sims: [...save.sims, sim] });
@@ -217,9 +241,12 @@ export default function App() {
         {tab === 'timeline' && (
           <TimelineView
             timeline={save.timeline}
+            config={save.config}
             currentDay={save.currentDay}
             onMarkDay={markDay}
             onAddEvent={addEvent}
+            onUpdateCell={updateCell}
+            onAddCustomColumn={addCustomColumn}
           />
         )}
         {tab === 'sims' && (

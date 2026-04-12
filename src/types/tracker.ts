@@ -34,6 +34,7 @@ export interface TrackerConfig {
   humanAging: AgingConfig;
   pets: AgingConfig[];
   occults: AgingConfig[];
+  customColumns: { id: string; label: string }[]; // user-added columns (occult stages etc)
   createdAt: string;
   updatedAt: string;
 }
@@ -68,7 +69,10 @@ export interface TimelineDay {
   dayOfWeek: string;
   year: number;
   marked: boolean;
-  events: TimelineEvent[];
+  events: TimelineEvent[];    // general events column
+  deaths: string;             // deaths column (free text)
+  births: string;             // births column (free text)
+  lifeStageCells: Record<string, string>; // keyed by life stage id — any life stage column
 }
 
 export interface TrackerSave {

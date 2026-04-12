@@ -300,48 +300,97 @@ body {
 
 /* ── Timeline ── */
 .timeline-view { width: 100%; }
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+.timeline-hint { font-size: 0.78rem; color: var(--color-text-muted); }
+.add-col-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.add-col-bar input { flex: 1; min-width: 200px; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; }
 .timeline-scroll-wrapper { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); }
-.timeline-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-width: 480px; }
+.timeline-table { border-collapse: collapse; font-size: 0.82rem; min-width: 700px; }
 .timeline-table th {
   background: var(--color-bg);
-  padding: 0.5rem 0.6rem;
+  padding: 0.45rem 0.5rem;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
-.timeline-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.timeline-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+.timeline-table tr:last-child td { border-bottom: none; }
 .timeline-row.past td { background: var(--color-past); color: var(--color-text-muted); }
-.timeline-row.current td { background: var(--color-current); font-weight: 500; }
-.sticky-col { position: sticky; left: 0; background: inherit; z-index: 1; }
+.timeline-row.current td { background: var(--color-current); }
+
+/* Column widths */
+.sticky-col { position: sticky; left: 0; background: var(--color-surface); z-index: 1; }
 .timeline-row.past .sticky-col { background: var(--color-past); }
 .timeline-row.current .sticky-col { background: var(--color-current); }
-.day-num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); white-space: nowrap; position: relative; }
+.col-day-of-week { min-width: 44px; font-weight: 500; }
+.col-day-num { min-width: 48px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.col-day-num.clickable { cursor: pointer; }
+.col-day-num.clickable:hover { text-decoration: underline; color: var(--color-accent); }
+.col-year { min-width: 52px; font-variant-numeric: tabular-nums; }
+.col-events { min-width: 140px; }
+.col-deaths { min-width: 100px; }
+.col-births { min-width: 100px; }
+.col-lifestage { min-width: 90px; }
+
 .current-marker {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--color-accent); margin-right: 0.35rem; vertical-align: middle;
+  background: var(--color-accent); margin-right: 0.3rem; vertical-align: middle;
 }
-.events-cell { max-width: 280px; }
-.event-badge {
-  display: inline-block;
-  font-size: 0.78rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: var(--radius);
-  margin: 0.15rem 0.15rem 0 0;
-  background: #e8ede9;
-  color: var(--color-text);
-  white-space: nowrap;
+
+/* Events cell */
+.cell-tags { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-bottom: 0.2rem; }
+.cell-tag {
+  display: inline-block; font-size: 0.75rem;
+  padding: 0.1rem 0.35rem;
+  background: #e8ede9; border-radius: var(--radius);
 }
-.event-badge.event-death { background: #f0e6e6; }
-.event-badge.event-wedding { background: #f0ecf7; }
-.event-badge.event-birthday { background: #fef3e2; }
-.add-event-inline { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; align-items: center; }
-.add-event-inline input { min-width: 140px; flex: 1; }
-.actions-cell { white-space: nowrap; }
+.cell-add-btn {
+  background: transparent; border: 1px dashed var(--color-border);
+  border-radius: var(--radius); font-size: 0.75rem; width: 20px; height: 20px;
+  cursor: pointer; color: var(--color-text-muted); line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s;
+}
+.cell-add-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.inline-edit input {
+  width: 100%; padding: 0.25rem 0.35rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius); font-size: 0.8rem;
+}
+
+/* Editable cells */
+.editable-cell { cursor: pointer; min-width: 80px; }
+.editable-cell:hover { background: rgba(61,90,71,0.06); }
+.editable-cell.has-value { font-size: 0.8rem; }
+.editable-cell.editing { padding: 0; }
+.editable-cell.editing input {
+  width: 100%; padding: 0.3rem 0.4rem;
+  border: 1px solid var(--color-accent);
+  border-radius: 0; font-size: 0.8rem;
+  background: #fff;
+  outline: none;
+}
+.cell-placeholder { color: var(--color-border); user-select: none; }
 
 /* ── Sims sheet ── */
 .sims-sheet { }

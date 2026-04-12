@@ -42,6 +42,9 @@ export function generateTimeline(
       year,
       marked: false,
       events: [],
+      deaths: '',
+      births: '',
+      lifeStageCells: {},
     });
   }
   return days;

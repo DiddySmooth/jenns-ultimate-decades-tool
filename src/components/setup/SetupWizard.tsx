@@ -59,6 +59,7 @@ export default function SetupWizard({ onComplete }: Props) {
         humanAging,
         pets: petAging,
         occults: occultAging,
+        customColumns: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
