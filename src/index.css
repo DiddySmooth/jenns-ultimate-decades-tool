@@ -554,8 +554,8 @@ body {
 .sim-table-header {
   display: grid;
   grid-template-columns: 32px 28px 180px 110px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 160px;
-  gap: 0;
-  padding: 0.35rem 0.5rem;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -569,18 +569,42 @@ body {
 }
 
 .sims-list.rows { display: flex; flex-direction: column; }
-.sim-row { border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+.sim-row {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
 .sim-row.deceased { opacity: 0.65; }
+
+/* Zebra striping + clearer row separation */
+.sims-list.rows .sim-row:nth-child(even) { background: rgba(0,0,0,0.02); }
+:root[data-theme='dark'] .sims-list.rows .sim-row:nth-child(even),
+:root[data-theme='berry-jungle'] .sims-list.rows .sim-row:nth-child(even) {
+  background: rgba(255,255,255,0.04);
+}
+
 .sim-row-main {
   display: grid;
   grid-template-columns: 32px 28px 180px 110px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 160px;
   align-items: center;
-  padding: 0.25rem 0.5rem;
+  padding: 0.45rem 0.6rem;
+  column-gap: 0.6rem;
 }
-.sim-row:hover { background: rgba(61,90,71,0.04); }
-.sim-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: var(--color-text); }
-.sim-cell.stage, .sim-cell.gen, .sim-cell.sex, .sim-cell.born, .sim-cell.died { color: var(--color-text-muted); font-size: 0.82rem; }
-.sim-actions { display: flex; justify-content: flex-end; gap: 0.25rem; }
+
+.sim-row:hover { background: rgba(61,90,71,0.06); }
+.sim-row.expanded { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+
+.sim-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.86rem;
+  color: var(--color-text);
+}
+.sim-cell.stage, .sim-cell.gen, .sim-cell.sex, .sim-cell.born, .sim-cell.died {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+.sim-actions { display: flex; justify-content: flex-end; gap: 0.35rem; }
 .expand-toggle { color: var(--color-text-muted); }
 
 .sim-row-details { padding: 0.35rem 0.85rem 0.7rem; color: var(--color-text-muted); font-size: 0.85rem; }
