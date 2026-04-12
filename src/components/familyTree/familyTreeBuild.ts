@@ -201,7 +201,7 @@ export function buildFamilyTree(
         target: childNode,
         sourceHandle: 'child-out',
         targetHandle: 'parent-in',
-        type: 'smoothstep',
+        type: 'trunk',
         data: { kind: 'parent', birthYear },
       });
     });
