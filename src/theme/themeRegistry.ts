@@ -57,6 +57,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Tropical Mauve',
     description: 'Tropical teal, mauve shadow, golden apricot, golden sand, lime cream',
   },
+  {
+    id: 'evergreen-fawn',
+    label: 'Evergreen Fawn',
+    description: 'Evergreen, hunter green, olive bark, soft fawn',
+  },
 ];
 
 export type ThemeId = string;

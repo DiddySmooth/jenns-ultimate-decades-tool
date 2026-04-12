@@ -155,6 +155,21 @@
   --color-swatch: #51a3a3;
 }
 
+/* ── Evergreen Fawn (from palette) ── */
+:root[data-theme='evergreen-fawn'] {
+  --color-bg: #0f1f17;
+  --color-surface: #14281d;
+  --color-border: rgba(194, 168, 120, 0.22); /* soft fawn */
+  --color-text: #f3efe6;
+  --color-text-muted: rgba(243, 239, 230, 0.72);
+  --color-accent: #355834;      /* hunter green */
+  --color-accent-hover: #c2a878;/* soft fawn */
+  --color-danger: #6e633d;      /* olive bark */
+  --color-past: #111f19;
+  --color-current: #1a2f23;
+  --color-swatch: #355834;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
@@ -748,6 +763,7 @@ body {
 [data-theme-preview='grape-willow'] .theme-chip-swatch { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
 [data-theme-preview='amaranth-sun'] .theme-chip-swatch { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
 [data-theme-preview='tropical-mauve'] .theme-chip-swatch { background: linear-gradient(135deg, #51a3a3 0%, #dfcc74 55%, #c3e991 100%); }
+[data-theme-preview='evergreen-fawn'] .theme-chip-swatch { background: linear-gradient(135deg, #14281d 0%, #355834 55%, #c2a878 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
@@ -783,6 +799,7 @@ body {
 [data-theme-preview='grape-willow'].theme-swatch-dot { background: linear-gradient(135deg, #54428e 0%, #afe3c0 70%, #688b58 100%); }
 [data-theme-preview='amaranth-sun'].theme-swatch-dot { background: linear-gradient(135deg, #e01a4f 0%, #f9c22e 55%, #53b3cb 100%); }
 [data-theme-preview='tropical-mauve'].theme-swatch-dot { background: linear-gradient(135deg, #51a3a3 0%, #dfcc74 55%, #c3e991 100%); }
+[data-theme-preview='evergreen-fawn'].theme-swatch-dot { background: linear-gradient(135deg, #14281d 0%, #355834 55%, #c2a878 100%); }
 .theme-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.4rem;
