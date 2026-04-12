@@ -39,15 +39,45 @@ export interface TrackerConfig {
   updatedAt: string;
 }
 
+export type SimSex = 'Female' | 'Male' | 'Intersex' | 'Non-binary' | 'Unknown';
+
 export interface SimEntry {
   id: string;
-  name: string;
-  dateOfBirth: string;       // e.g. "Day 1, Year 1890"
+
+  // Name
+  firstName: string;
+  lastName: string;
+
+  // Back-compat (older saves)
+  name?: string;
+
+  sex?: SimSex;
+
+  // Relationships (store ids)
+  fatherId?: string;
+  motherId?: string;
+  spouseId?: string;
+
+  // Dates (by timeline day number, recommended)
+  birthDayNumber?: number;
+  deathDayNumber?: number;
+  marriageDayNumber?: number;
+
+  // Legacy string fields (still supported/displayed)
+  dateOfBirth?: string;
   dateOfDeath?: string;
-  currentLifeStage: string;
+
+  placeOfBirth?: string;
   causeOfDeath?: string;
+
+  // Derived in UI (auto-computed from birthDayNumber + currentDay)
+  // currentLifeStage is kept for legacy only
+  currentLifeStage?: string;
+
   generation: number;
   notes?: string;
+
+  // Future/optional trackers
   married?: boolean;
   pregnancyAttempts?: number;
   pregnancyAttemptsUsed?: number;
