@@ -1042,6 +1042,28 @@ body {
   border: 2px solid var(--color-surface);
   background: var(--color-accent);
 }
+
+.react-flow__controls {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.react-flow__controls > button {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: none;
+  outline: none;
+  transition: background 0.2s, color 0.2s;
+}
+.react-flow__controls > button:hover {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+.react-flow__mini-map {
+  background: var(--color-bg);
+  border-color: var(--color-border);
+}
 .react-flow__edge-path { stroke: rgba(0,0,0,0.35); }
 :root[data-theme='dark'] .react-flow__edge-path,
 :root[data-theme='berry-jungle'] .react-flow__edge-path,
