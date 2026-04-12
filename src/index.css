@@ -497,9 +497,54 @@ body {
 .sheet-header h2 { margin: 0; }
 .gen-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin: 1.5rem 0 0.6rem; }
 .sims-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.sims-list.vertical { max-width: 720px; }
 .drag-handle { cursor: grab; }
 .drag-handle:active { cursor: grabbing; }
+
+/* Sims list as row-table */
+.sim-table-header {
+  display: grid;
+  grid-template-columns: 32px 28px 180px 110px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 160px;
+  gap: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid var(--color-border);
+  background: var(--color-bg);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.sims-list.rows { display: flex; flex-direction: column; }
+.sim-row { border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+.sim-row.deceased { opacity: 0.65; }
+.sim-row-main {
+  display: grid;
+  grid-template-columns: 32px 28px 180px 110px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 160px;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+}
+.sim-row:hover { background: rgba(61,90,71,0.04); }
+.sim-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: var(--color-text); }
+.sim-cell.stage, .sim-cell.gen, .sim-cell.sex, .sim-cell.born, .sim-cell.died { color: var(--color-text-muted); font-size: 0.82rem; }
+.sim-actions { display: flex; justify-content: flex-end; gap: 0.25rem; }
+.expand-toggle { color: var(--color-text-muted); }
+
+.sim-row-details { padding: 0.35rem 0.85rem 0.7rem; color: var(--color-text-muted); font-size: 0.85rem; }
+.sim-row-details .detail { white-space: pre-wrap; }
+
+/* Make it adapt on smaller screens */
+@media (max-width: 900px) {
+  .sim-table-header { display: none; }
+  .sim-row-main { grid-template-columns: 32px 28px 1fr auto; grid-auto-flow: column; }
+  .sim-cell { display: none; }
+  .sim-cell.name { display: block; }
+  .sim-actions { grid-column: 4; }
+}
+
 .sim-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

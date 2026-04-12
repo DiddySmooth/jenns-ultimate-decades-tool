@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { useMemo, useState } from 'react';
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import SortableSimCard from './SortableSimCard';
+import SortableSimRow from './SortableSimRow';
 import { computeLifeStage, getFullName } from '../../utils/lifeStage';
 import { migrateSimEntry } from '../../utils/migrateSim';
 
@@ -72,6 +72,9 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
     onReorder(arrayMove(simsNormalized, oldIndex, newIndex));
   };
 
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const toggleExpanded = (id: string) => setExpandedIds((s) => ({ ...s, [id]: !s[id] }));
+
   return (
     <div className="sims-sheet">
       <div className="sheet-header">
@@ -79,17 +82,36 @@ export default function SimsSheet({ sims, config, currentDay, onAdd, onUpdate, o
         <button className="btn-primary btn-sm" onClick={startNew}>+ Add Sim</button>
       </div>
 
+      <div className="sim-table-header">
+        <span />
+        <span />
+        <span>Name</span>
+        <span>Stage</span>
+        <span>Sex</span>
+        <span>Gen</span>
+        <span>Born</span>
+        <span>Birthplace</span>
+        <span>Father</span>
+        <span>Mother</span>
+        <span>Spouse</span>
+        <span>Married</span>
+        <span>Died</span>
+        <span>COD</span>
+        <span />
+      </div>
+
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={simsNormalized.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="sims-list vertical">
+          <div className="sims-list rows">
             {simsNormalized.map((sim) => (
-              <SortableSimCard
+              <SortableSimRow
                 key={sim.id}
                 sim={sim}
-                index={0}
                 config={config}
                 currentDay={currentDay}
                 resolveName={resolveName}
+                expanded={!!expandedIds[sim.id]}
+                onToggleExpanded={() => toggleExpanded(sim.id)}
                 onEdit={() => { setEditing({ ...sim }); setIsNew(false); }}
                 onDelete={() => onDelete(sim.id)}
               />
