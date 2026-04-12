@@ -67,6 +67,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Twilight Rose',
     description: 'Blush rose, raspberry plum, deep twilight',
   },
+  {
+    id: 'coffee-teal',
+    label: 'Coffee & Teal',
+    description: 'Coffee bean, dark teal, canary yellow',
+  },
 ];
 
 export type ThemeId = string;
