@@ -143,7 +143,28 @@ export interface UnionNode {
 
 export interface FamilyTreeState {
   nodes: Array<{ id: string; type: 'sim' | 'union'; position: { x: number; y: number } }>;
-  edges: Array<{ id: string; source: string; target: string; type?: 'parent' | 'partner' }>; 
+  edges: Array<{ id: string; source: string; target: string; type?: string }>; 
+}
+
+export type AvatarShape = 'circle' | 'rounded' | 'square';
+
+export interface FamilyTreeDisplayConfig {
+  showBirthYear: boolean;
+  showDeathYear: boolean;
+  showAge: boolean;
+  showLifeStage: boolean;
+  showGeneration: boolean;
+}
+
+export interface FamilyTreeFilterConfig {
+  hiddenLifeStages: string[]; // hide sims in these stages
+  hideDeadBranches: boolean;
+}
+
+export interface FamilyTreeConfig {
+  avatarShape: AvatarShape;
+  display: FamilyTreeDisplayConfig;
+  filters: FamilyTreeFilterConfig;
 }
 
 export interface TrackerSave {
@@ -155,6 +176,7 @@ export interface TrackerSave {
 
   unions: UnionNode[];
   familyTree: FamilyTreeState;
+  familyTreeConfig: FamilyTreeConfig;
 }
 
 // Setup wizard state

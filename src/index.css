@@ -989,13 +989,16 @@ body {
 .ft-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 999px;
   overflow: hidden;
   border: 2px solid var(--color-border);
   flex-shrink: 0;
   background: rgba(0,0,0,0.06);
 }
+.ft-avatar.circle { border-radius: 999px; }
+.ft-avatar.rounded { border-radius: 10px; }
+.ft-avatar.square { border-radius: 2px; }
 .ft-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ft-meta { margin-left: 44px; margin-top: -6px; font-size: 0.75rem; color: var(--color-text-muted); display: grid; gap: 2px; }
 .ft-avatar-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-text-muted); }
 .ft-name { font-size: 0.88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ft-union { padding: 0; min-width: auto; border-radius: 999px; box-shadow: none; }
@@ -1056,3 +1059,5 @@ body {
   .family-tree-layout { grid-template-columns: 1fr; }
   .family-tree-sidebar { max-height: none; }
 }
+
+.stage-filter { display: flex; flex-direction: column; gap: 0.35rem; max-height: 180px; overflow: auto; padding-right: 0.25rem; }

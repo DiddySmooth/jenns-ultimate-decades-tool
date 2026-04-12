@@ -10,7 +10,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import type { FamilyTreeState, SimEntry, UnionNode } from '../../types/tracker';
+import type { FamilyTreeConfig, FamilyTreeState, SimEntry, TrackerConfig, UnionNode } from '../../types/tracker';
 import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
 import { buildFamilyTree } from './familyTreeBuild';
@@ -27,17 +27,22 @@ interface Props {
   sims: SimEntry[];
   unions: UnionNode[];
   saved: FamilyTreeState;
+  config: FamilyTreeConfig;
+  trackerConfig: TrackerConfig;
+  currentDay: number;
   onSavedChange: (next: FamilyTreeState) => void;
+  onConfigChange: (next: FamilyTreeConfig) => void;
   onUnionsChange: (next: UnionNode[]) => void;
   onSimsChange: (next: SimEntry[]) => void;
 }
 
-export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnionsChange, onSimsChange }: Props) {
-  const built = useMemo(() => buildFamilyTree(sims, unions, saved), [sims, unions, saved]);
+export default function FamilyTree({ sims, unions, saved, config, trackerConfig, currentDay, onSavedChange, onConfigChange, onUnionsChange, onSimsChange }: Props) {
+  const built = useMemo(() => buildFamilyTree(sims, unions, saved, config, trackerConfig, currentDay), [sims, unions, saved, config, trackerConfig, currentDay]);
 
   const [rf, setRf] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(built.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(built.edges);
+  const [selectedSimId, setSelectedSimId] = useState<string | null>(null);
 
   // When underlying sims/unions change, rebuild the graph.
   useEffect(() => {
@@ -184,6 +189,11 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
+            onNodeClick={(_, n) => {
+              if (String(n.id).startsWith('sim:')) {
+                setSelectedSimId(String(n.id).replace(/^sim:/, ''));
+              }
+            }}
             defaultEdgeOptions={{
               type: 'smoothstep',
               style: { stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 },
@@ -200,6 +210,97 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
         </div>
 
         <aside className="family-tree-sidebar">
+          <h3>Display</h3>
+          <div className="sidebar-card">
+            <div className="field-group">
+              <label>Avatar shape</label>
+              <select
+                value={config.avatarShape}
+                onChange={(e) => onConfigChange({ ...config, avatarShape: e.target.value as any })}
+              >
+                <option value="circle">Circle</option>
+                <option value="rounded">Rounded</option>
+                <option value="square">Square</option>
+              </select>
+            </div>
+
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={config.display.showLifeStage}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showLifeStage: e.target.checked } })}
+              />
+              Show life stage
+            </label>
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={config.display.showAge}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showAge: e.target.checked } })}
+              />
+              Show age
+            </label>
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={config.display.showBirthYear}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showBirthYear: e.target.checked } })}
+              />
+              Show birth year
+            </label>
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={config.display.showDeathYear}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showDeathYear: e.target.checked } })}
+              />
+              Show death year
+            </label>
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={config.display.showGeneration}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showGeneration: e.target.checked } })}
+              />
+              Show generation
+            </label>
+          </div>
+
+          <h3>Filters</h3>
+          <div className="sidebar-card">
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={config.filters.hideDeadBranches}
+                onChange={(e) => onConfigChange({ ...config, filters: { ...config.filters, hideDeadBranches: e.target.checked } })}
+              />
+              Hide dead branches
+            </label>
+            <div className="field-group" style={{ marginTop: '0.75rem' }}>
+              <label>Hide life stages</label>
+              <div className="stage-filter">
+                {(trackerConfig.humanAging.lifeStages ?? []).map((ls) => {
+                  const checked = (config.filters.hiddenLifeStages ?? []).includes(ls.name);
+                  return (
+                    <label key={ls.id} className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const cur = new Set(config.filters.hiddenLifeStages ?? []);
+                          if (e.target.checked) cur.add(ls.name);
+                          else cur.delete(ls.name);
+                          onConfigChange({ ...config, filters: { ...config.filters, hiddenLifeStages: Array.from(cur) } });
+                        }}
+                      />
+                      {ls.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           <h3>Unions</h3>
           <button
             className="btn-secondary btn-sm"
@@ -291,6 +392,58 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
           )}
         </aside>
       </div>
+
+      {selectedSimId && (
+        <div className="modal-overlay" onClick={() => setSelectedSimId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            {(() => {
+              const sim = sims.find((s) => s.id === selectedSimId);
+              if (!sim) return <p>Sim not found.</p>;
+
+              return (
+                <>
+                  <h3>Edit Sim</h3>
+
+                  <div className="field-group">
+                    <label>First Name</label>
+                    <input
+                      value={sim.firstName}
+                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, firstName: e.target.value } : x)))}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label>Last Name</label>
+                    <input
+                      value={sim.lastName}
+                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, lastName: e.target.value } : x)))}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label>Birth Year</label>
+                    <input
+                      type="number"
+                      value={sim.birthYear ?? ''}
+                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, birthYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label>Death Year</label>
+                    <input
+                      type="number"
+                      value={sim.deathYear ?? ''}
+                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, deathYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
+                    />
+                  </div>
+
+                  <div className="modal-actions">
+                    <button className="btn-primary" onClick={() => setSelectedSimId(null)}>Done</button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,23 +1,65 @@
 import type { Edge, Node } from 'reactflow';
-import type { FamilyTreeState, SimEntry, UnionNode } from '../../types/tracker';
+import type { FamilyTreeConfig, FamilyTreeState, SimEntry, TrackerConfig, UnionNode } from '../../types/tracker';
+import { computeLifeStage } from '../../utils/lifeStage';
+import { getDeathYear } from '../../utils/simDates';
 
 export function buildFamilyTree(
   sims: SimEntry[],
   unions: UnionNode[],
-  saved?: FamilyTreeState
+  saved: FamilyTreeState | undefined,
+  treeConfig: FamilyTreeConfig,
+  trackerConfig: TrackerConfig,
+  currentDay: number
 ): { nodes: Node[]; edges: Edge[] } {
   const savedPos = new Map((saved?.nodes ?? []).map((n) => [n.id, n.position]));
+
+  // Apply filters
+  const hiddenStages = new Set(treeConfig.filters.hiddenLifeStages ?? []);
+  const isDead = (s: SimEntry) => !!getDeathYear(s, trackerConfig);
+
+  let simsFiltered = sims;
+  if (hiddenStages.size > 0) {
+    simsFiltered = simsFiltered.filter((s) => {
+      const stage = computeLifeStage(s, trackerConfig, currentDay);
+      return !stage || !hiddenStages.has(stage);
+    });
+  }
+
+  // Hide dead branches: remove sims where they and all descendants are dead
+  if (treeConfig.filters.hideDeadBranches) {
+    const childrenByParent = new Map<string, string[]>();
+    for (const s of sims) {
+      if (s.fatherId) childrenByParent.set(s.fatherId, [...(childrenByParent.get(s.fatherId) ?? []), s.id]);
+      if (s.motherId) childrenByParent.set(s.motherId, [...(childrenByParent.get(s.motherId) ?? []), s.id]);
+    }
+
+    const memo = new Map<string, boolean>();
+    const hasLivingDesc = (id: string): boolean => {
+      if (memo.has(id)) return memo.get(id)!;
+      const sim = sims.find((x) => x.id === id);
+      if (!sim) { memo.set(id, false); return false; }
+      if (!isDead(sim)) { memo.set(id, true); return true; }
+      const kids = childrenByParent.get(id) ?? [];
+      const res = kids.some((kid) => hasLivingDesc(kid));
+      memo.set(id, res);
+      return res;
+    };
+
+    simsFiltered = simsFiltered.filter((s) => hasLivingDesc(s.id));
+  }
+
+  const visibleSimIds = new Set(simsFiltered.map((s) => s.id));
 
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
   // Sims
-  sims.forEach((sim, idx) => {
+  simsFiltered.forEach((sim, idx) => {
     const id = `sim:${sim.id}`;
     nodes.push({
       id,
       type: 'sim',
-      data: { sim },
+      data: { sim, treeConfig, trackerConfig, currentDay },
       position: savedPos.get(id) ?? { x: 40 + (idx % 5) * 220, y: 40 + Math.floor(idx / 5) * 140 },
     });
   });
@@ -79,7 +121,7 @@ export function buildFamilyTree(
     childrenByUnion.set(key, arr);
   };
 
-  sims.forEach((child) => {
+  simsFiltered.forEach((child) => {
     const f = child.fatherId;
     const m = child.motherId;
 
@@ -109,15 +151,15 @@ export function buildFamilyTree(
         addUnionChild(pick.id, child);
       } else {
         const childNode = `sim:${child.id}`;
-        fallbackParentEdges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
-        fallbackParentEdges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+        if (visibleSimIds.has(f)) fallbackParentEdges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+        if (visibleSimIds.has(m)) fallbackParentEdges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
       }
       return;
     }
 
     const childNode = `sim:${child.id}`;
-    if (f) fallbackParentEdges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
-    if (m) fallbackParentEdges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+    if (f && visibleSimIds.has(f)) fallbackParentEdges.push({ id: `e:sim:${f}->${childNode}`, source: `sim:${f}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
+    if (m && visibleSimIds.has(m)) fallbackParentEdges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
   });
 
   // Emit union->child edges sorted by birthYear

@@ -171,6 +171,20 @@ export default function App() {
             pregnancyCouples: s.pregnancyCouples ?? [],
             unions: s.unions ?? [],
             familyTree: s.familyTree ?? { nodes: [], edges: [] },
+            familyTreeConfig: s.familyTreeConfig ?? {
+              avatarShape: 'circle',
+              display: {
+                showBirthYear: true,
+                showDeathYear: true,
+                showAge: true,
+                showLifeStage: true,
+                showGeneration: true,
+              },
+              filters: {
+                hiddenLifeStages: [],
+                hideDeadBranches: false,
+              },
+            },
           }
         : s;
       setSave(normalized);
@@ -410,10 +424,18 @@ export default function App() {
             sims={save.sims}
             unions={save.unions ?? []}
             saved={save.familyTree}
+            config={save.familyTreeConfig}
+            trackerConfig={save.config}
+            currentDay={save.currentDay}
             onSavedChange={(next) => {
               const current = saveRef.current;
               if (!current) return;
               updateSave({ ...current, familyTree: next });
+            }}
+            onConfigChange={(next) => {
+              const current = saveRef.current;
+              if (!current) return;
+              updateSave({ ...current, familyTreeConfig: next });
             }}
             onUnionsChange={(next) => {
               const current = saveRef.current;

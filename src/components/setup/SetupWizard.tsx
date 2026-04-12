@@ -69,6 +69,20 @@ export default function SetupWizard({ onComplete }: Props) {
       pregnancyCouples: [],
       unions: [],
       familyTree: { nodes: [], edges: [] },
+      familyTreeConfig: {
+        avatarShape: 'circle',
+        display: {
+          showBirthYear: true,
+          showDeathYear: true,
+          showAge: true,
+          showLifeStage: true,
+          showGeneration: true,
+        },
+        filters: {
+          hiddenLifeStages: [],
+          hideDeadBranches: false,
+        },
+      },
     };
 
     onComplete(save);
