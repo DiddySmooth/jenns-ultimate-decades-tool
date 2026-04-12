@@ -65,6 +65,21 @@
   --color-swatch: #5e4ae3;
 }
 
+/* ── Berry Jungle (from palette) ── */
+:root[data-theme='berry-jungle'] {
+  --color-bg: #291720;          /* midnight violet */
+  --color-surface: #1e1118;     /* slightly darker */
+  --color-border: rgba(130, 2, 99, 0.55); /* royal plum */
+  --color-text: #fff7fb;
+  --color-text-muted: rgba(240, 230, 238, 0.72);
+  --color-accent: #fb8b24;      /* princeton orange */
+  --color-accent-hover: #d90368;/* berry lipstick */
+  --color-danger: #d90368;
+  --color-past: #23131a;
+  --color-current: #361a2a;
+  --color-swatch: #fb8b24;
+}
+
 /* ── Non-theme global tokens ── */
 :root {
   --font-sans: 'Almendra', Georgia, serif;
@@ -351,13 +366,13 @@ body {
 .tab-nav button.active { color: var(--color-accent); border-bottom-color: var(--color-accent); font-weight: 600; }
 .app-main { flex: 1; padding: 1rem; width: 100%; }
 
-/* ── Timeline ── */
+/* ── Timeline (virtualised) ── */
 .timeline-view { width: 100%; }
 .timeline-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   gap: 1rem;
 }
 .timeline-hint { font-size: 0.78rem; color: var(--color-text-muted); }
@@ -365,85 +380,97 @@ body {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   flex-wrap: wrap;
 }
 .add-col-bar input { flex: 1; min-width: 200px; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; }
-.timeline-scroll-wrapper { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); width: 100%; }
-.timeline-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
-.timeline-table th {
+
+/* Virtualised table wrapper */
+.vt-wrapper { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
+.vt-header {
+  display: flex;
   background: var(--color-bg);
-  padding: 0.45rem 0.5rem;
-  text-align: left;
+  border-bottom: 2px solid var(--color-border);
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
-  border-bottom: 2px solid var(--color-border);
-  white-space: nowrap;
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
 }
-.timeline-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
-.timeline-table tr:last-child td { border-bottom: none; }
-.timeline-row.past td { background: var(--color-past); color: var(--color-text-muted); }
-.timeline-row.current td { background: var(--color-current); }
-
-/* Column widths */
-.sticky-col { position: sticky; left: 0; background: var(--color-surface); z-index: 1; }
-.timeline-row.past .sticky-col { background: var(--color-past); }
-.timeline-row.current .sticky-col { background: var(--color-current); }
-.col-day-of-week { width: 52px; font-weight: 500; }
-.col-day-num { width: 56px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
-.col-day-num.clickable { cursor: pointer; }
-.col-day-num.clickable:hover { text-decoration: underline; color: var(--color-accent); }
-.col-year { width: 60px; font-variant-numeric: tabular-nums; }
-.col-events { width: 160px; }
-.col-deaths { width: 110px; }
-.col-births { width: 110px; }
-.col-lifestage { min-width: 80px; }
-
-.current-marker {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--color-accent); margin-right: 0.3rem; vertical-align: middle;
+.vt-head-cell {
+  padding: 0 0.5rem;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  white-space: nowrap;
+  overflow: hidden;
 }
-
-/* Events cell */
-.cell-tags { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-bottom: 0.2rem; }
+.vt-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.82rem;
+  background: var(--color-surface);
+  content-visibility: auto;
+  contain-intrinsic-height: 34px;
+}
+.vt-row.past { background: var(--color-past); color: var(--color-text-muted); }
+.vt-row.current { background: var(--color-current); }
+.vt-cell {
+  height: 34px;
+  padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  overflow: hidden;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.vt-cell:hover { background: rgba(61,90,71,0.05); }
+.vt-cell.editing { padding: 0; cursor: text; }
+.vt-cell.editing input {
+  width: 100%; height: 100%;
+  padding: 0 0.5rem;
+  border: none;
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  background: var(--color-surface);
+  font-size: 0.82rem;
+  font-family: var(--font-sans);
+}
+.vt-cell.has-value { }
+.vt-sticky { position: sticky; left: 0; background: inherit; z-index: 1; font-weight: 500; }
+.vt-daynum { font-variant-numeric: tabular-nums; font-family: var(--font-mono); cursor: pointer; }
+.vt-daynum:hover { text-decoration: underline; color: var(--color-accent); }
+.vt-events { gap: 0.25rem; flex-wrap: nowrap; overflow: hidden; cursor: default; }
+.vt-events:hover { background: transparent; }
+.event-input { border: none; outline: 1px solid var(--color-accent); font-size: 0.8rem; font-family: var(--font-sans); padding: 0 0.3rem; min-width: 80px; flex: 1; }
+.cell-placeholder { color: var(--color-border); user-select: none; font-size: 0.75rem; }
 .cell-tag {
-  display: inline-block; font-size: 0.75rem;
-  padding: 0.1rem 0.35rem;
+  display: inline-block; font-size: 0.72rem;
+  padding: 0.1rem 0.3rem;
   background: #e8ede9; border-radius: var(--radius);
+  white-space: nowrap;
 }
 .cell-add-btn {
   background: transparent; border: 1px dashed var(--color-border);
-  border-radius: var(--radius); font-size: 0.75rem; width: 20px; height: 20px;
+  border-radius: var(--radius); font-size: 0.75rem; width: 18px; height: 18px;
   cursor: pointer; color: var(--color-text-muted); line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: border-color 0.15s;
+  flex-shrink: 0;
+  transition: border-color 0.1s;
 }
 .cell-add-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.inline-edit input {
-  width: 100%; padding: 0.25rem 0.35rem;
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius); font-size: 0.8rem;
+.current-marker {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-accent); margin-right: 0.3rem; flex-shrink: 0;
 }
-
-/* Editable cells */
-.editable-cell { cursor: pointer; min-width: 80px; }
-.editable-cell:hover { background: rgba(61,90,71,0.06); }
-.editable-cell.has-value { font-size: 0.8rem; }
-.editable-cell.editing { padding: 0; }
-.editable-cell.editing input {
-  width: 100%; padding: 0.3rem 0.4rem;
-  border: 1px solid var(--color-accent);
-  border-radius: 0; font-size: 0.8rem;
-  background: #fff;
-  outline: none;
-}
-.cell-placeholder { color: var(--color-border); user-select: none; }
 
 /* ── Sims sheet ── */
 .sims-sheet { }
@@ -532,6 +559,7 @@ body {
 [data-theme-preview='light'] .theme-chip-swatch { background: #1a56db; }
 [data-theme-preview='dark'] .theme-chip-swatch { background: #6fcf97; }
 [data-theme-preview='klein-blue'] .theme-chip-swatch { background: linear-gradient(135deg, #05299e 0%, #f26ca7 100%); }
+[data-theme-preview='berry-jungle'] .theme-chip-swatch { background: linear-gradient(135deg, #fb8b24 0%, #d90368 50%, #04a777 100%); }
 
 /* ── Settings page ── */
 .settings-page { max-width: 560px; }
@@ -561,6 +589,7 @@ body {
 [data-theme-preview='light'].theme-swatch-dot { background: #1a56db; }
 [data-theme-preview='dark'].theme-swatch-dot { background: #6fcf97; }
 [data-theme-preview='klein-blue'].theme-swatch-dot { background: linear-gradient(135deg, #05299e 0%, #f26ca7 100%); }
+[data-theme-preview='berry-jungle'].theme-swatch-dot { background: linear-gradient(135deg, #fb8b24 0%, #d90368 50%, #04a777 100%); }
 .theme-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.4rem;

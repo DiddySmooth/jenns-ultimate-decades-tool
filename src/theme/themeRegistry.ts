@@ -27,6 +27,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Klein Blue',
     description: 'International Klein Blue, Majorelle, soft periwinkle, powder blush, rose kiss',
   },
+  {
+    id: 'berry-jungle',
+    label: 'Berry Jungle',
+    description: 'Princeton orange, berry lipstick, royal plum, midnight violet, jungle green',
+  },
 ];
 
 export type ThemeId = string;

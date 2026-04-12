@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useState } from 'react';
 import type { TimelineDay, TimelineEvent, TrackerConfig } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 
@@ -20,134 +20,95 @@ function buildColumns(config: TrackerConfig) {
   return cols;
 }
 
-// ── Editable cell — owns its own display value locally ──
-// Writes to parent only on commit, shows value instantly without parent re-render
-interface CellProps {
-  initialValue: string;
-  onCommit: (value: string) => void;
-}
+const COL_DAY_OF_WEEK = 56;
+const COL_DAY_NUM = 60;
+const COL_YEAR = 64;
+const COL_EVENTS = 180;
+const COL_DEATHS = 120;
+const COL_BIRTHS = 120;
+const COL_LIFESTAGE = 110;
+const ROW_HEIGHT = 34;
 
-const EditableCell = memo(function EditableCell({ initialValue, onCommit }: CellProps) {
+// Each cell manages its own local state — never causes sibling or parent re-renders
+const EditableCell = memo(function EditableCell({ initialValue, width, onCommit }: {
+  initialValue: string; width: number; onCommit: (v: string) => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
-  const [displayed, setDisplayed] = useState(initialValue);
-
-  const startEdit = () => {
-    setDraft(displayed);
-    setEditing(true);
-  };
-
-  const commit = () => {
-    setEditing(false);
-    setDisplayed(draft);
-    onCommit(draft);
-  };
-
-  const cancel = () => {
-    setEditing(false);
-    setDraft('');
-  };
+  const [shown, setShown] = useState(initialValue);
 
   if (editing) {
     return (
-      <td className="editable-cell editing">
+      <div className="vt-cell editing" style={{ width, minWidth: width }}>
         <input
           autoFocus
-          type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
-          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { setEditing(false); setShown(draft); onCommit(draft); }
+            if (e.key === 'Escape') setEditing(false);
+          }}
+          onBlur={() => { setEditing(false); setShown(draft); onCommit(draft); }}
         />
-      </td>
+      </div>
     );
   }
-
   return (
-    <td className={`editable-cell${displayed ? ' has-value' : ''}`} onClick={startEdit}>
-      {displayed || <span className="cell-placeholder">—</span>}
-    </td>
+    <div className={`vt-cell${shown ? ' has-value' : ''}`} style={{ width, minWidth: width }}
+      onClick={() => { setDraft(shown); setEditing(true); }}>
+      {shown || <span className="cell-placeholder">—</span>}
+    </div>
   );
 });
 
-// ── Memoized row ──
-interface RowProps {
+// Row is memoized — only re-renders if its day object reference changes
+const TimelineRow = memo(function TimelineRow({ day, isCurrent, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent }: {
   day: TimelineDay;
   isCurrent: boolean;
   lifeStageCols: { id: string; label: string }[];
-  onUpdateCell: (dayNumber: number, field: string, value: string) => void;
   onMarkDay: () => void;
-  onAddEvent: (dayNumber: number, event: TimelineEvent) => void;
-}
-
-const TimelineRow = memo(function TimelineRow({ day, isCurrent, lifeStageCols, onUpdateCell, onMarkDay, onAddEvent }: RowProps) {
+  onUpdateCell: (field: string, value: string) => void;
+  onAddEvent: (event: TimelineEvent) => void;
+}) {
   const [addingEvent, setAddingEvent] = useState(false);
   const [eventDraft, setEventDraft] = useState('');
 
   const submitEvent = () => {
-    if (!eventDraft.trim()) { setAddingEvent(false); return; }
-    onAddEvent(day.dayNumber, { id: nanoid(), dayNumber: day.dayNumber, type: 'custom', description: eventDraft.trim() });
+    if (eventDraft.trim()) onAddEvent({ id: nanoid(), dayNumber: day.dayNumber, type: 'custom', description: eventDraft.trim() });
     setAddingEvent(false);
     setEventDraft('');
   };
 
   const isPast = day.marked;
-  const rowClass = `timeline-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}`;
-
   return (
-    <tr className={rowClass}>
-      <td className="sticky-col col-day-of-week">
+    <div className={`vt-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}`} style={{ height: ROW_HEIGHT }}>
+      <div className="vt-cell vt-sticky" style={{ width: COL_DAY_OF_WEEK, minWidth: COL_DAY_OF_WEEK }}>
         {isCurrent && <span className="current-marker" />}
         {day.dayOfWeek.slice(0, 3)}
-      </td>
-      <td className="col-day-num clickable" onClick={onMarkDay} title={isPast ? 'Already passed' : 'Mark as passed'}>
+      </div>
+      <div className="vt-cell vt-daynum" style={{ width: COL_DAY_NUM, minWidth: COL_DAY_NUM }}
+        onClick={() => !isPast && onMarkDay()}>
         {day.dayNumber}
-      </td>
-      <td className="col-year">{day.year}</td>
-
-      {/* Events */}
-      <td className="col-events">
-        {day.events.length > 0 && (
-          <div className="cell-tags">
-            {day.events.map((ev) => <span key={ev.id} className="cell-tag">{ev.description}</span>)}
-          </div>
-        )}
-        {addingEvent ? (
-          <div className="inline-edit">
-            <input
-              autoFocus type="text"
-              placeholder="Describe event…"
-              value={eventDraft}
+      </div>
+      <div className="vt-cell" style={{ width: COL_YEAR, minWidth: COL_YEAR }}>{day.year}</div>
+      <div className="vt-cell vt-events" style={{ width: COL_EVENTS, minWidth: COL_EVENTS }}>
+        {day.events.map((ev) => <span key={ev.id} className="cell-tag">{ev.description}</span>)}
+        {addingEvent
+          ? <input autoFocus className="event-input" placeholder="Event…" value={eventDraft}
               onChange={(e) => setEventDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') submitEvent(); if (e.key === 'Escape') setAddingEvent(false); }}
-              onBlur={submitEvent}
-            />
-          </div>
-        ) : (
-          <button className="cell-add-btn" onClick={() => setAddingEvent(true)}>+</button>
-        )}
-      </td>
-
-      <EditableCell
-        initialValue={day.deaths || ''}
-        onCommit={(v) => onUpdateCell(day.dayNumber, 'deaths', v)}
-      />
-      <EditableCell
-        initialValue={day.births || ''}
-        onCommit={(v) => onUpdateCell(day.dayNumber, 'births', v)}
-      />
+              onBlur={submitEvent} />
+          : <button className="cell-add-btn" onClick={() => setAddingEvent(true)}>+</button>}
+      </div>
+      <EditableCell width={COL_DEATHS} initialValue={day.deaths || ''} onCommit={(v) => onUpdateCell('deaths', v)} />
+      <EditableCell width={COL_BIRTHS} initialValue={day.births || ''} onCommit={(v) => onUpdateCell('births', v)} />
       {lifeStageCols.map((col) => (
-        <EditableCell
-          key={col.id}
-          initialValue={day.lifeStageCells?.[col.id] || ''}
-          onCommit={(v) => onUpdateCell(day.dayNumber, col.id, v)}
-        />
+        <EditableCell key={col.id} width={COL_LIFESTAGE} initialValue={day.lifeStageCells?.[col.id] || ''} onCommit={(v) => onUpdateCell(col.id, v)} />
       ))}
-    </tr>
+    </div>
   );
 });
 
-// ── Main component ──
 export default function TimelineView({ timeline, config, currentDay, onMarkDay, onAddEvent, onUpdateCell, onAddCustomColumn }: Props) {
   const [addColMode, setAddColMode] = useState(false);
   const [newColLabel, setNewColLabel] = useState('');
@@ -160,9 +121,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
     setAddColMode(false);
   };
 
-  const handleAddEvent = useCallback((dayNumber: number, event: TimelineEvent) => {
-    onAddEvent(dayNumber, event);
-  }, [onAddEvent]);
+  const totalWidth = COL_DAY_OF_WEEK + COL_DAY_NUM + COL_YEAR + COL_EVENTS + COL_DEATHS + COL_BIRTHS + lifeStageCols.length * COL_LIFESTAGE;
 
   return (
     <div className="timeline-view">
@@ -173,47 +132,44 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
 
       {addColMode && (
         <div className="add-col-bar">
-          <input
-            autoFocus type="text"
-            placeholder="Column name (e.g. Vampire Fledgling)"
-            value={newColLabel}
+          <input autoFocus type="text" placeholder="Column name" value={newColLabel}
             onChange={(e) => setNewColLabel(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitNewCol(); if (e.key === 'Escape') setAddColMode(false); }}
-          />
+            onKeyDown={(e) => { if (e.key === 'Enter') submitNewCol(); if (e.key === 'Escape') setAddColMode(false); }} />
           <button className="btn-primary btn-sm" onClick={submitNewCol}>Add</button>
           <button className="btn-ghost btn-sm" onClick={() => setAddColMode(false)}>Cancel</button>
         </div>
       )}
 
-      <div className="timeline-scroll-wrapper">
-        <table className="timeline-table">
-          <thead>
-            <tr>
-              <th className="sticky-col col-day-of-week">Day</th>
-              <th className="col-day-num">Day #</th>
-              <th className="col-year">Year</th>
-              <th className="col-events">Events</th>
-              <th className="col-deaths">Deaths</th>
-              <th className="col-births">Births</th>
-              {lifeStageCols.map((col) => (
-                <th key={col.id} className="col-lifestage">{col.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
+      <div className="vt-wrapper">
+        {/* Sticky header */}
+        <div className="vt-header" style={{ minWidth: totalWidth }}>
+          <div className="vt-head-cell" style={{ width: COL_DAY_OF_WEEK }}>Day</div>
+          <div className="vt-head-cell" style={{ width: COL_DAY_NUM }}>Day #</div>
+          <div className="vt-head-cell" style={{ width: COL_YEAR }}>Year</div>
+          <div className="vt-head-cell" style={{ width: COL_EVENTS }}>Events</div>
+          <div className="vt-head-cell" style={{ width: COL_DEATHS }}>Deaths</div>
+          <div className="vt-head-cell" style={{ width: COL_BIRTHS }}>Births</div>
+          {lifeStageCols.map((col) => (
+            <div key={col.id} className="vt-head-cell" style={{ width: COL_LIFESTAGE }}>{col.label}</div>
+          ))}
+        </div>
+
+        {/* Scrollable body */}
+        <div className="vt-body">
+          <div style={{ minWidth: totalWidth }}>
             {timeline.map((day) => (
               <TimelineRow
                 key={day.dayNumber}
                 day={day}
                 isCurrent={day.dayNumber === currentDay}
                 lifeStageCols={lifeStageCols}
-                onUpdateCell={onUpdateCell}
                 onMarkDay={() => onMarkDay(day.dayNumber)}
-                onAddEvent={handleAddEvent}
+                onUpdateCell={(field, value) => onUpdateCell(day.dayNumber, field, value)}
+                onAddEvent={(event) => onAddEvent(day.dayNumber, event)}
               />
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     </div>
   );
