@@ -17,35 +17,43 @@ export function buildFamilyTree(
   const hiddenStages = new Set(treeConfig.filters.hiddenLifeStages ?? []);
   const isDead = (s: SimEntry) => !!getDeathYear(s, trackerConfig);
 
+  // Precompute living-descendant status on the FULL sim set (so dead-branch pruning
+  // is not affected by other filters like "hide life stages").
+  const childrenByParent = new Map<string, string[]>();
+  for (const s of sims) {
+    if (s.fatherId) childrenByParent.set(s.fatherId, [...(childrenByParent.get(s.fatherId) ?? []), s.id]);
+    if (s.motherId) childrenByParent.set(s.motherId, [...(childrenByParent.get(s.motherId) ?? []), s.id]);
+  }
+  const memo = new Map<string, boolean>();
+  const hasLivingDesc = (id: string): boolean => {
+    if (memo.has(id)) return memo.get(id)!;
+    const sim = sims.find((x) => x.id === id);
+    if (!sim) { memo.set(id, false); return false; }
+    if (!isDead(sim)) { memo.set(id, true); return true; }
+    const kids = childrenByParent.get(id) ?? [];
+    const res = kids.some((kid) => hasLivingDesc(kid));
+    memo.set(id, res);
+    return res;
+  };
+
   let simsFiltered = sims;
+
+  // Hide dead sims (simple)
+  if (treeConfig.filters.hideDeadSims) {
+    simsFiltered = simsFiltered.filter((s) => !isDead(s));
+  }
+
+  // Hide dead branches: remove sims where they and all descendants are dead
+  if (treeConfig.filters.hideDeadBranches) {
+    simsFiltered = simsFiltered.filter((s) => hasLivingDesc(s.id));
+  }
+
+  // Hide by life stage
   if (hiddenStages.size > 0) {
     simsFiltered = simsFiltered.filter((s) => {
       const stage = computeLifeStage(s, trackerConfig, currentDay);
       return !stage || !hiddenStages.has(stage);
     });
-  }
-
-  // Hide dead branches: remove sims where they and all descendants are dead
-  if (treeConfig.filters.hideDeadBranches) {
-    const childrenByParent = new Map<string, string[]>();
-    for (const s of sims) {
-      if (s.fatherId) childrenByParent.set(s.fatherId, [...(childrenByParent.get(s.fatherId) ?? []), s.id]);
-      if (s.motherId) childrenByParent.set(s.motherId, [...(childrenByParent.get(s.motherId) ?? []), s.id]);
-    }
-
-    const memo = new Map<string, boolean>();
-    const hasLivingDesc = (id: string): boolean => {
-      if (memo.has(id)) return memo.get(id)!;
-      const sim = sims.find((x) => x.id === id);
-      if (!sim) { memo.set(id, false); return false; }
-      if (!isDead(sim)) { memo.set(id, true); return true; }
-      const kids = childrenByParent.get(id) ?? [];
-      const res = kids.some((kid) => hasLivingDesc(kid));
-      memo.set(id, res);
-      return res;
-    };
-
-    simsFiltered = simsFiltered.filter((s) => hasLivingDesc(s.id));
   }
 
   const visibleSimIds = new Set(simsFiltered.map((s) => s.id));

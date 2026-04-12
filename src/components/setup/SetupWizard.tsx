@@ -80,6 +80,7 @@ export default function SetupWizard({ onComplete }: Props) {
         },
         filters: {
           hiddenLifeStages: [],
+          hideDeadSims: false,
           hideDeadBranches: false,
         },
       },

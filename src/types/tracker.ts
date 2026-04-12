@@ -158,7 +158,8 @@ export interface FamilyTreeDisplayConfig {
 
 export interface FamilyTreeFilterConfig {
   hiddenLifeStages: string[]; // hide sims in these stages
-  hideDeadBranches: boolean;
+  hideDeadSims: boolean;      // hide sims that have died
+  hideDeadBranches: boolean;  // hide sims where they + all descendants are dead
 }
 
 export interface FamilyTreeConfig {

@@ -271,10 +271,18 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
               <input
                 type="checkbox"
+                checked={config.filters.hideDeadSims}
+                onChange={(e) => onConfigChange({ ...config, filters: { ...config.filters, hideDeadSims: e.target.checked } })}
+              />
+              Hide dead sims
+            </label>
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem', marginTop: '0.35rem' }}>
+              <input
+                type="checkbox"
                 checked={config.filters.hideDeadBranches}
                 onChange={(e) => onConfigChange({ ...config, filters: { ...config.filters, hideDeadBranches: e.target.checked } })}
               />
-              Hide dead branches
+              Hide dead branches (no living descendants)
             </label>
             <div className="field-group" style={{ marginTop: '0.75rem' }}>
               <label>Hide life stages</label>

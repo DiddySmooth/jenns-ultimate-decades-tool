@@ -182,6 +182,7 @@ export default function App() {
               },
               filters: {
                 hiddenLifeStages: [],
+                hideDeadSims: false,
                 hideDeadBranches: false,
               },
             },
