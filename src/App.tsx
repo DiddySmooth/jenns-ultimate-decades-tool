@@ -5,6 +5,7 @@ import SetupWizard from './components/setup/SetupWizard';
 import TimelineView from './components/timeline/TimelineView';
 import SimsSheet from './components/sims/SimsSheet';
 import PregnancyTracker from './components/pregnancy/PregnancyTracker';
+import FamilyTree from './components/familyTree/FamilyTree';
 import AgingReference from './components/aging/AgingReference';
 import ThemePicker from './components/ThemePicker';
 import Toast from './components/Toast';
@@ -13,7 +14,7 @@ import { useDebouncedSave } from './hooks/useDebouncedSave';
 import { useTheme } from './hooks/useTheme';
 import type { TrackerSave, SimEntry, TimelineEvent } from './types/tracker';
 
-type Tab = 'timeline' | 'sims' | 'pregnancy' | 'aging' | 'settings';
+type Tab = 'timeline' | 'sims' | 'pregnancy' | 'tree' | 'aging' | 'settings';
 
 const GOOGLE_CLIENT_ID = '106970576831-dbrfg4aqshbcqpq9m6fi3sr2itg0v4a6.apps.googleusercontent.com';
 const DEV_STORAGE_KEY = 'judt_dev_save';
@@ -164,7 +165,14 @@ export default function App() {
     if (!user) return;
     setSaveLoading(true);
     loadSave(user.sub, saveId).then((s) => {
-      const normalized = s ? { ...s, pregnancyCouples: s.pregnancyCouples ?? [] } : s;
+      const normalized = s
+        ? {
+            ...s,
+            pregnancyCouples: s.pregnancyCouples ?? [],
+            unions: s.unions ?? [],
+            familyTree: s.familyTree ?? { nodes: [], edges: [] },
+          }
+        : s;
       setSave(normalized);
       saveRef.current = normalized;
       // Update dropdown label from the tracker name (if present)
@@ -341,6 +349,7 @@ export default function App() {
           <button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>Timeline</button>
           <button className={tab === 'sims' ? 'active' : ''} onClick={() => setTab('sims')}>Sims</button>
           <button className={tab === 'pregnancy' ? 'active' : ''} onClick={() => setTab('pregnancy')}>Marriage/Pregnancy</button>
+          <button className={tab === 'tree' ? 'active' : ''} onClick={() => setTab('tree')}>Family Tree</button>
           <button className={tab === 'aging' ? 'active' : ''} onClick={() => setTab('aging')}>Aging</button>
           <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>Settings</button>
         </nav>
@@ -391,6 +400,18 @@ export default function App() {
               const current = saveRef.current;
               if (!current) return;
               updateSave({ ...current, pregnancyCouples: next });
+            }}
+          />
+        )}
+        {tab === 'tree' && (
+          <FamilyTree
+            sims={save.sims}
+            unions={save.unions ?? []}
+            saved={save.familyTree}
+            onSavedChange={(next) => {
+              const current = saveRef.current;
+              if (!current) return;
+              updateSave({ ...current, familyTree: next });
             }}
           />
         )}

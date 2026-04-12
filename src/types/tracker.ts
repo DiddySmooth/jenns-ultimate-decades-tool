@@ -73,6 +73,11 @@ export interface SimEntry {
   placeOfBirth?: string;
   causeOfDeath?: string;
 
+  // Avatar
+  avatarUrl?: string;          // public URL if used
+  avatarBlobKey?: string;      // blob path if used
+
+
   // Derived in UI (auto-computed from birthDayNumber + currentDay)
   // currentLifeStage is kept for legacy only
   currentLifeStage?: string;
@@ -121,12 +126,32 @@ export interface PregnancyCouple {
   notes?: string;
 }
 
+export type UnionEndReason = 'divorce' | 'death' | 'unknown';
+
+export interface UnionNode {
+  id: string;
+  partnerAId?: string;
+  partnerBId?: string;
+  startYear?: number;
+  endYear?: number;
+  endReason?: UnionEndReason;
+  notes?: string;
+}
+
+export interface FamilyTreeState {
+  nodes: Array<{ id: string; type: 'sim' | 'union'; position: { x: number; y: number } }>;
+  edges: Array<{ id: string; source: string; target: string; type?: 'parent' | 'partner' }>; 
+}
+
 export interface TrackerSave {
   config: TrackerConfig;
   sims: SimEntry[];
   timeline: TimelineDay[];
   currentDay: number;
   pregnancyCouples: PregnancyCouple[];
+
+  unions: UnionNode[];
+  familyTree: FamilyTreeState;
 }
 
 // Setup wizard state

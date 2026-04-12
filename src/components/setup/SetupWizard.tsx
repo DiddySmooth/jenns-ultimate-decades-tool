@@ -67,6 +67,8 @@ export default function SetupWizard({ onComplete }: Props) {
       timeline,
       currentDay: 1,
       pregnancyCouples: [],
+      unions: [],
+      familyTree: { nodes: [], edges: [] },
     };
 
     onComplete(save);
