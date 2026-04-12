@@ -73,6 +73,9 @@ export function buildFamilyTree(
   });
 
   // Unions
+  // NOTE: These sizes should match actual rendered node sizes.
+  // Sims can vary in width by name length, so for *exact* centering we
+  // also adjust union positions in FamilyTree.tsx using measured node widths.
   const SIM_W = 160;
   const SIM_H = 56;
   const UNION_W = 26;
