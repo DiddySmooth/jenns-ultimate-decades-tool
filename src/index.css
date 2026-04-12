@@ -471,6 +471,11 @@ body {
 }
 .vt-row.past { background: var(--color-past); color: var(--color-text-muted); }
 .vt-row.current { background: var(--color-current); }
+.vt-row.active {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+}
 .vt-cell {
   height: 34px;
   padding: 0 0.5rem;

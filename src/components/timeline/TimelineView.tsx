@@ -63,13 +63,15 @@ const EditableCell = memo(function EditableCell({ initialValue, width, onCommit 
 });
 
 // Row is memoized — only re-renders if its day object reference changes
-const TimelineRow = memo(function TimelineRow({ day, isCurrent, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent }: {
+const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onActivate }: {
   day: TimelineDay;
   isCurrent: boolean;
+  isActive: boolean;
   lifeStageCols: { id: string; label: string }[];
   onMarkDay: () => void;
   onUpdateCell: (field: string, value: string) => void;
   onAddEvent: (event: TimelineEvent) => void;
+  onActivate: () => void;
 }) {
   const [addingEvent, setAddingEvent] = useState(false);
   const [eventDraft, setEventDraft] = useState('');
@@ -82,7 +84,11 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, lifeStageCols, o
 
   const isPast = day.marked;
   return (
-    <div className={`vt-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}`} style={{ height: ROW_HEIGHT }}>
+    <div
+      className={`vt-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}${isActive ? ' active' : ''}`}
+      style={{ height: ROW_HEIGHT }}
+      onMouseDown={onActivate}
+    >
       <div className="vt-cell vt-sticky" style={{ width: COL_DAY_OF_WEEK, minWidth: COL_DAY_OF_WEEK }}>
         {isCurrent && <span className="current-marker" />}
         {day.dayOfWeek.slice(0, 3)}
@@ -116,6 +122,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, lifeStageCols, o
 export default function TimelineView({ timeline, config, currentDay, onMarkDay, onAddEvent, onUpdateCell, onAddCustomColumn }: Props) {
   const [addColMode, setAddColMode] = useState(false);
   const [newColLabel, setNewColLabel] = useState('');
+  const [activeRow, setActiveRow] = useState<number | null>(null);
   const lifeStageCols = buildColumns(config);
 
   const submitNewCol = () => {
@@ -165,10 +172,12 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
                 key={day.dayNumber}
                 day={day}
                 isCurrent={day.dayNumber === currentDay}
+                isActive={activeRow === day.dayNumber}
                 lifeStageCols={lifeStageCols}
                 onMarkDay={() => onMarkDay(day.dayNumber)}
                 onUpdateCell={(field, value) => onUpdateCell(day.dayNumber, field, value)}
                 onAddEvent={(event) => onAddEvent(day.dayNumber, event)}
+                onActivate={() => setActiveRow(day.dayNumber)}
               />
             ))}
           </div>
