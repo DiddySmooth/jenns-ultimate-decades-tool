@@ -245,7 +245,9 @@ export default function App() {
       <header className="app-header">
         <div className="app-header-inner">
           <h1 className="app-title">JUDT</h1>
-          <span className="challenge-meta">Started {save.config.startYear} · Day {save.currentDay}</span>
+          <span className="challenge-meta">
+            Started {save.config.startYear} · Next Day {save.currentDay} · Done through Day {Math.max(0, save.currentDay - 1)}
+          </span>
           <span className="save-status">{saving ? 'Saving…' : '✓ Saved'}</span>
           <ThemePicker current={themeId} onChange={setThemeId} compact />
           <span className="user-info">{user.email}</span>
