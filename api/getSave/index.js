@@ -1,4 +1,3 @@
-const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 const CONTAINER = 'decades-saves';
@@ -11,36 +10,40 @@ function getBlobClient(userId) {
   return container.getBlockBlobClient(`${userId}/tracker.json`);
 }
 
-app.http('getSave', {
-  methods: ['GET'],
-  authLevel: 'anonymous', // auth handled by staticwebapp.config.json
-  handler: async (request, context) => {
-    const principal = request.headers.get('x-ms-client-principal');
-    if (!principal) {
-      return { status: 401, body: 'Unauthorized' };
-    }
+module.exports = async function (context, req) {
+  const principal = req.headers['x-ms-client-principal'];
+  if (!principal) {
+    context.res = { status: 401, body: 'Unauthorized' };
+    return;
+  }
 
+  let userId;
+  try {
     const decoded = JSON.parse(Buffer.from(principal, 'base64').toString('utf8'));
-    const userId = decoded.userId;
+    userId = decoded.userId;
+  } catch {
+    context.res = { status: 400, body: 'Invalid principal' };
+    return;
+  }
 
-    try {
-      const blobClient = getBlobClient(userId);
-      const download = await blobClient.download();
-      const body = await streamToString(download.readableStreamBody);
-      return {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      };
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return { status: 404, body: 'No save found' };
-      }
-      context.error('getSave error:', err);
-      return { status: 500, body: 'Internal error' };
+  try {
+    const blobClient = getBlobClient(userId);
+    const download = await blobClient.download();
+    const body = await streamToString(download.readableStreamBody);
+    context.res = {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    };
+  } catch (err) {
+    if (err.statusCode === 404) {
+      context.res = { status: 404, body: 'No save found' };
+      return;
     }
-  },
-});
+    context.log.error('getSave error:', err);
+    context.res = { status: 500, body: 'Internal error' };
+  }
+};
 
 async function streamToString(readable) {
   const chunks = [];
