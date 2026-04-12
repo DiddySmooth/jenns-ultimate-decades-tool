@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -36,16 +36,18 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
   const { nodes, edges } = useMemo(() => buildFamilyTree(sims, unions, saved), [sims, unions, saved]);
   const [rf, setRf] = useState<ReactFlowInstance | null>(null);
 
-  // Dev-only console diagnostics
-  if (import.meta.env.DEV) {
+  // Console diagnostics (enabled in prod temporarily)
+  const lastDiagRef = useRef<string>('');
+  useEffect(() => {
     const simIds = new Set(sims.map((s) => s.id));
     const withParents = sims.filter((s) => s.fatherId || s.motherId).length;
-    const missingParentRefs = sims.filter((s) => (s.fatherId && !simIds.has(s.fatherId)) || (s.motherId && !simIds.has(s.motherId))).length;
+    const missingParentRefs = sims.filter(
+      (s) => (s.fatherId && !simIds.has(s.fatherId)) || (s.motherId && !simIds.has(s.motherId))
+    ).length;
     const parentEdges = edges.filter((e) => (e as any).type === 'parent').length;
     const partnerEdges = edges.filter((e) => (e as any).type === 'partner').length;
 
-    // eslint-disable-next-line no-console
-    console.debug('[FamilyTree]', {
+    const diag = {
       sims: sims.length,
       unions: unions.length,
       nodes: nodes.length,
@@ -54,8 +56,14 @@ export default function FamilyTree({ sims, unions, saved, onSavedChange, onUnion
       missingParentRefs,
       parentEdges,
       partnerEdges,
-    });
-  }
+    };
+    const sig = JSON.stringify(diag);
+    if (sig !== lastDiagRef.current) {
+      lastDiagRef.current = sig;
+      // eslint-disable-next-line no-console
+      console.debug('[FamilyTree]', diag);
+    }
+  }, [sims, unions, nodes.length, edges.length]);
 
   const onNodesChange: OnNodesChange = useCallback(
     () => {
