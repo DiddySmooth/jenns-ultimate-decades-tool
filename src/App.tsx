@@ -160,21 +160,19 @@ export default function App() {
     const current = saveRef.current;
     if (!current) return;
 
-    // If the user clicks a past day, treat it as an "undo" back to that day.
-    // (Everything after becomes unmarked; currentDay becomes that day.)
     const undoMode = current.currentDay > dayNumber;
+    const nextCurrentDay = undoMode ? dayNumber : dayNumber + 1;
 
-    const timeline = current.timeline.map((d) => {
-      if (undoMode) {
-        return d.dayNumber < dayNumber ? { ...d, marked: true } : { ...d, marked: false };
-      }
-      return d.dayNumber <= dayNumber ? { ...d, marked: true } : d;
-    });
+    // Keep timeline.marked consistent with currentDay to avoid off-by-one confusion.
+    const timeline = current.timeline.map((d) => ({
+      ...d,
+      marked: d.dayNumber < nextCurrentDay,
+    }));
 
     updateSave({
       ...current,
       timeline,
-      currentDay: undoMode ? dayNumber : dayNumber + 1,
+      currentDay: nextCurrentDay,
     });
   };
 
