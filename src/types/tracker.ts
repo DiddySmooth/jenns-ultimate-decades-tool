@@ -106,6 +106,19 @@ export const DEFAULT_HUMAN_LIFE_STAGES: Omit<LifeStage, 'yearsEquivalent'>[] = [
   { id: 'elder', name: 'Elder', simDays: 0 },
 ];
 
+// Default pet life stages (Puppy/Kitten, Adult, Elder — 3 stages)
+export const DEFAULT_PET_LIFE_STAGES: Omit<LifeStage, 'yearsEquivalent'>[] = [
+  { id: 'pet_puppy', name: 'Puppy / Kitten', simDays: 0 },
+  { id: 'pet_adult', name: 'Adult', simDays: 0 },
+  { id: 'pet_elder', name: 'Elder', simDays: 0 },
+];
+
+export const DEFAULT_HORSE_LIFE_STAGES: Omit<LifeStage, 'yearsEquivalent'>[] = [
+  { id: 'horse_foal', name: 'Foal', simDays: 0 },
+  { id: 'horse_adult', name: 'Adult', simDays: 0 },
+  { id: 'horse_elder', name: 'Elder', simDays: 0 },
+];
+
 export const PET_TYPES: { type: SimType; label: string }[] = [
   { type: 'dog', label: 'Dogs' },
   { type: 'cat', label: 'Cats' },

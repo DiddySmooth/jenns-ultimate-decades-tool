@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DEFAULT_HUMAN_LIFE_STAGES } from '../types/tracker';
+import { DEFAULT_HUMAN_LIFE_STAGES, DEFAULT_PET_LIFE_STAGES, DEFAULT_HORSE_LIFE_STAGES } from '../types/tracker';
 import type { WizardState, AgingConfig, SimType } from '../types/tracker';
 import { simDaysToYears } from '../utils/timeConvert';
 
@@ -38,10 +38,12 @@ export function useWizard() {
     setState((s) => {
       const petAging = pets.map((type) => {
         const existing = s.petAging.find((a) => a.type === type);
-        return existing ?? {
+        if (existing) return existing;
+        const defaultStages = type === 'horse' ? DEFAULT_HORSE_LIFE_STAGES : DEFAULT_PET_LIFE_STAGES;
+        return {
           type,
-          label: type.charAt(0).toUpperCase() + type.slice(1),
-          lifeStages: DEFAULT_HUMAN_LIFE_STAGES.map((ls) => ({ ...ls, id: `${type}-${ls.id}`, yearsEquivalent: 0 })),
+          label: type === 'dog' ? 'Dogs' : type === 'cat' ? 'Cats' : type === 'horse' ? 'Horses' : 'Custom Pet',
+          lifeStages: defaultStages.map((ls) => ({ ...ls, id: `${type}-${ls.id}`, yearsEquivalent: 0 })),
         };
       });
       return { ...s, selectedPets: pets, petAging };

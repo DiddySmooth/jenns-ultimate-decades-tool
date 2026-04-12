@@ -42,7 +42,8 @@ export default function SetupWizard({ onComplete }: Props) {
   const handleComplete = () => {
     const { basicConfig, humanAging, petAging, occultAging } = state;
     const startYear = Number(basicConfig.startYear);
-    const totalDays = 520; // ~130 years at 4 days/year — enough for a full run + buffer
+    const endYear = 2050;
+    const totalDays = (endYear - startYear + 1) * basicConfig.daysPerYear;
     const timeline = generateTimeline(
       { startYear, daysPerYear: basicConfig.daysPerYear, startDayOfWeek: basicConfig.startDayOfWeek },
       totalDays

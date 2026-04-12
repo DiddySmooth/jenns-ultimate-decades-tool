@@ -7,7 +7,10 @@ interface Props {
 }
 
 export default function Step4Review({ state, onComplete, onBack }: Props) {
-  const { basicConfig, humanAging, selectedPets, selectedOccults } = state;
+  const { basicConfig, humanAging, petAging, occultAging } = state;
+
+  const endYear = 2050;
+  const totalDays = (endYear - Number(basicConfig.startYear) + 1) * basicConfig.daysPerYear;
 
   return (
     <div className="wizard-step">
@@ -20,6 +23,8 @@ export default function Step4Review({ state, onComplete, onBack }: Props) {
         <h3>Time Settings</h3>
         <ul className="review-list">
           <li><span>Start Year:</span> {basicConfig.startYear}</li>
+          <li><span>End Year:</span> 2050</li>
+          <li><span>Total Days:</span> {totalDays}</li>
           <li><span>Sim Days / Year:</span> {basicConfig.daysPerYear}</li>
           <li><span>Start Day:</span> {basicConfig.startDayOfWeek}</li>
         </ul>
@@ -36,17 +41,39 @@ export default function Step4Review({ state, onComplete, onBack }: Props) {
         </ul>
       </div>
 
-      {selectedPets.length > 0 && (
+      {petAging.length > 0 && (
         <div className="review-section">
           <h3>Pets</h3>
-          <p>{selectedPets.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}</p>
+          {petAging.map((config) => (
+            <div key={config.type} className="review-subgroup">
+              <h4>{config.label} ({config.lifeStages.length} stages)</h4>
+              <ul className="review-list">
+                {config.lifeStages.map((ls) => (
+                  <li key={ls.id}>
+                    <span>{ls.name}:</span> {ls.simDays} days ({ls.yearsEquivalent} yrs)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
 
-      {selectedOccults.length > 0 && (
+      {occultAging.length > 0 && (
         <div className="review-section">
           <h3>Occults</h3>
-          <p>{selectedOccults.map((o) => o.charAt(0).toUpperCase() + o.slice(1)).join(', ')}</p>
+          {occultAging.map((config) => (
+            <div key={config.type} className="review-subgroup">
+              <h4>{config.label} ({config.lifeStages.length} stages)</h4>
+              <ul className="review-list">
+                {config.lifeStages.map((ls) => (
+                  <li key={ls.id}>
+                    <span>{ls.name}:</span> {ls.simDays} days ({ls.yearsEquivalent} yrs)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
 

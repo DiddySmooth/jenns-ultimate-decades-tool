@@ -238,6 +238,8 @@ body {
 /* ── Review ── */
 .review-section { margin-bottom: 1.5rem; }
 .review-section h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); margin: 0 0 0.5rem; }
+.review-subgroup { margin-left: 0.75rem; margin-bottom: 0.75rem; }
+.review-subgroup h4 { font-size: 0.8rem; font-weight: 600; margin: 0 0 0.3rem; color: var(--color-text); }
 .review-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
 .review-list li { display: flex; gap: 0.5rem; padding: 0.2rem 0; }
 .review-list li span:first-child { font-weight: 500; min-width: 140px; }
