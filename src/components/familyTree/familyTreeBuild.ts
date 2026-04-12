@@ -169,6 +169,9 @@ export function buildFamilyTree(
       })();
 
       if (pick) {
+        // Persist the picked union so subsequent renders don't fall back to parent->child edges.
+        // (The UI also surfaces ambiguous cases for manual selection.)
+        child.birthUnionId = pick.id;
         addUnionChild(pick.id, child);
       } else {
         const childNode = `sim:${child.id}`;

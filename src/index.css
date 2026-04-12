@@ -945,7 +945,8 @@ body {
   background: var(--color-surface);
   color: var(--color-text);
 }
-.checkbox-center { display: flex; justify-content: center; }
+.checkbox-center { display: inline-flex; align-items: center; justify-content: flex-start; gap: 0.5rem; }
+.checkbox-center input[type='checkbox'] { width: 16px; height: 16px; }
 .tries-cell { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
 .try-box { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface); }
 .try-box.checked { border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(0,0,0,0.03); }
