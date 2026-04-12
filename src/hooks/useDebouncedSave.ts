@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TrackerSave } from '../types/tracker';
 
-const DEBOUNCE_MS = 30_000; // 30 seconds
+const DEBOUNCE_MS = 5_000; // 5 seconds
 
 type PersistFn = (save: TrackerSave) => Promise<void>;
 
