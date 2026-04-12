@@ -507,6 +507,8 @@ body {
 .sim-card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.25rem; }
 .sim-stage { font-size: 0.78rem; color: var(--color-text-muted); }
 .sim-card-meta { font-size: 0.8rem; color: var(--color-text-muted); display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.sim-card-meta.stacked { flex-direction: column; gap: 0.25rem; }
+.reorder-controls { display: inline-flex; gap: 0.25rem; align-items: center; }
 .sim-card-actions { display: flex; gap: 0.5rem; }
 .empty-state { color: var(--color-text-muted); font-size: 0.9rem; padding: 2rem 0; }
 

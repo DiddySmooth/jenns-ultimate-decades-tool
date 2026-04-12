@@ -256,7 +256,19 @@ export default function App() {
           />
         )}
         {tab === 'sims' && (
-          <SimsSheet sims={save.sims} config={save.config} onAdd={addSim} onUpdate={updateSim} onDelete={deleteSim} />
+          <SimsSheet
+            sims={save.sims}
+            config={save.config}
+            currentDay={save.currentDay}
+            onAdd={addSim}
+            onUpdate={updateSim}
+            onDelete={deleteSim}
+            onReorder={(next) => {
+              const current = saveRef.current;
+              if (!current) return;
+              updateSave({ ...current, sims: next });
+            }}
+          />
         )}
         {tab === 'aging' && (
           <AgingReference configs={allAgingConfigs} />
