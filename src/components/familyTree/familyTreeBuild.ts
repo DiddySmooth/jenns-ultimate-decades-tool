@@ -73,7 +73,9 @@ export function buildFamilyTree(
   });
 
   // Unions
+  const SIM_W = 160;
   const SIM_H = 56;
+  const UNION_W = 26;
   const UNION_H = 26;
 
   unions.forEach((u, idx) => {
@@ -85,9 +87,15 @@ export function buildFamilyTree(
       const a = u.partnerAId ? savedPos.get(`sim:${u.partnerAId}`) : null;
       const b = u.partnerBId ? savedPos.get(`sim:${u.partnerBId}`) : null;
       if (a && b) {
-        const midX = (a.x + b.x) / 2;
-        const lineY = (a.y + b.y) / 2 + SIM_H / 2;
-        return { x: midX, y: lineY - UNION_H / 2 };
+        const ax = a.x + SIM_W / 2;
+        const bx = b.x + SIM_W / 2;
+        const ay = a.y + SIM_H / 2;
+        const by = b.y + SIM_H / 2;
+
+        const midX = (ax + bx) / 2;
+        const lineY = (ay + by) / 2;
+
+        return { x: midX - UNION_W / 2, y: lineY - UNION_H / 2 };
       }
       return { x: 180 + (idx % 5) * 220, y: 100 + Math.floor(idx / 5) * 140 };
     })();
