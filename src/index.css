@@ -431,7 +431,12 @@ body {
 .add-col-bar input { flex: 1; min-width: 200px; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; }
 
 /* Virtualised table wrapper */
-.vt-wrapper { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
+.vt-wrapper { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: visible; }
+.vt-wrapper.vt-hscroll { overflow-x: auto; }
+.vt-body { max-height: calc(100vh - 220px); overflow-y: auto; }
+
+/* Keep header pinned at top of viewport while scrolling page */
+.vt-header { position: sticky; top: 0; z-index: 6; }
 .vt-header {
   display: flex;
   background: var(--color-bg);

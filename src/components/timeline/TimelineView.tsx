@@ -23,11 +23,11 @@ function buildColumns(config: TrackerConfig) {
 const COL_DAY_OF_WEEK = 56;
 const COL_DAY_NUM = 60;
 const COL_YEAR = 64;
-const COL_EVENTS = 180;
-const COL_DEATHS = 120;
+const COL_EVENTS = 240;
+const COL_DEATHS = 160;
 // Births column removed (tracked via Newborn/Baby life stage column)
 // const COL_BIRTHS = 120;
-const COL_LIFESTAGE = 110;
+const COL_LIFESTAGE = 140;
 const ROW_HEIGHT = 34;
 
 // Each cell manages its own local state — never causes sibling or parent re-renders
@@ -144,7 +144,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
         </div>
       )}
 
-      <div className="vt-wrapper">
+      <div className="vt-wrapper vt-hscroll">
         {/* Sticky header */}
         <div className="vt-header" style={{ minWidth: totalWidth }}>
           <div className="vt-head-cell" style={{ width: COL_DAY_OF_WEEK }}>Day</div>
