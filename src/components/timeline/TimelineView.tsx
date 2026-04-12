@@ -64,12 +64,13 @@ const EditableCell = memo(function EditableCell({ initialValue, width, onCommit 
 });
 
 // Row is memoized — only re-renders if its day object reference changes
-const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSpan, isYearStart, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onActivate }: {
+const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSpan, isYearStart, isYearEnd, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onActivate }: {
   day: TimelineDay;
   isCurrent: boolean;
   isActive: boolean;
   yearSpan: number;
   isYearStart: boolean;
+  isYearEnd: boolean;
   lifeStageCols: { id: string; label: string }[];
   onMarkDay: () => void;
   onUpdateCell: (field: string, value: string) => void;
@@ -88,7 +89,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSp
   const isPast = day.marked;
   return (
     <div
-      className={`vt-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}${isActive ? ' active' : ''}`}
+      className={`vt-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}${isActive ? ' active' : ''}${isYearEnd ? ' vt-year-block-end' : ''}`}
       style={{ height: ROW_HEIGHT }}
       onMouseDown={onActivate}
     >
@@ -149,6 +150,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
   // Precompute year block spans for merged year cell
   const yearSpans: number[] = new Array(timeline.length).fill(1);
   const yearStarts: boolean[] = new Array(timeline.length).fill(false);
+  const yearEnds: boolean[] = new Array(timeline.length).fill(false);
   let i = 0;
   while (i < timeline.length) {
     const y = timeline[i]?.year;
@@ -157,10 +159,12 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
     const span = j - i;
     yearStarts[i] = true;
     yearSpans[i] = span;
+    yearEnds[j - 1] = true;
     // Other rows in the block get placeholder
     for (let k = i + 1; k < j; k++) {
       yearStarts[k] = false;
       yearSpans[k] = 0;
+      yearEnds[k] = (k === j - 1);
     }
     i = j;
   }
@@ -211,6 +215,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
                 isActive={activeRow === day.dayNumber}
                 yearSpan={yearSpans[idx]}
                 isYearStart={yearStarts[idx]}
+                isYearEnd={yearEnds[idx]}
                 lifeStageCols={lifeStageCols}
                 onMarkDay={() => onMarkDay(day.dayNumber)}
                 onUpdateCell={(field, value) => onUpdateCell(day.dayNumber, field, value)}
