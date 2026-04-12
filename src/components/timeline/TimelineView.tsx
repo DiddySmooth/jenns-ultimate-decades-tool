@@ -64,10 +64,12 @@ const EditableCell = memo(function EditableCell({ initialValue, width, onCommit 
 });
 
 // Row is memoized — only re-renders if its day object reference changes
-const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onActivate }: {
+const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSpan, isYearStart, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onActivate }: {
   day: TimelineDay;
   isCurrent: boolean;
   isActive: boolean;
+  yearSpan: number;
+  isYearStart: boolean;
   lifeStageCols: { id: string; label: string }[];
   onMarkDay: () => void;
   onUpdateCell: (field: string, value: string) => void;
@@ -102,7 +104,16 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, lifeSt
       >
         {day.dayNumber}
       </div>
-      <div className="vt-cell vt-sticky-year" style={{ width: COL_YEAR, minWidth: COL_YEAR }}>{day.year}</div>
+      <div
+        className={`vt-cell vt-sticky-year vt-year-cell${isYearStart ? ' vt-year-start' : ' vt-year-placeholder'}`}
+        style={{ width: COL_YEAR, minWidth: COL_YEAR }}
+      >
+        {isYearStart && (
+          <div className="vt-year-merged" style={{ height: yearSpan * ROW_HEIGHT }}>
+            <span>{day.year}</span>
+          </div>
+        )}
+      </div>
       <div className="vt-cell vt-events" style={{ width: COL_EVENTS, minWidth: COL_EVENTS }}>
         {day.events.map((ev) => <span key={ev.id} className="cell-tag">{ev.description}</span>)}
         {addingEvent
@@ -134,6 +145,25 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
   };
 
   const totalWidth = COL_DAY_OF_WEEK + COL_DAY_NUM + COL_YEAR + COL_EVENTS + COL_DEATHS + lifeStageCols.length * COL_LIFESTAGE;
+
+  // Precompute year block spans for merged year cell
+  const yearSpans: number[] = new Array(timeline.length).fill(1);
+  const yearStarts: boolean[] = new Array(timeline.length).fill(false);
+  let i = 0;
+  while (i < timeline.length) {
+    const y = timeline[i]?.year;
+    let j = i;
+    while (j < timeline.length && timeline[j]?.year === y) j++;
+    const span = j - i;
+    yearStarts[i] = true;
+    yearSpans[i] = span;
+    // Other rows in the block get placeholder
+    for (let k = i + 1; k < j; k++) {
+      yearStarts[k] = false;
+      yearSpans[k] = 0;
+    }
+    i = j;
+  }
 
   return (
     <div className="timeline-view">
@@ -173,12 +203,14 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
 
           {/* Scrollable body */}
           <div className="vt-body">
-            {timeline.map((day) => (
+            {timeline.map((day, idx) => (
               <TimelineRow
                 key={day.dayNumber}
                 day={day}
                 isCurrent={day.dayNumber === currentDay}
                 isActive={activeRow === day.dayNumber}
+                yearSpan={yearSpans[idx]}
+                isYearStart={yearStarts[idx]}
                 lifeStageCols={lifeStageCols}
                 onMarkDay={() => onMarkDay(day.dayNumber)}
                 onUpdateCell={(field, value) => onUpdateCell(day.dayNumber, field, value)}

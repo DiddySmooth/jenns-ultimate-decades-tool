@@ -933,3 +933,15 @@ body {
 .try-box { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface); }
 .try-box.checked { border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(0,0,0,0.03); }
 .try-box input { width: 14px; height: 14px; }
+
+/* Merged Year cell */
+.vt-year-cell { padding: 0; }
+.vt-year-merged {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.vt-year-placeholder { color: transparent; }
