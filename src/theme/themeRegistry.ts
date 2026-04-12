@@ -32,6 +32,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     label: 'Berry Jungle',
     description: 'Princeton orange, berry lipstick, royal plum, midnight violet, jungle green',
   },
+  {
+    id: 'petal-pop',
+    label: 'Petal Pop',
+    description: 'Beige, powder blush, petal rouge, vibrant coral, neon pink',
+  },
 ];
 
 export type ThemeId = string;
