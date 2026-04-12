@@ -44,6 +44,11 @@ export function computeAgeYears(
 ): number | undefined {
   const by = getBirthYear(sim, config);
   if (!by) return undefined;
+
   const cy = currentYearFromCurrentDay(config, currentDay);
-  return Math.max(0, cy - by);
+  const dy = getDeathYear(sim, config);
+
+  // If the sim has a death year, show the age at death.
+  const endYear = dy ?? cy;
+  return Math.max(0, endYear - by);
 }

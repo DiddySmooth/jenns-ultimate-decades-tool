@@ -581,10 +581,15 @@ body {
 .event-input::placeholder { color: var(--color-text-muted); }
 .cell-placeholder { color: var(--color-border); user-select: none; font-size: 0.75rem; }
 .cell-tag {
-  display: inline-block; font-size: 0.72rem;
-  padding: 0.1rem 0.3rem;
-  background: #e8ede9; border-radius: var(--radius);
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius);
   white-space: nowrap;
+  color: var(--color-text);
+  background: rgba(0,0,0,0.06);
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
 }
 .cell-add-btn {
   background: transparent; border: 1px dashed var(--color-border);
