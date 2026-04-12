@@ -9,6 +9,7 @@ interface Props {
   onMarkDay: (dayNumber: number) => void;
   onNextDay: () => void;
   onAddEvent: (dayNumber: number, event: TimelineEvent) => void;
+  onRemoveEvent: (dayNumber: number, eventId: string) => void;
   onUpdateCell: (dayNumber: number, field: string, value: string) => void;
   onAddCustomColumn: (label: string) => void;
 }
@@ -64,7 +65,7 @@ const EditableCell = memo(function EditableCell({ initialValue, width, onCommit 
 });
 
 // Row is memoized — only re-renders if its day object reference changes
-const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSpan, isYearStart, isYearEnd, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onActivate }: {
+const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSpan, isYearStart, isYearEnd, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onRemoveEvent, onActivate }: {
   day: TimelineDay;
   isCurrent: boolean;
   isActive: boolean;
@@ -75,6 +76,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSp
   onMarkDay: () => void;
   onUpdateCell: (field: string, value: string) => void;
   onAddEvent: (event: TimelineEvent) => void;
+  onRemoveEvent: (eventId: string) => void;
   onActivate: () => void;
 }) {
   const [addingEvent, setAddingEvent] = useState(false);
@@ -116,7 +118,23 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSp
         )}
       </div>
       <div className="vt-cell vt-events" style={{ width: COL_EVENTS, minWidth: COL_EVENTS }}>
-        {day.events.map((ev) => <span key={ev.id} className="cell-tag">{ev.description}</span>)}
+        {day.events.map((ev) => (
+          <span key={ev.id} className="cell-tag" title={ev.description}>
+            <span className="cell-tag-text">{ev.description}</span>
+            <button
+              className="cell-tag-remove"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemoveEvent(ev.id);
+              }}
+              aria-label={`Delete event: ${ev.description}`}
+              title="Delete"
+            >
+              ×
+            </button>
+          </span>
+        ))}
         {addingEvent
           ? <input autoFocus className="event-input" placeholder="Event…" value={eventDraft}
               onChange={(e) => setEventDraft(e.target.value)}
@@ -132,7 +150,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSp
   );
 });
 
-export default function TimelineView({ timeline, config, currentDay, onMarkDay, onNextDay, onAddEvent, onUpdateCell, onAddCustomColumn }: Props) {
+export default function TimelineView({ timeline, config, currentDay, onMarkDay, onNextDay, onAddEvent, onRemoveEvent, onUpdateCell, onAddCustomColumn }: Props) {
   const [addColMode, setAddColMode] = useState(false);
   const [newColLabel, setNewColLabel] = useState('');
   const [activeRow, setActiveRow] = useState<number | null>(null);
@@ -220,6 +238,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
                 onMarkDay={() => onMarkDay(day.dayNumber)}
                 onUpdateCell={(field, value) => onUpdateCell(day.dayNumber, field, value)}
                 onAddEvent={(event) => onAddEvent(day.dayNumber, event)}
+                onRemoveEvent={(eventId) => onRemoveEvent(day.dayNumber, eventId)}
                 onActivate={() => setActiveRow(day.dayNumber)}
               />
             ))}

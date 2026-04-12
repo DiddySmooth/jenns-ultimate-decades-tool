@@ -355,6 +355,15 @@ export default function App() {
             onMarkDay={markDay}
             onNextDay={() => markDay(save.currentDay)}
             onAddEvent={addEvent}
+            onRemoveEvent={(dayNumber, eventId) => {
+              const current = saveRef.current;
+              if (!current) return;
+              const timeline = current.timeline.map((d) => {
+                if (d.dayNumber !== dayNumber) return d;
+                return { ...d, events: (d.events ?? []).filter((ev) => ev.id !== eventId) };
+              });
+              updateSave({ ...current, timeline });
+            }}
             onUpdateCell={updateCell}
             onAddCustomColumn={addCustomColumn}
           />

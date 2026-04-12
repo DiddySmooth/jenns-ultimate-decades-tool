@@ -596,7 +596,9 @@ body {
 .event-input::placeholder { color: var(--color-text-muted); }
 .cell-placeholder { color: var(--color-border); user-select: none; font-size: 0.75rem; }
 .cell-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.72rem;
   padding: 0.1rem 0.35rem;
   border-radius: var(--radius);
@@ -606,6 +608,21 @@ body {
   background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface));
   border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
 }
+.cell-tag-text { overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.cell-tag-remove {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.cell-tag:hover .cell-tag-remove { display: inline-flex; align-items: center; justify-content: center; }
+.cell-tag-remove:hover { color: var(--color-text); border-color: var(--color-border); background: rgba(0,0,0,0.06); }
 .cell-add-btn {
   background: transparent; border: 1px dashed var(--color-border);
   border-radius: var(--radius); font-size: 0.75rem; width: 18px; height: 18px;
