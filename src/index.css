@@ -1009,6 +1009,7 @@ body {
 .ft-avatar {
   width: 36px;
   height: 36px;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 2px solid var(--color-border);
   flex-shrink: 0;
@@ -1068,6 +1069,11 @@ body {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   opacity: 0.9;
+}
+.react-flow__mini-map-node {
+  fill: var(--color-accent);
+  stroke: var(--color-text);
+  stroke-width: 1;
 }
 .react-flow__edge-path { stroke: rgba(0,0,0,0.35); }
 :root[data-theme='dark'] .react-flow__edge-path,
