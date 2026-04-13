@@ -71,7 +71,9 @@ export default function AvatarCropEditor({ imageUrl, value, onChange }: Props) {
         style={{
           backgroundImage: `url(${imageUrl})`,
           backgroundPosition: `${crop.x}% ${crop.y}%`,
-          backgroundSize: `${crop.zoom * 100}% ${crop.zoom * 100}%`,
+          backgroundSize: crop.zoom >= 1
+            ? `${crop.zoom * 100}% auto`
+            : `auto ${crop.zoom * 100}%`,
         }}
         title="Drag to reposition"
         onPointerDown={(e) => {
