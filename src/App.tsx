@@ -351,7 +351,14 @@ export default function App() {
               className="btn-secondary btn-sm"
               onClick={() => {
                 const id = `tracker-${new Date().toISOString().slice(0,10)}-${Math.random().toString(16).slice(2,6)}`;
-                setAvailableSaves((s) => (s.find((x) => x.id === id) ? s : [...s, { id, label: 'New Tracker' }]));
+                setAvailableSaves((s) => {
+                  const paidUser = user && user.subscription === 'premium';
+                  if (!paidUser && s.length >= 2) {
+                    alert('Upgrade to premium to create more than 2 saves. Premium costs $1.99/month.');
+                    return s;
+                  }
+                  return s.find((x) => x.id === id) ? s : [...s, { id, label: 'New Tracker' }];
+                });
                 setSaveId(id);
                 saveRef.current = null;
                 setSave(null);
