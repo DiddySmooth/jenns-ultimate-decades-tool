@@ -1065,8 +1065,9 @@ body {
 }
 
 .react-flow__mini-map {
-  background: var(--color-bg);
-  border-color: var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  opacity: 0.9;
 }
 .react-flow__edge-path { stroke: rgba(0,0,0,0.35); }
 :root[data-theme='dark'] .react-flow__edge-path,
