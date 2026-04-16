@@ -344,11 +344,10 @@ export default function App() {
       <Toast message="Saved" open={showSavedToast} onClose={() => setShowSavedToast(false)} />
       <header className="app-header">
         <div className="app-header-inner">
-          <h1 className="app-title">JUDT</h1>
-          <span className="challenge-meta">
-            Started {save.config.startYear} · Current Day {save.currentDay}
-          </span>
-          <span className="save-status">{saving ? 'Saving…' : '✓ Saved'}</span>
+          <div className="app-header-brand">
+            <h1 className="app-title">JUDT</h1>
+            <span className="challenge-meta">Started {save.config.startYear} · Day {save.currentDay}</span>
+          </div>
 
           <div className="save-switcher">
             <select
@@ -378,46 +377,51 @@ export default function App() {
               }}
               title="Create a new tracker"
             >
-              + New Tracker
+              + New
             </button>
           </div>
 
-          <ThemePicker current={themeId} onChange={setThemeId} compact />
-          {isPremium ? (
-            <span className="support-us-button" style={{ cursor: 'default', opacity: 0.85 }}>✓ Premium</span>
-          ) : (
-            <button
-              className="support-us-button"
-              style={{ border: 'none', cursor: 'pointer' }}
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/create-stripe-checkout-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user?.sub }),
-                  });
-                  if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    alert(`Checkout failed: ${err.details || err.error || response.statusText}`);
-                    return;
+          <div className="app-header-spacer" />
+
+          <div className="app-header-controls">
+            <span className="save-status">{saving ? 'Saving…' : '✓ Saved'}</span>
+            <ThemePicker current={themeId} onChange={setThemeId} compact />
+            {isPremium ? (
+              <span className="support-us-button" style={{ cursor: 'default', opacity: 0.85 }}>✓ Premium</span>
+            ) : (
+              <button
+                className="support-us-button"
+                style={{ border: 'none', cursor: 'pointer' }}
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/create-stripe-checkout-session', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: user?.sub }),
+                    });
+                    if (!response.ok) {
+                      const err = await response.json().catch(() => ({}));
+                      alert(`Checkout failed: ${err.details || err.error || response.statusText}`);
+                      return;
+                    }
+                    const { url } = await response.json();
+                    if (url) window.location.assign(url);
+                  } catch (error) {
+                    alert('Could not open checkout. Please try again.');
                   }
-                  const { url } = await response.json();
-                  if (url) window.location.assign(url);
-                } catch (error) {
-                  alert('Could not open checkout. Please try again.');
-                }
-              }}
-            >
-              Subscribe to Premium
-            </button>
-          )}
-          <span className="user-info">{user.email}</span>
-          <button className="btn-ghost btn-sm" onClick={() => { flush(); signOut(); }}>Sign out</button>
+                }}
+              >
+                ✦ Go Premium
+              </button>
+            )}
+            <span className="user-info">{user.email}</span>
+            <button className="btn-ghost btn-sm" onClick={() => { flush(); signOut(); }}>Sign out</button>
+          </div>
         </div>
         <nav className="tab-nav">
           <button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>Timeline</button>
           <button className={tab === 'sims' ? 'active' : ''} onClick={() => setTab('sims')}>Sims</button>
-          <button className={tab === 'pregnancy' ? 'active' : ''} onClick={() => setTab('pregnancy')}>Marriage/Pregnancy</button>
+          <button className={tab === 'pregnancy' ? 'active' : ''} onClick={() => setTab('pregnancy')}>Marriage & Pregnancy</button>
           <button className={tab === 'tree' ? 'active' : ''} onClick={() => setTab('tree')}>Family Tree</button>
           <button className={tab === 'aging' ? 'active' : ''} onClick={() => setTab('aging')}>Aging</button>
           <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>Settings</button>

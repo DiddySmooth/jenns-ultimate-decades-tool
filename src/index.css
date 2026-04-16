@@ -458,32 +458,89 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
 }
 .app-header-inner {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  flex-wrap: nowrap;
+  min-height: 52px;
 }
-.app-title { margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
-.challenge-meta { font-size: 0.8rem; color: var(--color-text-muted); flex: 1; }
-.user-info { font-size: 0.75rem; color: var(--color-text-muted); }
+
+/* Title + meta group */
+.app-header-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+.app-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-accent);
+}
+.challenge-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Spacer pushes right-side controls to the edge */
+.app-header-spacer { flex: 1; }
+
+/* Right-side controls group */
+.app-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+.save-status {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.user-info {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tab nav */
 .tab-nav {
   display: flex;
   border-top: 1px solid var(--color-border);
+  padding: 0 0.5rem;
+  gap: 0.1rem;
 }
 .tab-nav button {
-  flex: 1;
-  padding: 0.6rem;
+  padding: 0.55rem 0.9rem;
   background: transparent;
   border: none;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   color: var(--color-text-muted);
   border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  border-radius: var(--radius) var(--radius) 0 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
 }
-.tab-nav button.active { color: var(--color-accent); border-bottom-color: var(--color-accent); font-weight: 600; }
+.tab-nav button:hover:not(.active) {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+.tab-nav button.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+  font-weight: 700;
+}
 .app-main { flex: 1; padding: 1rem; width: 100%; }
 
 /* ── Timeline (virtualised) ── */
@@ -842,17 +899,20 @@ body {
 .save-status { font-size: 0.75rem; color: var(--color-text-muted); margin-left: auto; }
 
 .support-us-button {
-  font-size: 0.8rem;
-  padding: 0.4rem 0.8rem;
-  color: var(--color-surface);
+  font-size: 0.78rem;
+  padding: 0.38rem 0.85rem;
+  color: #fff;
   background: var(--color-accent);
   border-radius: var(--radius);
   text-decoration: none;
-  font-weight: bold;
-  transition: background 0.2s;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;
 }
 .support-us-button:hover {
   background: var(--color-accent-hover);
+  transform: translateY(-1px);
 }
 .save-select {
   font-size: 0.78rem;
