@@ -54,7 +54,10 @@ module.exports = async function (context, req) {
   try {
     event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
   } catch (err) {
+    // Log the error details to help debug signature issues
     context.log.error('Webhook signature verification failed:', err.message);
+    context.log.error('Payload type:', typeof payload, '| Is Buffer:', Buffer.isBuffer(payload), '| Length:', payload ? payload.length : 0);
+    context.log.error('Sig header:', sig ? sig.substring(0, 30) + '...' : 'MISSING');
     context.res = { status: 400, body: `Webhook Error: ${err.message}` };
     return;
   }
