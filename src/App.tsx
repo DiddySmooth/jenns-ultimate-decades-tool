@@ -370,15 +370,17 @@ export default function App() {
           </div>
 
           <ThemePicker current={themeId} onChange={setThemeId} compact />
-          <a
-            className="support-us-button"
-            href="https://www.paypal.com/donate?hosted_button_id=YOUR_BUTTON_ID"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Support Us"
+          <button
+            className="btn-primary btn-sm"
+            onClick={async () => {
+              const response = await fetch('/api/create-stripe-checkout-session', { method: 'POST' });
+              const { url } = await response.json();
+              if (url) window.location.assign(url);
+            }}
+            style={{ marginLeft: '1rem' }}
           >
-            Support Us
-          </a>
+            Subscribe to Premium
+          </button>
           <span className="user-info">{user.email}</span>
           <button className="btn-ghost btn-sm" onClick={() => { flush(); signOut(); }}>Sign out</button>
         </div>
