@@ -39,8 +39,14 @@ module.exports = async function (context, req) {
   const stripe = new Stripe(secret, { apiVersion: '2022-11-15' });
 
   const sig = req.headers['stripe-signature'] || req.headers['Stripe-Signature'];
-  let payload = req.rawBody;
-  if (!payload) {
+  let payload;
+  if (Buffer.isBuffer(req.body)) {
+    payload = req.body;
+  } else if (req.rawBody) {
+    payload = req.rawBody;
+  } else if (typeof req.body === 'string') {
+    payload = req.body;
+  } else {
     try { payload = JSON.stringify(req.body || {}); } catch (e) { payload = ''; }
   }
 
