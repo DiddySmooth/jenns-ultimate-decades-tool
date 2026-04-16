@@ -34,6 +34,8 @@ interface GoogleUser {
   email: string;
   name: string;
   picture?: string;
+  // optional subscription flag added for build-time checks (e.g. 'premium')
+  subscription?: string;
 }
 
 function useAuth() {
