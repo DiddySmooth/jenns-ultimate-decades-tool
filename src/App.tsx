@@ -91,11 +91,16 @@ async function persistSave(save: TrackerSave, userId: string, saveId: string): P
     localStorage.setItem(`${DEV_STORAGE_KEY}:${saveId}`, JSON.stringify(save));
     return;
   }
-  await fetch(`/api/putSave?userId=${userId}&saveId=${encodeURIComponent(saveId)}`, {
+  const res = await fetch(`/api/putSave?userId=${userId}&saveId=${encodeURIComponent(saveId)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(save),
   });
+  if (res.status === 403) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Save limit reached. Upgrade to premium for unlimited trackers.');
+  }
+  if (!res.ok) throw new Error('Failed to save');
 }
 
 export default function App() {
