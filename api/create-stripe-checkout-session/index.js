@@ -12,13 +12,18 @@ module.exports = async function (context, req) {
   });
 
   if (!secret) {
-    context.log.error('STRIPE_SECRET_KEY not configured');
-    context.res = jsonRes(500, { error: 'Stripe not configured: missing STRIPE_SECRET_KEY' });
+    context.res = jsonRes(500, { error: 'Missing STRIPE_SECRET_KEY' });
     return;
   }
   if (!priceId) {
-    context.log.error('STRIPE_PRICE_ID not configured');
-    context.res = jsonRes(500, { error: 'Stripe not configured: missing STRIPE_PRICE_ID' });
+    context.res = jsonRes(500, { error: 'Missing STRIPE_PRICE_ID' });
+    return;
+  }
+
+  // userId passed in body so we can store it in Stripe metadata
+  const userId = (req.body && req.body.userId) ? req.body.userId : null;
+  if (!userId) {
+    context.res = jsonRes(400, { error: 'Missing userId in request body' });
     return;
   }
 
@@ -29,6 +34,11 @@ module.exports = async function (context, req) {
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
+      // Store userId in metadata so webhook can map back to the user
+      metadata: { userId },
+      subscription_data: {
+        metadata: { userId },
+      },
       success_url: `${siteUrl}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/?checkout=cancel`,
     });

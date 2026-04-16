@@ -1,31 +1,47 @@
 const Stripe = require('stripe');
+const { BlobServiceClient } = require('@azure/storage-blob');
+
+const CONTAINER = 'decades-saves';
+
+async function setSubscription(userId, data) {
+  const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  const blobService = BlobServiceClient.fromConnectionString(connStr);
+  const container = blobService.getContainerClient(CONTAINER);
+  const blob = container.getBlockBlobClient(`${userId}/subscription.json`);
+  const body = JSON.stringify(data);
+  await blob.upload(body, Buffer.byteLength(body), {
+    blobHTTPHeaders: { blobContentType: 'application/json' },
+  });
+}
+
+async function deleteSubscription(userId) {
+  try {
+    const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    const blobService = BlobServiceClient.fromConnectionString(connStr);
+    const container = blobService.getContainerClient(CONTAINER);
+    const blob = container.getBlockBlobClient(`${userId}/subscription.json`);
+    await blob.deleteIfExists();
+  } catch (e) {
+    // ignore
+  }
+}
 
 module.exports = async function (context, req) {
   const secret = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) {
-    context.log.error('STRIPE_SECRET_KEY not configured');
+
+  if (!secret || !webhookSecret) {
+    context.log.error('Missing Stripe config');
     context.res = { status: 500, body: 'Stripe not configured' };
-    return;
-  }
-  if (!webhookSecret) {
-    context.log.error('STRIPE_WEBHOOK_SECRET not configured');
-    context.res = { status: 500, body: 'Webhook secret not configured' };
     return;
   }
 
   const stripe = new Stripe(secret, { apiVersion: '2022-11-15' });
 
-  // Azure Functions may provide raw body as req.rawBody or req.body; prefer raw
   const sig = req.headers['stripe-signature'] || req.headers['Stripe-Signature'];
   let payload = req.rawBody;
   if (!payload) {
-    // Fall back to stringified body if rawBody isn't present
-    try {
-      payload = JSON.stringify(req.body || {});
-    } catch (e) {
-      payload = '';
-    }
+    try { payload = JSON.stringify(req.body || {}); } catch (e) { payload = ''; }
   }
 
   let event;
@@ -37,38 +53,64 @@ module.exports = async function (context, req) {
     return;
   }
 
-  context.log.info('Received Stripe event:', event.type);
+  context.log.info('Stripe event:', event.type);
 
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        // Optionally: use session.metadata.userId to map to your user
-        context.log.info('Checkout session completed for', session.id, 'metadata:', session.metadata);
-        // TODO: mark subscription active / store mapping in your DB or blob
+        const userId = session.metadata && session.metadata.userId;
+        if (!userId) { context.log.warn('checkout.session.completed: no userId in metadata'); break; }
+        await setSubscription(userId, {
+          status: 'active',
+          stripeCustomerId: session.customer,
+          stripeSubscriptionId: session.subscription,
+          updatedAt: new Date().toISOString(),
+        });
+        context.log.info('Marked premium for user', userId);
         break;
       }
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'invoice.paid': {
-        const obj = event.data.object;
-        context.log.info('Subscription/invoice event', event.type, obj.id);
-        // TODO: update subscription record
+
+      case 'customer.subscription.updated': {
+        const sub = event.data.object;
+        const userId = sub.metadata && sub.metadata.userId;
+        if (!userId) { context.log.warn('subscription.updated: no userId in metadata'); break; }
+        const isActive = ['active', 'trialing'].includes(sub.status);
+        if (isActive) {
+          await setSubscription(userId, {
+            status: sub.status,
+            stripeCustomerId: sub.customer,
+            stripeSubscriptionId: sub.id,
+            updatedAt: new Date().toISOString(),
+          });
+        } else {
+          await deleteSubscription(userId);
+          context.log.info('Revoked premium for user', userId, 'status:', sub.status);
+        }
         break;
       }
-      case 'invoice.payment_failed':
+
       case 'customer.subscription.deleted': {
-        const obj = event.data.object;
-        context.log.info('Subscription cancelled/failed', event.type, obj.id);
-        // TODO: mark subscription inactive
+        const sub = event.data.object;
+        const userId = sub.metadata && sub.metadata.userId;
+        if (!userId) { context.log.warn('subscription.deleted: no userId in metadata'); break; }
+        await deleteSubscription(userId);
+        context.log.info('Subscription deleted for user', userId);
         break;
       }
+
+      case 'invoice.payment_failed': {
+        const inv = event.data.object;
+        context.log.warn('Invoice payment failed for customer', inv.customer);
+        // Stripe will retry automatically; subscription.updated will fire if it lapses
+        break;
+      }
+
       default:
-        context.log.info(`Unhandled event type ${event.type}`);
+        context.log.info('Unhandled event type', event.type);
     }
   } catch (err) {
-    context.log.error('Error handling event:', err);
-    // Respond 500 so Stripe will retry the webhook
+    context.log.error('Webhook handler error:', err && err.stack ? err.stack : err);
     context.res = { status: 500, body: 'Handler error' };
     return;
   }

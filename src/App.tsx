@@ -102,6 +102,18 @@ export default function App() {
   const { user, loading, googleReady, signIn, signOut } = useAuth();
   const { themeId, setThemeId } = useTheme();
 
+  const [isPremium, setIsPremium] = useState(false);
+
+  // Check subscription status when user logs in
+  useEffect(() => {
+    if (!user) { setIsPremium(false); return; }
+    if (import.meta.env.DEV) return; // skip in dev
+    fetch(`/api/getSubscription?userId=${user.sub}`)
+      .then((r) => r.json())
+      .then((data) => setIsPremium(data?.status === 'active' || data?.status === 'trialing'))
+      .catch(() => setIsPremium(false));
+  }, [user]);
+
   const [saveId, setSaveId] = useState(() => localStorage.getItem('judt_saveId') ?? 'default');
   const [availableSaves, setAvailableSaves] = useState<{ id: string; label: string }[]>([{ id: 'default', label: 'Default' }]);
 
@@ -354,8 +366,7 @@ export default function App() {
               onClick={() => {
                 const id = `tracker-${new Date().toISOString().slice(0,10)}-${Math.random().toString(16).slice(2,6)}`;
                 setAvailableSaves((s) => {
-                  const paidUser = user && user.subscription === 'premium';
-                  if (!paidUser && s.length >= 2) {
+                  if (!isPremium && s.length >= 2) {
                     alert('Upgrade to premium to create more than 2 saves. Premium costs $1.99/month.');
                     return s;
                   }
@@ -372,17 +383,34 @@ export default function App() {
           </div>
 
           <ThemePicker current={themeId} onChange={setThemeId} compact />
-          <button
-            className="btn-primary btn-sm"
-            onClick={async () => {
-              const response = await fetch('/api/create-stripe-checkout-session', { method: 'POST' });
-              const { url } = await response.json();
-              if (url) window.location.assign(url);
-            }}
-            style={{ marginLeft: '1rem' }}
-          >
-            Subscribe to Premium
-          </button>
+          {isPremium ? (
+            <span className="support-us-button" style={{ cursor: 'default', opacity: 0.85 }}>✓ Premium</span>
+          ) : (
+            <button
+              className="support-us-button"
+              style={{ border: 'none', cursor: 'pointer' }}
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/create-stripe-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user?.sub }),
+                  });
+                  if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    alert(`Checkout failed: ${err.details || err.error || response.statusText}`);
+                    return;
+                  }
+                  const { url } = await response.json();
+                  if (url) window.location.assign(url);
+                } catch (error) {
+                  alert('Could not open checkout. Please try again.');
+                }
+              }}
+            >
+              Subscribe to Premium
+            </button>
+          )}
           <span className="user-info">{user.email}</span>
           <button className="btn-ghost btn-sm" onClick={() => { flush(); signOut(); }}>Sign out</button>
         </div>
