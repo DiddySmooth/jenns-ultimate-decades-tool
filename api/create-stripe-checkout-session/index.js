@@ -35,7 +35,11 @@ module.exports = async function (context, req) {
       body: { url: session.url },
     };
   } catch (err) {
-    context.log.error('create-checkout error', err);
-    context.res = { status: 500, body: 'Failed to create checkout session' };
+    context.log.error('create-checkout error', err && err.message ? err.message : err);
+    context.res = {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Failed to create checkout session', details: err && err.message ? err.message : String(err) },
+    };
   }
 };
