@@ -58,7 +58,17 @@ module.exports = async function (context, req) {
     context.log.error('Webhook signature verification failed:', err.message);
     context.log.error('Payload type:', typeof payload, '| Is Buffer:', Buffer.isBuffer(payload), '| Length:', payload ? payload.length : 0);
     context.log.error('Sig header:', sig ? sig.substring(0, 30) + '...' : 'MISSING');
-    context.res = { status: 400, body: `Webhook Error: ${err.message}` };
+    const debugInfo = {
+      error: err.message,
+      payloadType: typeof payload,
+      isBuffer: Buffer.isBuffer(payload),
+      payloadLength: payload ? payload.length : 0,
+      payloadPreview: payload ? payload.toString('utf8').substring(0, 100) : 'EMPTY',
+      sigPresent: !!sig,
+      sigPreview: sig ? sig.substring(0, 50) : 'MISSING',
+      webhookSecretPreview: webhookSecret ? webhookSecret.substring(0, 12) + '...' : 'MISSING',
+    };
+    context.res = { status: 400, body: JSON.stringify(debugInfo) };
     return;
   }
 
