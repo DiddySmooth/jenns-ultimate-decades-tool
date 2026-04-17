@@ -80,11 +80,10 @@ const EditableCell = memo(function EditableCell({ initialValue, width, onCommit 
 });
 
 // Row is memoized — only re-renders if its day object reference changes
-const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSpan, isYearStart, isYearEnd, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onRemoveEvent, onActivate }: {
+const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, isYearStart, isYearEnd, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onRemoveEvent, onActivate }: {
   day: TimelineDay;
   isCurrent: boolean;
   isActive: boolean;
-  yearSpan?: number; // kept for API compat, unused (rows are auto-height)
   isYearStart: boolean;
   isYearEnd: boolean;
   lifeStageCols: { id: string; label: string }[];
@@ -179,8 +178,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
 
   const totalWidth = COL_DAY_OF_WEEK + COL_DAY_NUM + COL_YEAR + COL_EVENTS + COL_DEATHS + lifeStageCols.length * COL_LIFESTAGE;
 
-  // Precompute year block spans for merged year cell
-  const yearSpans: number[] = new Array(timeline.length).fill(1);
+  // Precompute year block starts/ends for merged year cell
   const yearStarts: boolean[] = new Array(timeline.length).fill(false);
   const yearEnds: boolean[] = new Array(timeline.length).fill(false);
   let i = 0;
@@ -188,14 +186,10 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
     const y = timeline[i]?.year;
     let j = i;
     while (j < timeline.length && timeline[j]?.year === y) j++;
-    const span = j - i;
     yearStarts[i] = true;
-    yearSpans[i] = span;
     yearEnds[j - 1] = true;
-    // Other rows in the block get placeholder
     for (let k = i + 1; k < j; k++) {
       yearStarts[k] = false;
-      yearSpans[k] = 0;
       yearEnds[k] = (k === j - 1);
     }
     i = j;
@@ -245,7 +239,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
                 day={day}
                 isCurrent={day.dayNumber === currentDay}
                 isActive={activeRow === day.dayNumber}
-                yearSpan={yearSpans[idx]}
+
                 isYearStart={yearStarts[idx]}
                 isYearEnd={yearEnds[idx]}
                 lifeStageCols={lifeStageCols}
