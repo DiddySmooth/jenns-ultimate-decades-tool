@@ -52,6 +52,7 @@ export interface AvatarCrop {
 
 export interface SimEntry {
   id: string;
+  traits?: string[];
 
   // Name
   firstName: string;

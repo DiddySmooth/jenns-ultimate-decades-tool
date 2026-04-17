@@ -116,6 +116,17 @@ export default function SortableSimRow({
             <div className="detail"><strong>Cause of Death:</strong> {short(sim.causeOfDeath)}</div>
 
             <div className="detail detail-full"><strong>Notes:</strong> {short(sim.notes)}</div>
+
+            {sim.traits && sim.traits.length > 0 && (
+              <div className="detail detail-full"><strong>Traits:</strong> {
+                sim.traits.map((t) => (
+                  <span key={t} className="cell-tag" style={{ marginRight: '0.25rem' }}>
+                    <span className="cell-tag-text">{t}</span>
+                  </span>
+                ))
+              }</div>
+            )}
+
           </div>
         </div>
       )}

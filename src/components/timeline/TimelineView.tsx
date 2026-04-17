@@ -59,7 +59,22 @@ const EditableCell = memo(function EditableCell({ initialValue, width, onCommit 
   return (
     <div className={`vt-cell${shown ? ' has-value' : ''}`} style={{ width, minWidth: width }}
       onClick={() => { setDraft(shown); setEditing(true); }}>
-      {shown || <span className="cell-placeholder">—</span>}
+      {shown ? (
+        // Split comma-separated values into tags, trim each
+        <>
+          {shown.split(',').map((part, i) => {
+            const text = part.trim();
+            if (!text) return null;
+            return (
+              <span key={i} className="cell-tag" title={text}>
+                <span className="cell-tag-text">{text}</span>
+              </span>
+            );
+          })}
+        </>
+      ) : (
+        <span className="cell-placeholder">—</span>
+      )}
     </div>
   );
 });

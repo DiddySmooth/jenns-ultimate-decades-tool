@@ -10,6 +10,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import { GENERAL_TRAITS, TODDLER_TRAITS, INFANT_TRAITS } from '../../data/simTraits';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -320,6 +321,52 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
             <div className="field-group">
               <label>Notes</label>
               <textarea value={editing.notes ?? ''} onChange={(e) => setEditing({ ...editing, notes: e.target.value || undefined })} rows={3} />
+            </div>
+
+            <div className="field-group">
+              <label>Traits</label>
+              <div className="traits-row">
+                <select value="" onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  const next = Array.from(new Set([...(editing.traits || []), val]));
+                  setEditing({ ...editing, traits: next });
+                  // reset
+                  (e.target as HTMLSelectElement).value = '';
+                }}>
+                  <option value="">Add a trait...</option>
+                  <optgroup label="General (Child+)">
+                    {GENERAL_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </optgroup>
+                  <optgroup label="Toddler Only">
+                    {TODDLER_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </optgroup>
+                  <optgroup label="Infant Only">
+                    {INFANT_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </optgroup>
+                </select>
+                <div className="traits-add-custom">
+                  <input type="text" placeholder="Custom trait" id="customTraitInput" />
+                  <button className="btn-ghost btn-sm" onClick={() => {
+                    const el = document.getElementById('customTraitInput') as HTMLInputElement | null;
+                    if (!el) return;
+                    const v = el.value.trim();
+                    if (!v) return;
+                    const next = Array.from(new Set([...(editing.traits || []), v]));
+                    setEditing({ ...editing, traits: next });
+                    el.value = '';
+                  }}>Add</button>
+                </div>
+              </div>
+              <div className="traits-list">
+                {(editing.traits || []).map((t) => (
+                  <span key={t} className="cell-tag">
+                    <span className="cell-tag-text">{t}</span>
+                    <button className="cell-tag-remove" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditing({ ...editing, traits: (editing.traits || []).filter(x => x !== t) }); }} aria-label={`Remove trait ${t}`}>×</button>
+                  </span>
+                ))}
+                <div className="field-hint">Toddler-only and Infant-only traits are automatically lost when aging up</div>
+              </div>
             </div>
 
             <div className="modal-actions">
