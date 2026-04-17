@@ -366,6 +366,28 @@ export default function App() {
               ))}
             </select>
             <button
+              className="btn-icon"
+              title="Delete this tracker"
+              disabled={availableSaves.length <= 1}
+              onClick={async () => {
+                if (availableSaves.length <= 1) return;
+                const label = availableSaves.find((s) => s.id === saveId)?.label ?? saveId;
+                if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+                // Switch to a different save first
+                const next = availableSaves.find((s) => s.id !== saveId);
+                if (next) setSaveId(next.id);
+                setAvailableSaves((prev) => prev.filter((s) => s.id !== saveId));
+                // Delete from server
+                try {
+                  await fetch(`/api/deleteSave?userId=${user.sub}&saveId=${encodeURIComponent(saveId)}`, { method: 'DELETE' });
+                } catch (e) {
+                  console.error('Failed to delete save', e);
+                }
+              }}
+            >
+              🗑
+            </button>
+            <button
               className="btn-secondary btn-sm"
               onClick={() => {
                 const id = `tracker-${new Date().toISOString().slice(0,10)}-${Math.random().toString(16).slice(2,6)}`;
