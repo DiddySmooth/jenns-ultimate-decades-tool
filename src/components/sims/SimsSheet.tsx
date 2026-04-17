@@ -46,6 +46,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
   const [editing, setEditing] = useState<SimEntry | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [customTraitInput, setCustomTraitInput] = useState('');
 
   async function uploadAvatar(file: File, simId: string) {
     const dataBase64 = await new Promise<string>((resolve, reject) => {
@@ -329,9 +330,14 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                 <select value="" onChange={(e) => {
                   const val = e.target.value;
                   if (!val) return;
+                  if (val === '__custom__') {
+                    // Focus the custom input
+                    setTimeout(() => document.getElementById('customTraitInput')?.focus(), 50);
+                    (e.target as HTMLSelectElement).value = '';
+                    return;
+                  }
                   const next = Array.from(new Set([...(editing.traits || []), val]));
                   setEditing({ ...editing, traits: next });
-                  // reset
                   (e.target as HTMLSelectElement).value = '';
                 }}>
                   <option value="">Add a trait...</option>
@@ -344,19 +350,35 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                   <optgroup label="Infant Only">
                     {INFANT_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}
                   </optgroup>
+                  <optgroup label="Other">
+                    <option value="__custom__">✏️ Custom trait...</option>
+                  </optgroup>
                 </select>
-                <div className="traits-add-custom">
-                  <input type="text" placeholder="Custom trait" id="customTraitInput" />
-                  <button className="btn-ghost btn-sm" onClick={() => {
-                    const el = document.getElementById('customTraitInput') as HTMLInputElement | null;
-                    if (!el) return;
-                    const v = el.value.trim();
-                    if (!v) return;
-                    const next = Array.from(new Set([...(editing.traits || []), v]));
-                    setEditing({ ...editing, traits: next });
-                    el.value = '';
-                  }}>Add</button>
-                </div>
+              </div>
+              <div className="traits-custom-row" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                <input
+                  id="customTraitInput"
+                  type="text"
+                  placeholder="Type a custom trait and press Add"
+                  value={customTraitInput}
+                  onChange={(e) => setCustomTraitInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = customTraitInput.trim();
+                      if (!v) return;
+                      setEditing({ ...editing, traits: Array.from(new Set([...(editing.traits || []), v])) });
+                      setCustomTraitInput('');
+                    }
+                  }}
+                  style={{ flex: 1, padding: '0.4rem 0.6rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.875rem' }}
+                />
+                <button className="btn-secondary btn-sm" onClick={() => {
+                  const v = customTraitInput.trim();
+                  if (!v) return;
+                  setEditing({ ...editing, traits: Array.from(new Set([...(editing.traits || []), v])) });
+                  setCustomTraitInput('');
+                }}>Add</button>
               </div>
               <div className="traits-list">
                 {(editing.traits || []).map((t) => (
@@ -365,7 +387,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                     <button className="cell-tag-remove" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditing({ ...editing, traits: (editing.traits || []).filter(x => x !== t) }); }} aria-label={`Remove trait ${t}`}>×</button>
                   </span>
                 ))}
-                <div className="field-hint">Toddler-only and Infant-only traits are automatically lost when aging up</div>
+                <div className="field-hint" style={{ marginTop: '0.4rem' }}>Toddler-only and Infant-only traits are automatically lost when aging up</div>
               </div>
             </div>
 
