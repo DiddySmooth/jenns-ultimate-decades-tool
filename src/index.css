@@ -605,14 +605,14 @@ body {
 .vt-head-cell:last-child { border-right: none; }
 .vt-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   border-bottom: 1px solid var(--color-border);
   font-size: 0.82rem;
   background: var(--color-surface);
   content-visibility: auto;
   contain-intrinsic-height: auto;
   min-height: 48px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .vt-row.past { background: var(--color-past); color: var(--color-text-muted); }
 .vt-row.current {
@@ -630,7 +630,8 @@ body {
   height: auto;
   padding: 0.35rem 0.5rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  align-content: flex-start;
   flex-shrink: 0;
   border-right: 1px solid var(--color-border);
   overflow: hidden;
