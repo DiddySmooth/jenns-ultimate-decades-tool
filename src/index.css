@@ -1090,21 +1090,26 @@ body {
   background: var(--color-surface);
 }
 .ft-node {
-  padding: 0.5rem 0.6rem;
+  padding: 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-surface);
   color: var(--color-text);
-  min-width: 140px;
+  min-width: 120px;
+  max-width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
-.ft-sim { display: flex; align-items: center; gap: 0.5rem; }
-.ft-sim.compact { padding: 0.45rem 0.55rem; min-width: 160px; }
+.ft-sim { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+.ft-sim.compact { padding: 0.45rem 0.55rem; min-width: 120px; max-width: 160px; }
 .ft-sim.compact .ft-meta { display: none; }
-.ft-sim.compact .ft-name { max-width: 120px; }
+.ft-sim.compact .ft-name { max-width: 140px; }
 .ft-avatar {
-  width: 36px;
-  height: 36px;
+  width: 80px;
+  height: 80px;
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 2px solid var(--color-border);
@@ -1116,9 +1121,16 @@ body {
 .ft-avatar.square { border-radius: 2px; }
 .ft-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ft-avatar-cropped { width: 100%; height: 100%; background-repeat: no-repeat; background-color: rgba(0,0,0,0.06); }
-.ft-meta { margin-left: 44px; margin-top: -6px; font-size: 0.75rem; color: var(--color-text-muted); display: grid; gap: 2px; }
+.ft-meta { font-size: 0.72rem; color: var(--color-text-muted); display: flex; gap: 2px; justify-content: center; align-items: center; }
 .ft-avatar-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-text-muted); }
-.ft-name { font-size: 0.88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ft-name { font-weight: 700; font-size: 0.85rem; word-break: break-word; margin-bottom: 0.3rem; }
+.ft-dates { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.3rem; }
+
+/* Sex tinting */
+.ft-node-female { border-color: rgba(236, 153, 175, 0.8); background: color-mix(in srgb, #f9a8c9 10%, var(--color-surface)); }
+.ft-node-male { border-color: rgba(147, 197, 253, 0.8); background: color-mix(in srgb, #93c5fd 10%, var(--color-surface)); }
+.ft-node-other { border-color: var(--color-border); background: var(--color-surface); }
+
 .ft-union {
   padding: 0;
   min-width: 1px;

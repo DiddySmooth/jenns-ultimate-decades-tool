@@ -30,8 +30,10 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
     sim.generation != null ? `Gen: ${sim.generation}` : null,
   ].filter(Boolean).join('\n');
 
+  const sexClass = sim.sex === 'Female' ? 'ft-node-female' : sim.sex === 'Male' ? 'ft-node-male' : 'ft-node-other';
+
   return (
-    <div className={`ft-node ft-sim${d.compactNodes ? ' compact' : ''}`} title={tooltip}>
+    <div className={`ft-node ft-sim ${sexClass}${d.compactNodes ? ' compact' : ''}`} title={tooltip}>
       {/* incoming: parents/union */}
       <Handle type="target" position={Position.Top} id="parent-in" />
       {/* outgoing: to children (fallback) */}
@@ -41,6 +43,10 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
       <Handle type="source" position={Position.Right} id="spouse-out" />
       <Handle type="target" position={Position.Left} id="spouse-in" />
 
+      {/* Name at top */}
+      <div className="ft-name" title={name}>{name}</div>
+
+      {/* Avatar centered and larger */}
       <div className={`ft-avatar ${avatarClass}`}>
         {avatar ? (
           crop ? (
@@ -60,14 +66,19 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
           <div className="ft-avatar-fallback">{name.slice(0, 1).toUpperCase()}</div>
         )}
       </div>
-      <div className="ft-name" title={name}>{name}</div>
 
+      {/* Dates (birth–death) on one line when enabled */}
+      {!d.compactNodes && (d.showBirthYear || d.showDeathYear) ? (
+        <div className="ft-dates">
+          {d.showBirthYear ? formatYear(by) : ''}{d.showBirthYear && d.showDeathYear ? '–' : ''}{d.showDeathYear && dy ? formatYear(dy) : (d.showDeathYear ? '' : '')}
+        </div>
+      ) : null}
+
+      {/* Other meta below dates */}
       {!d.compactNodes && (
         <div className="ft-meta">
           {d.showLifeStage && stage ? <div>{stage}</div> : null}
           {d.showAge && age != null ? <div>{age}y</div> : null}
-          {d.showBirthYear ? <div>Born: {formatYear(by)}</div> : null}
-          {d.showDeathYear && dy ? <div>Died: {formatYear(dy)}</div> : null}
           {d.showGeneration ? <div>Gen: {sim.generation}</div> : null}
         </div>
       )}
