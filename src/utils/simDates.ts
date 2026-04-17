@@ -26,7 +26,7 @@ export function getDeathYear(sim: SimEntry, config: Pick<TrackerConfig, 'startYe
 }
 
 export function formatYear(year?: number): string {
-  return year ? `Year ${year}` : '—';
+  return year != null ? `${year}` : '—';
 }
 
 export function currentYearFromCurrentDay(

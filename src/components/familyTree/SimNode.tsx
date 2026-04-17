@@ -2,7 +2,7 @@ import type { NodeProps } from 'reactflow';
 import { Handle, Position } from 'reactflow';
 import type { AvatarCrop, FamilyTreeConfig, SimEntry, TrackerConfig } from '../../types/tracker';
 import { computeLifeStage, getFullName } from '../../utils/lifeStage';
-import { computeAgeYears, formatYear, getBirthYear, getDeathYear } from '../../utils/simDates';
+import { computeAgeYears, getBirthYear, getDeathYear } from '../../utils/simDates';
 
 export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: FamilyTreeConfig; trackerConfig: TrackerConfig; currentDay: number }>) {
   const sim = props.data.sim;
@@ -67,19 +67,19 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
         )}
       </div>
 
-      {/* Dates (birth–death) on one line when enabled */}
-      {!d.compactNodes && (d.showBirthYear || d.showDeathYear) ? (
+      {/* Dates (birth–death) on one line */}
+      {!d.compactNodes && (by != null) && (
         <div className="ft-dates">
-          {d.showBirthYear ? formatYear(by) : ''}{d.showBirthYear && d.showDeathYear ? '–' : ''}{d.showDeathYear && dy ? formatYear(dy) : (d.showDeathYear ? '' : '')}
+          {by}{dy ? `–${dy}` : '–'}
         </div>
-      ) : null}
+      )}
 
       {/* Other meta below dates */}
-      {!d.compactNodes && (
+      {!d.compactNodes && (d.showLifeStage || d.showAge || d.showGeneration) && (
         <div className="ft-meta">
-          {d.showLifeStage && stage ? <div>{stage}</div> : null}
-          {d.showAge && age != null ? <div>{age}y</div> : null}
-          {d.showGeneration ? <div>Gen: {sim.generation}</div> : null}
+          {d.showLifeStage && stage ? <span>{stage}</span> : null}
+          {d.showAge && age != null ? <span>{age}y</span> : null}
+          {d.showGeneration && sim.generation != null ? <span>Gen {sim.generation}</span> : null}
         </div>
       )}
     </div>
