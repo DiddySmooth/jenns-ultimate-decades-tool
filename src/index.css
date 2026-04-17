@@ -1066,21 +1066,19 @@ body {
 .try-box input { width: 14px; height: 14px; }
 
 /* Merged Year cell */
-.vt-year-cell { padding: 0; border-right: 1px solid var(--color-border); position: relative; }
-.vt-year-merged {
+.vt-year-cell {
+  padding: 0.35rem 0.25rem;
+  border-right: 1px solid var(--color-border);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 0.4rem;
-  width: 100%;
-  min-height: 100%;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  background: inherit;
+  font-size: 0.82rem;
 }
-/* Hide the horizontal row separators inside the merged year block */
-.vt-row:not(.vt-year-block-end) .vt-year-merged { border-bottom: none; }
-.vt-year-placeholder { color: transparent; border-right: 1px solid var(--color-border); }
+.vt-year-merged { display: contents; }
+.vt-row:not(.vt-year-block-end) .vt-year-merged { display: contents; }
+.vt-year-placeholder { color: transparent; }
 
 /* ── Family tree ── */
 .family-tree-canvas {
