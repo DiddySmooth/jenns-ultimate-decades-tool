@@ -57,6 +57,8 @@ export interface SimEntry {
   // Name
   firstName: string;
   lastName: string;
+  maidenName?: string;         // optional maiden/birth name
+  showMaidenName?: boolean;    // if true, display as "First (Maiden) Last" on family tree
 
   // Back-compat (older saves)
   name?: string;

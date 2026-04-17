@@ -197,6 +197,16 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
               <input type="text" value={editing.lastName} onChange={(e) => setEditing({ ...editing, lastName: e.target.value })} />
             </div>
             <div className="field-group">
+              <label>Maiden Name <span style={{ fontWeight: 400, textTransform: 'none', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>(optional)</span></label>
+              <input type="text" value={editing.maidenName ?? ''} placeholder="Birth surname" onChange={(e) => setEditing({ ...editing, maidenName: e.target.value || undefined })} />
+              {editing.maidenName && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontWeight: 400, textTransform: 'none', fontSize: '0.85rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={editing.showMaidenName ?? false} onChange={(e) => setEditing({ ...editing, showMaidenName: e.target.checked })} />
+                  Show on family tree as "{editing.firstName || 'First'} ({editing.maidenName}) {editing.lastName || 'Last'}"
+                </label>
+              )}
+            </div>
+            <div className="field-group">
               <label>Sex</label>
               <select value={editing.sex ?? 'Unknown'} onChange={(e) => setEditing({ ...editing, sex: e.target.value as SimSex })}>
                 {(['Female','Male','Intersex','Non-binary','Unknown'] as SimSex[]).map((s) => (

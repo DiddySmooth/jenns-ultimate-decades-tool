@@ -2,9 +2,17 @@ import type { AgingConfig, SimEntry, TrackerConfig } from '../types/tracker';
 import { formatChallengeDate } from './timeConvert';
 import { currentYearFromCurrentDay, getBirthYear, getDeathYear } from './simDates';
 
-export function getFullName(sim: Pick<SimEntry, 'firstName' | 'lastName' | 'name'>): string {
-  const combined = `${(sim.firstName ?? '').trim()} ${(sim.lastName ?? '').trim()}`.trim();
-  return combined || (sim.name ?? '').trim() || '(unnamed)';
+export function getFullName(sim: Pick<SimEntry, 'firstName' | 'lastName' | 'name' | 'maidenName' | 'showMaidenName'>): string {
+  const first = (sim.firstName ?? '').trim();
+  const last = (sim.lastName ?? '').trim();
+  const maiden = (sim.maidenName ?? '').trim();
+  if (first || last) {
+    if (maiden && sim.showMaidenName) {
+      return `${first}${maiden ? ` (${maiden})` : ''} ${last}`.trim();
+    }
+    return `${first} ${last}`.trim();
+  }
+  return (sim.name ?? '').trim() || '(unnamed)';
 }
 
 /**
