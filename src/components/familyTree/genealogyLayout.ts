@@ -6,8 +6,8 @@ const getKind = (e: Edge): string | undefined => (e.data as EdgeData | undefined
 const getBirthYear = (e: Edge): number | undefined => (e.data as EdgeData | undefined)?.birthYear;
 
 // Node sizes (match CSS roughly)
-const SIM_W = 160;
-const SIM_H = 56;
+const SIM_W = 170;
+const SIM_H = 210;
 const UNION_W = 26;
 const UNION_H = 26;
 
@@ -18,8 +18,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
   // Top-to-bottom
   g.setGraph({
     rankdir: 'TB',
-    nodesep: 40,
-    ranksep: 80,
+    nodesep: 60,
+    ranksep: 120,
   });
 
   for (const n of nodes) {

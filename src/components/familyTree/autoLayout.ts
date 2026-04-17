@@ -17,13 +17,13 @@ export function autoLayoutFamilyTree(state: FamilyTreeState): FamilyTreeState {
   // Grid sims if nothing set
   simNodes.forEach((n, idx) => {
     if (n.position && (n.position.x !== 0 || n.position.y !== 0)) return;
-    n.position = { x: 40 + (idx % 6) * 220, y: 40 + Math.floor(idx / 6) * 140 };
+    n.position = { x: 40 + (idx % 6) * 240, y: 40 + Math.floor(idx / 6) * 260 };
   });
 
   // Grid unions nearby
   unionNodes.forEach((n, idx) => {
     if (n.position && (n.position.x !== 0 || n.position.y !== 0)) return;
-    n.position = { x: 150 + (idx % 6) * 220, y: 100 + Math.floor(idx / 6) * 140 };
+    n.position = { x: 150 + (idx % 6) * 240, y: 100 + Math.floor(idx / 6) * 260 };
   });
 
   return { ...state, nodes, edges: state.edges ?? [] };
