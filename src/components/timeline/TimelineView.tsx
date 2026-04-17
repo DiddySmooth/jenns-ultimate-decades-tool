@@ -30,7 +30,7 @@ const COL_DEATHS = 160;
 // Births column removed (tracked via Newborn/Baby life stage column)
 // const COL_BIRTHS = 120;
 const COL_LIFESTAGE = 140;
-const ROW_HEIGHT = 34;
+// ROW_HEIGHT removed — rows now size to content
 
 // Each cell manages its own local state — never causes sibling or parent re-renders
 const EditableCell = memo(function EditableCell({ initialValue, width, onCommit }: {
@@ -84,7 +84,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSp
   day: TimelineDay;
   isCurrent: boolean;
   isActive: boolean;
-  yearSpan: number;
+  yearSpan?: number; // kept for API compat, unused (rows are auto-height)
   isYearStart: boolean;
   isYearEnd: boolean;
   lifeStageCols: { id: string; label: string }[];
