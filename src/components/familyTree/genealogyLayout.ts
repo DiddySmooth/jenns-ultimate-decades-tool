@@ -19,7 +19,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
   g.setGraph({
     rankdir: 'TB',
     nodesep: 60,
-    ranksep: 120,
+    ranksep: 140,
+    ranker: 'tight-tree',
   });
 
   for (const n of nodes) {
@@ -30,25 +31,28 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     });
   }
 
-  // Keep child edges ordered oldest->youngest where possible
-  // Dagre respects edge insertion order as a heuristic for ordering.
+  // Only use parent/child edges for layout ranking — spouse edges cause rank conflicts
   const sortedEdges = [...edges].sort((a, b) => {
     const ak = getKind(a);
     const bk = getKind(b);
     if (ak === 'parent' && bk !== 'parent') return -1;
     if (ak !== 'parent' && bk === 'parent') return 1;
-
     if (ak === 'parent' && bk === 'parent') {
       const ay = getBirthYear(a) ?? 999999;
       const by = getBirthYear(b) ?? 999999;
       if (ay !== by) return ay - by;
     }
-
     return String(a.id).localeCompare(String(b.id));
   });
 
   for (const e of sortedEdges) {
-    g.setEdge(e.source, e.target);
+    const kind = getKind(e);
+    // Add spouse edges with minlen=0 so they don't force rank separation
+    if (kind === 'spouse') {
+      g.setEdge(e.source, e.target, { minlen: 0, weight: 0 });
+    } else {
+      g.setEdge(e.source, e.target, { weight: 1 });
+    }
   }
 
   dagre.layout(g);

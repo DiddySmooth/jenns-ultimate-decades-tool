@@ -23,10 +23,11 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
   const avatarClass = treeConfig.avatarShape === 'circle' ? 'circle' : treeConfig.avatarShape === 'rounded' ? 'rounded' : 'square';
 
   const tooltip = [
+    name,
+    by != null ? `Born: ${by}` : null,
+    dy != null ? `Died: ${dy}` : null,
     stage ? `Stage: ${stage}` : null,
     age != null ? `Age: ${age}` : null,
-    d.showBirthYear ? `Born: ${formatYear(by)}` : (by ? `Born: ${formatYear(by)}` : null),
-    d.showDeathYear && dy ? `Died: ${formatYear(dy)}` : (dy ? `Died: ${formatYear(dy)}` : null),
     sim.generation != null ? `Gen: ${sim.generation}` : null,
   ].filter(Boolean).join('\n');
 
