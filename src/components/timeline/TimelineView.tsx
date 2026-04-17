@@ -124,11 +124,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, isYear
         className={`vt-cell vt-sticky-year vt-year-cell${isYearStart ? ' vt-year-start' : ' vt-year-placeholder'}`}
         style={{ width: COL_YEAR, minWidth: COL_YEAR }}
       >
-        {isYearStart && (
-          <div className="vt-year-merged">
-            <span>{day.year}</span>
-          </div>
-        )}
+        <span style={{ visibility: isYearStart ? 'visible' : 'hidden', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{day.year}</span>
       </div>
       <div className="vt-cell vt-events" style={{ width: COL_EVENTS, minWidth: COL_EVENTS }}>
         {day.events.map((ev) => (
