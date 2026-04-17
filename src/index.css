@@ -610,7 +610,9 @@ body {
   font-size: 0.82rem;
   background: var(--color-surface);
   content-visibility: auto;
-  contain-intrinsic-height: 34px;
+  contain-intrinsic-height: auto;
+  min-height: 48px;
+  flex-wrap: wrap;
 }
 .vt-row.past { background: var(--color-past); color: var(--color-text-muted); }
 .vt-row.current {
@@ -624,15 +626,18 @@ body {
 }
 .vt-cell {
   box-sizing: border-box;
-  height: 34px;
-  padding: 0 0.5rem;
+  min-height: 48px;
+  height: auto;
+  padding: 0.35rem 0.5rem;
   display: flex;
   align-items: center;
   flex-shrink: 0;
   border-right: 1px solid var(--color-border);
   overflow: hidden;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 .vt-row .vt-cell:last-child { border-right: none; }
 .vt-cell:hover { background: rgba(61,90,71,0.05); }
