@@ -107,7 +107,6 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSp
   return (
     <div
       className={`vt-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}${isActive ? ' active' : ''}${isYearEnd ? ' vt-year-block-end' : ''}`}
-      style={{ height: ROW_HEIGHT }}
       onMouseDown={onActivate}
     >
       <div className="vt-cell vt-sticky-day" style={{ width: COL_DAY_OF_WEEK, minWidth: COL_DAY_OF_WEEK }}>
@@ -127,7 +126,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, yearSp
         style={{ width: COL_YEAR, minWidth: COL_YEAR }}
       >
         {isYearStart && (
-          <div className="vt-year-merged" style={{ height: yearSpan * ROW_HEIGHT }}>
+          <div className="vt-year-merged">
             <span>{day.year}</span>
           </div>
         )}
