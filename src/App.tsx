@@ -366,18 +366,35 @@ export default function App() {
               ))}
             </select>
             <button
-              className="btn-icon"
+              className="save-action-btn save-action-rename"
+              title="Rename this tracker"
+              onClick={() => {
+                const current = availableSaves.find((s) => s.id === saveId);
+                const newName = prompt('Rename tracker:', current?.label ?? saveId);
+                if (!newName || !newName.trim()) return;
+                const trimmed = newName.trim();
+                setAvailableSaves((prev) => prev.map((s) => s.id === saveId ? { ...s, label: trimmed } : s));
+                // Persist the new name into the save config
+                const current2 = saveRef.current;
+                if (current2) {
+                  const updated = { ...current2, config: { ...current2.config, name: trimmed } };
+                  updateSave(updated);
+                }
+              }}
+            >
+              ✏️ Rename
+            </button>
+            <button
+              className="save-action-btn save-action-delete"
               title="Delete this tracker"
               disabled={availableSaves.length <= 1}
               onClick={async () => {
                 if (availableSaves.length <= 1) return;
                 const label = availableSaves.find((s) => s.id === saveId)?.label ?? saveId;
                 if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
-                // Switch to a different save first
                 const next = availableSaves.find((s) => s.id !== saveId);
                 if (next) setSaveId(next.id);
                 setAvailableSaves((prev) => prev.filter((s) => s.id !== saveId));
-                // Delete from server
                 try {
                   await fetch(`/api/deleteSave?userId=${user.sub}&saveId=${encodeURIComponent(saveId)}`, { method: 'DELETE' });
                 } catch (e) {
@@ -385,7 +402,7 @@ export default function App() {
                 }
               }}
             >
-              🗑
+              🗑 Delete
             </button>
             <button
               className="btn-secondary btn-sm"
