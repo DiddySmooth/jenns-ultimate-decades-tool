@@ -76,8 +76,8 @@ export function buildFamilyTree(
   // NOTE: These sizes should match actual rendered node sizes.
   // Sims can vary in width by name length, so for *exact* centering we
   // also adjust union positions in FamilyTree.tsx using measured node widths.
-  const SIM_W = 160;
-  const SIM_H = 56;
+  const SIM_W = 170;
+  const SIM_H = 210;
   // Union node is invisible but must be non-zero sized for ReactFlow edge geometry.
   const UNION_W = 1;
   const UNION_H = 1;
@@ -121,16 +121,28 @@ export function buildFamilyTree(
       selectable: false,
     });
 
-    // Marriage edge drawn directly between partners (union node is used as child anchor)
+    // Marriage edges: route THROUGH the union node so dagre understands the topology
+    // sim:A --> union --> sim:B  (instead of direct sim:A --> sim:B)
     if (u.partnerAId && u.partnerBId) {
       edges.push({
-        id: `e:marriage:${u.id}`,
+        id: `e:marriage:${u.id}:a`,
         source: `sim:${u.partnerAId}`,
+        target: id,
+        sourceHandle: 'spouse-out',
+        targetHandle: 'spouse-in',
+        type: 'straight',
+        style: { stroke: 'rgba(128,128,128,0.5)' },
+        data: { kind: 'spouse' },
+      });
+      edges.push({
+        id: `e:marriage:${u.id}:b`,
+        source: id,
         target: `sim:${u.partnerBId}`,
         sourceHandle: 'spouse-out',
         targetHandle: 'spouse-in',
         type: 'straight',
-        data: { kind: 'marriage', unionId: u.id },
+        style: { stroke: 'rgba(128,128,128,0.5)' },
+        data: { kind: 'spouse' },
       });
     }
   });
