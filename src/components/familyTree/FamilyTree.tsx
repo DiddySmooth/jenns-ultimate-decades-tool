@@ -4,7 +4,6 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  type Edge,
   type ReactFlowInstance,
   useEdgesState,
   useNodesState,
@@ -232,7 +231,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
               const next = {
                 ...saved,
                 // Persist sim and union node positions so unions don't drift.
-                nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as const, position: n.position })),
+                nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
                 edges: saved.edges ?? [],
               };
 

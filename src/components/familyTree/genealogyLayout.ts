@@ -3,10 +3,6 @@ import type { Edge, Node } from 'reactflow';
 // Simple generational layout — avoid dagre entirely. Positions sims by generation
 // then place unions centered between their partners.
 
-type EdgeData = { kind?: string; birthYear?: number };
-const getKind = (e: Edge): string | undefined => (e.data as EdgeData | undefined)?.kind;
-const getBirthYear = (e: Edge): number | undefined => (e.data as EdgeData | undefined)?.birthYear;
-
 // Layout constants
 const NODE_W = 180;
 const NODE_H = 220;
