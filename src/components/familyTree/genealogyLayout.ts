@@ -48,7 +48,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
   for (const e of sortedEdges) {
     const kind = getKind(e);
     if (kind === 'spouse') {
-      // Spouse edges keep partners on the same rank
       g.setEdge(e.source, e.target, { minlen: 0, weight: 2 });
     } else {
       g.setEdge(e.source, e.target, { weight: 1 });

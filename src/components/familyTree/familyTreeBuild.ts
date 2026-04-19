@@ -121,25 +121,24 @@ export function buildFamilyTree(
       selectable: false,
     });
 
-    // Marriage edges: route THROUGH the union node so dagre understands the topology
-    // sim:A --> union --> sim:B  (instead of direct sim:A --> sim:B)
+    // Marriage edges: sim:A --> union (left side), sim:B --> union (right side)
     if (u.partnerAId && u.partnerBId) {
       edges.push({
         id: `e:marriage:${u.id}:a`,
         source: `sim:${u.partnerAId}`,
         target: id,
         sourceHandle: 'spouse-out',
-        targetHandle: 'spouse-in',
+        targetHandle: 'partner-in-left',
         type: 'straight',
         style: { stroke: 'rgba(128,128,128,0.5)' },
         data: { kind: 'spouse' },
       });
       edges.push({
         id: `e:marriage:${u.id}:b`,
-        source: id,
-        target: `sim:${u.partnerBId}`,
-        sourceHandle: 'spouse-out',
-        targetHandle: 'spouse-in',
+        source: `sim:${u.partnerBId}`,
+        target: id,
+        sourceHandle: 'spouse-in',
+        targetHandle: 'partner-in-right',
         type: 'straight',
         style: { stroke: 'rgba(128,128,128,0.5)' },
         data: { kind: 'spouse' },
