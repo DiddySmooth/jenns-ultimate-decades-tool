@@ -1123,9 +1123,9 @@ body {
 .ft-avatar.square { border-radius: 2px; }
 .ft-avatar img { width: 80px; height: 80px; object-fit: cover; display: block; }
 .ft-avatar-cropped { width: 80px; height: 80px; min-width: 80px; min-height: 80px; background-repeat: no-repeat; background-color: rgba(0,0,0,0.06); background-size: cover; }
-.ft-meta { font-size: 0.72rem; color: var(--color-text-muted); display: flex; flex-wrap: wrap; gap: 0.25rem 0.4rem; justify-content: center; align-items: center; margin-top: 0.2rem; }
+.ft-meta { font-size: 0.72rem; color: var(--color-text-muted); display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; justify-content: center; align-items: center; margin-top: 0.2rem; }
 .ft-meta span { white-space: nowrap; }
-.ft-meta span + span::before { content: '·'; margin-right: 0.4rem; }
+.ft-meta span + span::before { content: '·'; margin-right: 0.3rem; color: var(--color-border); }
 .ft-avatar-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-text-muted); }
 .ft-name { font-weight: 700; font-size: 0.85rem; word-break: break-word; margin-bottom: 0.3rem; }
 .ft-dates { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.3rem; }
@@ -1140,13 +1140,16 @@ body {
   min-width: 1px;
   width: 1px;
   height: 1px;
-  border: none;
-  background: transparent;
+  border: none !important;
+  background: transparent !important;
   border-radius: 0;
-  box-shadow: none;
+  box-shadow: none !important;
+  outline: none !important;
 }
 /* keep the node as an invisible anchor point; edges originate here */
 .ft-union-dot { width: 1px; height: 1px; opacity: 0; }
+/* Hide handles on union nodes */
+.ft-union .react-flow__handle { opacity: 0; width: 1px; height: 1px; min-width: 0; min-height: 0; }
 
 /* ReactFlow handle styling */
 .react-flow__handle {

@@ -20,7 +20,8 @@ export function getBirthYear(sim: SimEntry, config: Pick<TrackerConfig, 'startYe
 }
 
 export function getDeathYear(sim: SimEntry, config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>): number | undefined {
-  if (sim.deathYear) return sim.deathYear;
+  // Guard: deathYear should be a plausible calendar year (>= startYear), not a day number
+  if (sim.deathYear && sim.deathYear >= (config.startYear ?? 0)) return sim.deathYear;
   const day = sim.deathDayNumber ?? parseDayNumberFromLegacyDate(sim.dateOfDeath);
   return day ? yearFromDayNumber(day, config) : undefined;
 }
