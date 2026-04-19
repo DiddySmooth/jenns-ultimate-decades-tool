@@ -226,40 +226,13 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
               // Important: layout should be based on parent/child structure only.
               // Marriage edges turn the graph into a long chain and ruin ranks.
 
-              const unionsById = new Map(unions.map((u) => [u.id, u] as const));
-
-              const isParentEdge = (e: Edge) => (e.data as { kind?: string } | undefined)?.kind === 'parent';
-
-              const layoutEdges: Edge[] = [];
-              for (const e of edges) {
-                if (!isParentEdge(e)) continue;
-
-                // If the source is a union node, add synthetic edges from each partner -> child
-                // just for layout purposes.
-                if (String(e.source).startsWith('union:')) {
-                  const unionId = String(e.source).replace(/^union:/, '');
-                  const u = unionsById.get(unionId);
-                  if (u?.partnerAId) {
-                    layoutEdges.push({ id: `le:${u.partnerAId}->${e.target}`, source: `sim:${u.partnerAId}`, target: e.target });
-                  }
-                  if (u?.partnerBId) {
-                    layoutEdges.push({ id: `le:${u.partnerBId}->${e.target}`, source: `sim:${u.partnerBId}`, target: e.target });
-                  }
-                  continue;
-                }
-
-                // Otherwise keep existing parent edge.
-                layoutEdges.push({ id: `le:${e.source}->${e.target}`, source: e.source, target: e.target });
-              }
-
-              const laidOut = genealogyLayout(nodes, layoutEdges);
+              // Use the new genealogyLayout which expects all nodes + edges and will compute sim + union positions.
+              const laidOut = genealogyLayout(nodes, edges);
 
               const next = {
                 ...saved,
-                // Persist only sim nodes; unions are derived from spouse positions.
-                nodes: laidOut
-                  .filter((n) => String(n.id).startsWith('sim:'))
-                  .map((n) => ({ id: n.id, type: 'sim' as const, position: n.position })),
+                // Persist sim and union node positions so unions don't drift.
+                nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as const, position: n.position })),
                 edges: saved.edges ?? [],
               };
 
