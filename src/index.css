@@ -1090,51 +1090,66 @@ body {
   background: var(--color-surface);
 }
 .ft-node {
-  padding: 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+  padding: 0.5rem 0.5rem 0.6rem;
+  border: none;
+  border-radius: 12px;
   background: var(--color-surface);
   color: var(--color-text);
-  min-width: 110px;
   width: 110px;
+  min-width: 110px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  gap: 0.25rem;
 }
-.ft-sim { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
-.ft-sim.compact { padding: 0.45rem 0.55rem; min-width: 120px; max-width: 160px; }
+.ft-sim.compact { padding: 0.4rem; }
 .ft-sim.compact .ft-meta { display: none; }
-.ft-sim.compact .ft-name { max-width: 140px; }
+.ft-sim.compact .ft-name { font-size: 0.75rem; }
+.ft-sim-dead { opacity: 0.6; }
+
+/* Generation ring wraps the avatar */
+.ft-avatar-ring {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid #4a90d9;
+  padding: 2px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+}
 .ft-avatar {
-  width: 80px;
-  height: 80px;
-  min-width: 80px;
-  min-height: 80px;
-  max-width: 80px;
-  max-height: 80px;
-  aspect-ratio: 1 / 1;
+  width: 74px;
+  height: 74px;
+  min-width: 74px;
+  min-height: 74px;
+  max-width: 74px;
+  max-height: 74px;
+  border-radius: 50%;
   overflow: hidden;
-  border: 2px solid var(--color-border);
   flex-shrink: 0;
   flex-grow: 0;
   background: rgba(0,0,0,0.06);
   display: block;
   align-self: center;
 }
-.ft-avatar.circle { border-radius: 999px; }
-.ft-avatar.rounded { border-radius: 10px; }
+.ft-avatar.circle { border-radius: 50%; }
+.ft-avatar.rounded { border-radius: 12px; }
 .ft-avatar.square { border-radius: 2px; }
-.ft-avatar img { width: 80px; height: 80px; min-width: 80px; min-height: 80px; object-fit: cover; display: block; }
+.ft-avatar img { width: 74px; height: 74px; min-width: 74px; min-height: 74px; object-fit: cover; display: block; }
 .ft-avatar-cropped {
-  width: 80px;
-  height: 80px;
-  min-width: 80px;
-  min-height: 80px;
+  width: 74px;
+  height: 74px;
+  min-width: 74px;
+  min-height: 74px;
   background-repeat: no-repeat;
   background-color: rgba(0,0,0,0.06);
   display: block;
+}
 }
 .ft-meta { font-size: 0.72rem; color: var(--color-text-muted); display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; justify-content: center; align-items: center; margin-top: 0.2rem; }
 .ft-meta span { white-space: nowrap; }
