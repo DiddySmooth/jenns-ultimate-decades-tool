@@ -4,7 +4,7 @@ const NODE_W = 180;
 const NODE_H = 220;
 const GAP_X = 60;   // gap between sim nodes in same generation
 const GAP_COUPLE = 20; // tighter gap between spouses
-const GAP_Y = 180;  // vertical gap between generations
+const GAP_Y = 80;  // vertical gap between generations
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
@@ -176,7 +176,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     const bpos = positioned.get(partners[1]);
     if (!apos || !bpos) continue;
     const midX = (apos.x + bpos.x + NODE_W) / 2;
-    const midY = (apos.y + bpos.y) / 2 + NODE_H / 2;
+    // Union sits at vertical center of the sim cards — same Y as sim centers
+    // so marriage line is horizontal, not a V-peak
+    const midY = (apos.y + bpos.y) / 2 + NODE_H * 0.5;
     const idx = result.findIndex((r) => r.id === u.id);
     if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX - 0.5, y: midY - 0.5 } };
   }

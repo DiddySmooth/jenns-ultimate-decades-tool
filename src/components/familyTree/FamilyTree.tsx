@@ -54,10 +54,11 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
     setEdges(
       built.edges.map((e) => {
         const kind = (e.data as { kind?: string } | undefined)?.kind;
-        if (kind === 'marriage') {
+        if (kind === 'spouse') {
           return {
             ...e,
-            style: { strokeWidth: 3, stroke: 'rgba(0,0,0,0.45)' },
+            type: 'straight',
+            style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.4)' },
           };
         }
         return {
@@ -76,9 +77,9 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
   // Keep union nodes centered on the marriage line while dragging.
   useEffect(() => {
-    const SIM_W = 160;
-    const SIM_H = 56;
-    // Union node is invisible but must be non-zero sized for ReactFlow edge geometry.
+    const SIM_W = 180;
+    const SIM_H = 220;
+    // Union node is invisible anchor point
     const UNION_W = 1;
     const UNION_H = 1;
 
