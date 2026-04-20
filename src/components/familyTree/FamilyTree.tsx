@@ -79,7 +79,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   useEffect(() => {
     const SIM_W = 180;
     const SIM_H = 220;
-    const UNION_W = 1;
+    const UNION_W = 24;
 
     setNodes((cur) => {
       const simPos = new Map<string, { x: number; y: number }>();

@@ -1159,8 +1159,27 @@ body {
   box-shadow: none !important;
   outline: none !important;
 }
+.ft-union-heart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  position: relative;
+}
+.ft-union-heart-icon {
+  font-size: 12px;
+  line-height: 1;
+  color: #e05c7a;
+  user-select: none;
+  pointer-events: none;
+}
 /* Hide the ReactFlow wrapper border on union nodes */
-.react-flow__node:has(.ft-union) {
+.react-flow__node:has(.ft-union-heart) {
   border: none !important;
   box-shadow: none !important;
   outline: none !important;
