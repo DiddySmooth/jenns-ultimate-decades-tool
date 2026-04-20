@@ -260,20 +260,35 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
                 if (simPositions.size === 0) throw new Error('no positions from library');
 
+                // First pass: place any orphaned sims (no position from library) next to their spouse
+                for (const u of unions) {
+                  if (!u.partnerAId || !u.partnerBId) continue;
+                  const posA = simPositions.get(u.partnerAId);
+                  const posB = simPositions.get(u.partnerBId);
+                  if (posA && !posB) {
+                    simPositions.set(u.partnerBId, { x: posA.x + NODE_W + 20, y: posA.y });
+                  } else if (posB && !posA) {
+                    simPositions.set(u.partnerAId, { x: posB.x + NODE_W + 20, y: posB.y });
+                  }
+                }
+
                 // Post-process: snap spouses to be horizontally adjacent
-                // The library places sims by their own family tree position, not spouse proximity.
-                // For each union, place partnerB immediately to the right of partnerA.
+                // Always use the leftmost partner as anchor, place the other immediately to its right.
                 const GAP_COUPLE = 20;
                 for (const u of unions) {
                   if (!u.partnerAId || !u.partnerBId) continue;
                   const posA = simPositions.get(u.partnerAId);
                   const posB = simPositions.get(u.partnerBId);
                   if (!posA || !posB) continue;
-                  // Only snap if they're not already adjacent (within 1.5 node widths)
                   const dist = Math.abs(posA.x - posB.x);
                   if (dist > NODE_W * 1.5) {
-                    // Place B right next to A
-                    simPositions.set(u.partnerBId, { x: posA.x + NODE_W + GAP_COUPLE, y: posA.y });
+                    // Anchor on whichever is positioned more centrally (closer to their children)
+                    // Use leftmost as anchor, snap rightmost to be adjacent
+                    if (posA.x <= posB.x) {
+                      simPositions.set(u.partnerBId, { x: posA.x + NODE_W + GAP_COUPLE, y: posA.y });
+                    } else {
+                      simPositions.set(u.partnerAId, { x: posB.x + NODE_W + GAP_COUPLE, y: posB.y });
+                    }
                   }
                 }
 
