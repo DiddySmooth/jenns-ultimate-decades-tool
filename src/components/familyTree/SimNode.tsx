@@ -45,9 +45,10 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
   ].filter(Boolean).join('\n');
 
   const isDead = dy != null;
+  const sexBg = sim.sex === 'Female' ? 'rgba(249,168,201,0.12)' : sim.sex === 'Male' ? 'rgba(147,197,253,0.12)' : undefined;
 
   return (
-    <div className={`ft-node ft-sim${d.compactNodes ? ' compact' : ''}${isDead ? ' ft-sim-dead' : ''}`} title={tooltip}>
+    <div className={`ft-node ft-sim${d.compactNodes ? ' compact' : ''}${isDead ? ' ft-sim-dead' : ''}`} title={tooltip} style={sexBg ? { background: sexBg } : undefined}>
       {/* Handles — invisible */}
       <Handle type="target" position={Position.Top}    id="parent-in"  style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
       <Handle type="source" position={Position.Bottom} id="parent-out" style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
