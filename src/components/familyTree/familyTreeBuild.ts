@@ -121,22 +121,26 @@ export function buildFamilyTree(
       selectable: false,
     });
 
-    // Marriage edges: sim:A --> union (left side), sim:B --> union (right side)
+        // Marriage edges: A right-side → union left, B left-side → union right
     if (u.partnerAId && u.partnerBId) {
       edges.push({
         id: `e:marriage:${u.id}:a`,
         source: `sim:${u.partnerAId}`,
         target: id,
+        sourceHandle: 'spouse-out',
+        targetHandle: 'partner-in-left',
         type: 'straight',
-        style: { stroke: 'rgba(128,128,128,0.5)' },
+        style: { stroke: 'rgba(128,128,128,0.6)', strokeWidth: 2 },
         data: { kind: 'spouse' },
       });
       edges.push({
         id: `e:marriage:${u.id}:b`,
         source: `sim:${u.partnerBId}`,
         target: id,
+        sourceHandle: 'spouse-in',
+        targetHandle: 'partner-in-right',
         type: 'straight',
-        style: { stroke: 'rgba(128,128,128,0.5)' },
+        style: { stroke: 'rgba(128,128,128,0.6)', strokeWidth: 2 },
         data: { kind: 'spouse' },
       });
     }
