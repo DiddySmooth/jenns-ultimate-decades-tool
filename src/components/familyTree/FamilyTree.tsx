@@ -108,11 +108,9 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         const left = a.x <= b.x ? { p: a, w: aw } : { p: b, w: bw };
         const right = a.x <= b.x ? { p: b, w: bw } : { p: a, w: aw };
 
-        const leftEndX = left.p.x + left.w;
-        const rightEndX = right.p.x;
-        const midX = (leftEndX + rightEndX) / 2;
-        // Union sits just below the cards so child lines drop from there
-        const lineY = Math.max(left.p.y, right.p.y) + SIM_H;
+        // Heart sits centered horizontally between the two cards, just below them
+        const midX = (left.p.x + left.w / 2 + right.p.x + right.w / 2) / 2;
+        const lineY = Math.max(left.p.y, right.p.y) + SIM_H + 10;
         const pos = { x: midX - UNION_W / 2, y: lineY };
 
         if (Math.abs(n.position.x - pos.x) < 0.5 && Math.abs(n.position.y - pos.y) < 0.5) return n;
@@ -293,10 +291,26 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                 }
 
                 const laidOut = nodes.map((n) => {
-                  if (!String(n.id).startsWith('sim:')) return n;
-                  const key = String(n.id).replace(/^sim:/, '');
-                  const p = simPositions.get(key);
-                  return p ? { ...n, position: p } : n;
+                  if (String(n.id).startsWith('sim:')) {
+                    const key = String(n.id).replace(/^sim:/, '');
+                    const p = simPositions.get(key);
+                    return p ? { ...n, position: p } : n;
+                  }
+                  if (String(n.id).startsWith('union:')) {
+                    // Position union heart between its two partners
+                    const unionId = String(n.id).replace(/^union:/, '');
+                    const u = unions.find(x => x.id === unionId);
+                    if (!u?.partnerAId || !u?.partnerBId) return n;
+                    const pA = simPositions.get(u.partnerAId);
+                    const pB = simPositions.get(u.partnerBId);
+                    if (!pA || !pB) return n;
+                    const left = pA.x <= pB.x ? pA : pB;
+                    const right = pA.x <= pB.x ? pB : pA;
+                    const heartX = (left.x + NODE_W + right.x) / 2 - 12;
+                    const heartY = left.y + NODE_H + 10;
+                    return { ...n, position: { x: heartX, y: heartY } };
+                  }
+                  return n;
                 });
 
                 const next = {
