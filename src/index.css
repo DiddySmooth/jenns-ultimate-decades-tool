@@ -1146,6 +1146,13 @@ body {
   box-shadow: none !important;
   outline: none !important;
 }
+/* Hide the ReactFlow wrapper border on union nodes */
+.react-flow__node:has(.ft-union) {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+}
 /* keep the node as an invisible anchor point; edges originate here */
 .ft-union-dot { width: 1px; height: 1px; opacity: 0; }
 /* Hide handles on union nodes */

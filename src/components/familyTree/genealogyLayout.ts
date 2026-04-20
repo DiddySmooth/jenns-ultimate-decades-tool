@@ -76,6 +76,21 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     if (!genBySim.has(s.id as string)) genBySim.set(s.id as string, 0);
   }
 
+  // Married-in sims: if a sim has no parents but their spouse has a generation,
+  // place them on the same generation as their spouse instead of gen 0
+  for (const s of simNodes) {
+    const id = s.id as string;
+    const parents = childToParentSims.get(id);
+    const hasParents = parents && parents.size > 0;
+    if (hasParents) continue; // skip sims with known parents
+    const spouse = spouseOf.get(id);
+    if (!spouse) continue;
+    const spouseGen = genBySim.get(spouse);
+    if (spouseGen !== undefined && spouseGen > 0) {
+      genBySim.set(id, spouseGen);
+    }
+  }
+
   // Group by generation
   const gens = new Map<number, string[]>();
   for (const [id, g] of genBySim) gens.set(g, [...(gens.get(g) ?? []), id]);
