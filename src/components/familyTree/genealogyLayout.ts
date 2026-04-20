@@ -175,9 +175,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     const apos = positioned.get(partners[0]);
     const bpos = positioned.get(partners[1]);
     if (!apos || !bpos) continue;
-    const midX = (apos.x + bpos.x + NODE_W) / 2;
-    // Union sits at the vertical center of the sim cards so marriage lines are horizontal
-    const midY = (apos.y + bpos.y) / 2 + NODE_H / 2 - 0.5;
+    const midX = (apos.x + NODE_W + bpos.x) / 2 - 0.5;
+    // Sit at bottom of cards so child lines drop naturally downward
+    const midY = Math.max(apos.y, bpos.y) + NODE_H;
     const idx = result.findIndex((r) => r.id === u.id);
     if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX - 0.5, y: midY - 0.5 } };
   }

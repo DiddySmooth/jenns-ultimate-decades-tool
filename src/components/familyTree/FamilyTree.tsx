@@ -110,15 +110,12 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         const left = a.x <= b.x ? { p: a, w: aw } : { p: b, w: bw };
         const right = a.x <= b.x ? { p: b, w: bw } : { p: a, w: aw };
 
-        const leftEndX = left.p.x + left.w; // right edge of left node
-        const rightEndX = right.p.x;        // left edge of right node
+        const leftEndX = left.p.x + left.w;
+        const rightEndX = right.p.x;
         const midX = (leftEndX + rightEndX) / 2;
-
-        const ay = left.p.y + SIM_H / 2;
-        const by = right.p.y + SIM_H / 2;
-        const lineY = (ay + by) / 2;
-
-        const pos = { x: midX - UNION_W / 2, y: lineY - UNION_H / 2 };
+        // Union sits just below the cards so child lines drop from there
+        const lineY = Math.max(left.p.y, right.p.y) + SIM_H;
+        const pos = { x: midX - UNION_W / 2, y: lineY };
 
         if (Math.abs(n.position.x - pos.x) < 0.5 && Math.abs(n.position.y - pos.y) < 0.5) return n;
         changed = true;
