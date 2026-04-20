@@ -16,7 +16,7 @@ import UnionNodeView from './UnionNode';
 import TrunkEdge from './TrunkEdge';
 import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
-import { buildFamilyAndRelations } from 'reactflow-family-tree';
+import { genealogyLayout } from './genealogyLayout';
 
 const nodeTypes = {
   sim: SimNode,
@@ -215,125 +215,39 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
           <button
             className="btn-secondary btn-sm"
             onClick={() => {
-              try {
-                // Build RawFamilyMember[] from sims
-                const members = sims.map((sim) => ({
-                  id: String(sim.id),
-                  data: {
-                    title: ((sim.firstName || '') + (sim.lastName ? ` ${sim.lastName}` : '')).trim() || sim.id,
-                    sex: sim.sex === 'Female' ? 'F' : sim.sex === 'Male' ? 'M' : 'U',
-                    badges: [] as { label: string; bgColor: string; textColor: string }[],
-                    subtitles: [] as string[],
-                    titleBgColor: '',
-                    titleTextColor: '',
-                  },
-                }));
-
-                // Build RawFamilyRelation[] from unions + sim parent links
-                const relations: { relationType: string; fromId: string; toId: string; isInnerFamily: boolean; prettyType: string }[] = [];
-                for (const u of unions) {
-                  if (u.partnerAId && u.partnerBId) {
-                    relations.push({ relationType: 'Partner', fromId: String(u.partnerAId), toId: String(u.partnerBId), isInnerFamily: true, prettyType: 'Partner' });
-                  }
+              const NODE_W = 180;
+              const NODE_H = 220;
+              // Run generational layout on sims + edges
+              const laidOut = genealogyLayout(nodes, edges);
+              // Build a position map for union heart placement
+              const simPos = new Map<string, { x: number; y: number }>();
+              for (const n of laidOut) {
+                if (String(n.id).startsWith('sim:')) {
+                  simPos.set(String(n.id).replace(/^sim:/, ''), n.position);
                 }
-                for (const sim of sims) {
-                  if (sim.fatherId) relations.push({ relationType: 'Parent', fromId: String(sim.fatherId), toId: String(sim.id), isInnerFamily: true, prettyType: 'Parent' });
-                  if (sim.motherId) relations.push({ relationType: 'Parent', fromId: String(sim.motherId), toId: String(sim.id), isInnerFamily: true, prettyType: 'Parent' });
-                }
-
-                const [familyMembers] = buildFamilyAndRelations(members as never, relations as never);
-
-                // Extract positions — library stores centerX + generation
-                const NODE_W = 180;
-                const NODE_H = 220;
-                const GAP_Y = 80;
-                const simPositions = new Map<string, { x: number; y: number }>();
-                for (const [id, fm] of Object.entries(familyMembers as Record<string, Record<string, unknown>>)) {
-                  const cx = fm['centerX'] as number | undefined;
-                  const gen = fm['generation'] as number | undefined;
-                  if (cx != null && gen != null) {
-                    simPositions.set(id, { x: cx - NODE_W / 2, y: gen * (NODE_H + GAP_Y) + 40 });
-                  }
-                }
-
-                if (simPositions.size === 0) throw new Error('no positions from library');
-
-                // First pass: place any orphaned sims (no position from library) next to their spouse
-                for (const u of unions) {
-                  if (!u.partnerAId || !u.partnerBId) continue;
-                  const posA = simPositions.get(u.partnerAId);
-                  const posB = simPositions.get(u.partnerBId);
-                  if (posA && !posB) {
-                    simPositions.set(u.partnerBId, { x: posA.x + NODE_W + 20, y: posA.y });
-                  } else if (posB && !posA) {
-                    simPositions.set(u.partnerAId, { x: posB.x + NODE_W + 20, y: posB.y });
-                  }
-                }
-
-                // Post-process: snap spouses to be horizontally adjacent
-                // Always use the leftmost partner as anchor, place the other immediately to its right.
-                const GAP_COUPLE = 20;
-                for (const u of unions) {
-                  if (!u.partnerAId || !u.partnerBId) continue;
-                  const posA = simPositions.get(u.partnerAId);
-                  const posB = simPositions.get(u.partnerBId);
-                  if (!posA || !posB) continue;
-                  const dist = Math.abs(posA.x - posB.x);
-                  if (dist > NODE_W * 1.5) {
-                    // Anchor on whichever is positioned more centrally (closer to their children)
-                    // Use leftmost as anchor, snap rightmost to be adjacent
-                    if (posA.x <= posB.x) {
-                      simPositions.set(u.partnerBId, { x: posA.x + NODE_W + GAP_COUPLE, y: posA.y });
-                    } else {
-                      simPositions.set(u.partnerAId, { x: posB.x + NODE_W + GAP_COUPLE, y: posB.y });
-                    }
-                  }
-                }
-
-                const laidOut = nodes.map((n) => {
-                  if (String(n.id).startsWith('sim:')) {
-                    const key = String(n.id).replace(/^sim:/, '');
-                    const p = simPositions.get(key);
-                    return p ? { ...n, position: p } : n;
-                  }
-                  if (String(n.id).startsWith('union:')) {
-                    // Position union heart between its two partners
-                    const unionId = String(n.id).replace(/^union:/, '');
-                    const u = unions.find(x => x.id === unionId);
-                    if (!u?.partnerAId || !u?.partnerBId) return n;
-                    const pA = simPositions.get(u.partnerAId);
-                    const pB = simPositions.get(u.partnerBId);
-                    if (!pA || !pB) return n;
-                    const left = pA.x <= pB.x ? pA : pB;
-                    const right = pA.x <= pB.x ? pB : pA;
-                    const heartX = (left.x + NODE_W + right.x) / 2 - 12;
-                    const heartY = left.y + NODE_H / 2 - 12; // mid-card height
-                    return { ...n, position: { x: heartX, y: heartY } };
-                  }
-                  return n;
-                });
-
-                const next = {
-                  ...saved,
-                  nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
-                  edges: saved.edges ?? [],
-                };
-                onSavedChange(next);
-                setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
-              } catch (err) {
-                console.warn('reactflow-family-tree layout failed, using fallback', err);
-                // Fallback: simple generation-based layout
-                import('./genealogyLayout').then(({ genealogyLayout }) => {
-                  const laidOut = genealogyLayout(nodes, edges);
-                  const next = {
-                    ...saved,
-                    nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
-                    edges: saved.edges ?? [],
-                  };
-                  onSavedChange(next);
-                  setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
-                });
               }
+              // Position union hearts between their partners at mid-card height
+              const finalNodes = laidOut.map((n) => {
+                if (!String(n.id).startsWith('union:')) return n;
+                const unionId = String(n.id).replace(/^union:/, '');
+                const u = unions.find(x => x.id === unionId);
+                if (!u?.partnerAId || !u?.partnerBId) return n;
+                const pA = simPos.get(u.partnerAId);
+                const pB = simPos.get(u.partnerBId);
+                if (!pA || !pB) return n;
+                const left = pA.x <= pB.x ? pA : pB;
+                const right = pA.x <= pB.x ? pB : pA;
+                const heartX = (left.x + NODE_W + right.x) / 2 - 12;
+                const heartY = left.y + NODE_H / 2 - 12;
+                return { ...n, position: { x: heartX, y: heartY } };
+              });
+              const next = {
+                ...saved,
+                nodes: finalNodes.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
+                edges: saved.edges ?? [],
+              };
+              onSavedChange(next);
+              setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
             }}
             title="Auto-arrange nodes"
           >
