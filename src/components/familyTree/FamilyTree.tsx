@@ -16,7 +16,7 @@ import UnionNodeView from './UnionNode';
 import TrunkEdge from './TrunkEdge';
 import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
-import { genealogyLayout } from './genealogyLayout';
+import { buildFamilyAndRelations } from 'reactflow-family-tree';
 
 const nodeTypes = {
   sim: SimNode,
@@ -217,22 +217,77 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
           <button
             className="btn-secondary btn-sm"
             onClick={() => {
-              // 2) Auto-layout (positions)
-              // Important: layout should be based on parent/child structure only.
-              // Marriage edges turn the graph into a long chain and ruin ranks.
+              try {
+                // Build RawFamilyMember[] from sims
+                const members = sims.map((sim) => ({
+                  id: String(sim.id),
+                  data: {
+                    title: ((sim.firstName || '') + (sim.lastName ? ` ${sim.lastName}` : '')).trim() || sim.id,
+                    sex: sim.sex === 'Female' ? 'F' : sim.sex === 'Male' ? 'M' : 'U',
+                    badges: [] as { label: string; bgColor: string; textColor: string }[],
+                    subtitles: [] as string[],
+                    titleBgColor: '',
+                    titleTextColor: '',
+                  },
+                }));
 
-              // Use the new genealogyLayout which expects all nodes + edges and will compute sim + union positions.
-              const laidOut = genealogyLayout(nodes, edges);
+                // Build RawFamilyRelation[] from unions + sim parent links
+                const relations: { relationType: string; fromId: string; toId: string; isInnerFamily: boolean; prettyType: string }[] = [];
+                for (const u of unions) {
+                  if (u.partnerAId && u.partnerBId) {
+                    relations.push({ relationType: 'Partner', fromId: String(u.partnerAId), toId: String(u.partnerBId), isInnerFamily: true, prettyType: 'Partner' });
+                  }
+                }
+                for (const sim of sims) {
+                  if (sim.fatherId) relations.push({ relationType: 'Parent', fromId: String(sim.fatherId), toId: String(sim.id), isInnerFamily: true, prettyType: 'Parent' });
+                  if (sim.motherId) relations.push({ relationType: 'Parent', fromId: String(sim.motherId), toId: String(sim.id), isInnerFamily: true, prettyType: 'Parent' });
+                }
 
-              const next = {
-                ...saved,
-                // Persist sim and union node positions so unions don't drift.
-                nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
-                edges: saved.edges ?? [],
-              };
+                const [familyMembers] = buildFamilyAndRelations(members as never, relations as never);
 
-              onSavedChange(next);
-              setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
+                // Extract positions — library stores centerX + generation
+                const NODE_W = 180;
+                const NODE_H = 220;
+                const GAP_Y = 80;
+                const simPositions = new Map<string, { x: number; y: number }>();
+                for (const [id, fm] of Object.entries(familyMembers as Record<string, Record<string, unknown>>)) {
+                  const cx = fm['centerX'] as number | undefined;
+                  const gen = fm['generation'] as number | undefined;
+                  if (cx != null && gen != null) {
+                    simPositions.set(id, { x: cx - NODE_W / 2, y: gen * (NODE_H + GAP_Y) + 40 });
+                  }
+                }
+
+                if (simPositions.size === 0) throw new Error('no positions from library');
+
+                const laidOut = nodes.map((n) => {
+                  if (!String(n.id).startsWith('sim:')) return n;
+                  const key = String(n.id).replace(/^sim:/, '');
+                  const p = simPositions.get(key);
+                  return p ? { ...n, position: p } : n;
+                });
+
+                const next = {
+                  ...saved,
+                  nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
+                  edges: saved.edges ?? [],
+                };
+                onSavedChange(next);
+                setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
+              } catch (err) {
+                console.warn('reactflow-family-tree layout failed, using fallback', err);
+                // Fallback: simple generation-based layout
+                import('./genealogyLayout').then(({ genealogyLayout }) => {
+                  const laidOut = genealogyLayout(nodes, edges);
+                  const next = {
+                    ...saved,
+                    nodes: laidOut.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
+                    edges: saved.edges ?? [],
+                  };
+                  onSavedChange(next);
+                  setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
+                });
+              }
             }}
             title="Auto-arrange nodes"
           >
