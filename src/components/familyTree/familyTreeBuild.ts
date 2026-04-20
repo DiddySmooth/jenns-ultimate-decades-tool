@@ -121,16 +121,26 @@ export function buildFamilyTree(
       selectable: false,
     });
 
-        // Marriage line: direct sim:A (right) --> sim:B (left), no union node routing
+    // Marriage line: A → union heart → B (line passes through the heart)
     if (u.partnerAId && u.partnerBId) {
       edges.push({
-        id: `e:marriage:${u.id}`,
+        id: `e:marriage:${u.id}:a`,
         source: `sim:${u.partnerAId}`,
-        target: `sim:${u.partnerBId}`,
+        target: id,
         sourceHandle: 'spouse-out',
+        targetHandle: 'partner-in-left',
+        type: 'straight',
+        style: { stroke: 'rgba(120,120,120,0.5)', strokeWidth: 1.5 },
+        data: { kind: 'spouse' },
+      });
+      edges.push({
+        id: `e:marriage:${u.id}:b`,
+        source: id,
+        target: `sim:${u.partnerBId}`,
+        sourceHandle: 'partner-in-right',
         targetHandle: 'spouse-in',
         type: 'straight',
-        style: { stroke: 'rgba(120,120,120,0.6)', strokeWidth: 2 },
+        style: { stroke: 'rgba(120,120,120,0.5)', strokeWidth: 1.5 },
         data: { kind: 'spouse' },
       });
     }

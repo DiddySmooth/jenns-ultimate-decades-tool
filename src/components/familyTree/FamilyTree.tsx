@@ -108,10 +108,10 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         const left = a.x <= b.x ? { p: a, w: aw } : { p: b, w: bw };
         const right = a.x <= b.x ? { p: b, w: bw } : { p: a, w: aw };
 
-        // Heart sits centered horizontally between the two cards, just below them
-        const midX = (left.p.x + left.w / 2 + right.p.x + right.w / 2) / 2;
-        const lineY = Math.max(left.p.y, right.p.y) + SIM_H + 10;
-        const pos = { x: midX - UNION_W / 2, y: lineY };
+        // Heart sits centered horizontally between the two cards, at mid-card height
+        const midX = (left.p.x + left.w + right.p.x) / 2;
+        const lineY = Math.max(left.p.y, right.p.y) + SIM_H / 2;
+        const pos = { x: midX - UNION_W / 2, y: lineY - 12 };
 
         if (Math.abs(n.position.x - pos.x) < 0.5 && Math.abs(n.position.y - pos.y) < 0.5) return n;
         changed = true;
@@ -307,7 +307,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                     const left = pA.x <= pB.x ? pA : pB;
                     const right = pA.x <= pB.x ? pB : pA;
                     const heartX = (left.x + NODE_W + right.x) / 2 - 12;
-                    const heartY = left.y + NODE_H + 10;
+                    const heartY = left.y + NODE_H / 2 - 12; // mid-card height
                     return { ...n, position: { x: heartX, y: heartY } };
                   }
                   return n;
