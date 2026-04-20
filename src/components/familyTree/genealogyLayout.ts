@@ -32,6 +32,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     const src = String(e.source);
     const tgt = String(e.target);
     if (!tgt.startsWith('sim:')) continue;
+    // Only use parent edges — spouse edges would make partners appear as each other's parents
+    const kind = (e.data as { kind?: string } | undefined)?.kind;
+    if (kind === 'spouse') continue;
     const parentSims: string[] = [];
     if (src.startsWith('sim:')) {
       parentSims.push(src);
