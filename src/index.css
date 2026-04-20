@@ -1118,8 +1118,10 @@ body {
   overflow: hidden;
   border: 2px solid var(--color-border);
   flex-shrink: 0;
+  flex-grow: 0;
   background: rgba(0,0,0,0.06);
   display: block;
+  align-self: center;
 }
 .ft-avatar.circle { border-radius: 999px; }
 .ft-avatar.rounded { border-radius: 10px; }
@@ -1148,9 +1150,9 @@ body {
 
 .ft-union {
   padding: 0;
-  min-width: 1px;
-  width: 1px;
-  height: 1px;
+  width: 20px;
+  height: 6px;
+  min-width: 20px;
   border: none !important;
   background: transparent !important;
   border-radius: 0;
@@ -1166,8 +1168,16 @@ body {
 }
 /* keep the node as an invisible anchor point; edges originate here */
 .ft-union-dot { width: 1px; height: 1px; opacity: 0; }
-/* Hide handles on union nodes */
-.ft-union .react-flow__handle { opacity: 0; width: 1px; height: 1px; min-width: 0; min-height: 0; }
+/* Hide handles on all family tree nodes — edges route invisibly */
+.ft-node .react-flow__handle {
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  border: none;
+  background: transparent;
+}
 
 /* ReactFlow handle styling */
 .react-flow__handle {
