@@ -79,9 +79,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   useEffect(() => {
     const SIM_W = 180;
     const SIM_H = 220;
-    // Union node is invisible anchor point
     const UNION_W = 1;
-    const UNION_H = 1;
 
     setNodes((cur) => {
       const simPos = new Map<string, { x: number; y: number }>();
