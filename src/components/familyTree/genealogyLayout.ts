@@ -6,73 +6,90 @@ import type { Edge, Node } from 'reactflow';
 // Layout constants
 const NODE_W = 180;
 const NODE_H = 220;
-const GAP_X = 80; // horizontal gap between sim nodes
+const GAP_X = 80;  // horizontal gap between sim nodes
 const GAP_Y = 160; // vertical gap between generations
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
-  // Build parent -> children map using only edges where source starts with sim: or union: and target starts with sim:
-  const parentMap = new Map<string, string[]>();
-  const childParents = new Map<string, Set<string>>();
-
-  for (const e of edges) {
-    if (!String(e.target).startsWith('sim:')) continue;
-    if (!(String(e.source).startsWith('sim:') || String(e.source).startsWith('union:'))) continue;
-    const src = String(e.source);
-    const tgt = String(e.target);
-    parentMap.set(src, [...(parentMap.get(src) ?? []), tgt]);
-    const set = childParents.get(tgt) ?? new Set<string>();
-    set.add(src);
-    childParents.set(tgt, set);
-  }
-
-  // Find all sim nodes
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
   const unionNodes = nodes.filter((n) => String(n.id).startsWith('union:'));
 
-  // Assign generations: sims with no parents => gen 0. Children = max(parent gen) + 1
-  const genBySim = new Map<string, number>();
-
-  // Initialize roots
-  for (const s of simNodes) {
-    const id = s.id;
-    const parents = childParents.get(id) ?? new Set();
-    if (parents.size === 0) genBySim.set(id as string, 0);
+  // Build union -> [partnerA, partnerB] map from node data
+  const unionPartners = new Map<string, string[]>();
+  for (const u of unionNodes) {
+    const union = (u.data as { union?: { partnerAId?: string; partnerBId?: string } } | undefined)?.union;
+    if (!union) continue;
+    const partners: string[] = [];
+    if (union.partnerAId) partners.push(`sim:${union.partnerAId}`);
+    if (union.partnerBId) partners.push(`sim:${union.partnerBId}`);
+    unionPartners.set(u.id as string, partners);
   }
 
-  // Iteratively assign generations until stable
+  // Build child -> parent sims map
+  // For each edge: if source is sim: -> direct parent
+  //                if source is union: -> expand to partners
+  const childToParentSims = new Map<string, Set<string>>();
+
+  for (const e of edges) {
+    const src = String(e.source);
+    const tgt = String(e.target);
+    if (!tgt.startsWith('sim:')) continue;
+
+    const parentSims: string[] = [];
+    if (src.startsWith('sim:')) {
+      parentSims.push(src);
+    } else if (src.startsWith('union:')) {
+      // expand union to its partners
+      const partners = unionPartners.get(src) ?? [];
+      parentSims.push(...partners);
+    }
+
+    const set = childToParentSims.get(tgt) ?? new Set<string>();
+    for (const p of parentSims) set.add(p);
+    childToParentSims.set(tgt, set);
+  }
+
+  // Assign generations
+  const genBySim = new Map<string, number>();
+
+  // Roots = sims with no parents
+  for (const s of simNodes) {
+    const id = s.id as string;
+    if (!childToParentSims.has(id) || childToParentSims.get(id)!.size === 0) {
+      genBySim.set(id, 0);
+    }
+  }
+
+  // Iteratively assign gen = max(parent gen) + 1
   let changed = true;
-  while (changed) {
+  let guard = 0;
+  while (changed && guard++ < 200) {
     changed = false;
     for (const s of simNodes) {
       const id = s.id as string;
-      const parents = childParents.get(id) ?? new Set();
-      if (parents.size === 0) continue; // already maybe gen 0
-      let maxParentGen = -Infinity;
-      let unknown = false;
+      const parents = childToParentSims.get(id);
+      if (!parents || parents.size === 0) continue;
+
+      let maxParentGen = -1;
+      let allKnown = true;
       for (const p of parents) {
         const pg = genBySim.get(p);
-        if (pg === undefined) {
-          unknown = true;
-          break;
-        }
+        if (pg === undefined) { allKnown = false; break; }
         if (pg > maxParentGen) maxParentGen = pg;
       }
-      if (unknown) continue;
+      if (!allKnown) continue;
+
       const want = maxParentGen + 1;
-      const cur = genBySim.get(id);
-      if (cur === undefined || cur !== want) {
+      if (genBySim.get(id) !== want) {
         genBySim.set(id, want);
         changed = true;
       }
     }
-    // Any sims still without gen assign to 0 (disconnected components)
-    for (const s of simNodes) {
-      const id = s.id as string;
-      if (!genBySim.has(id)) {
-        genBySim.set(id, 0);
-        changed = true;
-      }
-    }
+  }
+
+  // Any sim still without a gen = disconnected, assign 0
+  for (const s of simNodes) {
+    const id = s.id as string;
+    if (!genBySim.has(id)) genBySim.set(id, 0);
   }
 
   // Group sims by generation
@@ -81,70 +98,53 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     gens.set(g, [...(gens.get(g) ?? []), id]);
   }
 
-  // Sort generations ascending
   const genKeys = Array.from(gens.keys()).sort((a, b) => a - b);
 
-  // For each generation, assign X positions spaced by NODE_W + GAP_X
-  const positioned = new Map<string, { x: number; y: number }>();
+  // Find widest generation for centering
   let maxWidth = 0;
   for (const g of genKeys) {
-    const ids = gens.get(g) ?? [];
-    const count = ids.length;
-    const totalW = count * NODE_W + Math.max(0, count - 1) * GAP_X;
-    if (totalW > maxWidth) maxWidth = totalW;
+    const count = gens.get(g)!.length;
+    const w = count * NODE_W + Math.max(0, count - 1) * GAP_X;
+    if (w > maxWidth) maxWidth = w;
   }
 
+  // Position each sim
+  const positioned = new Map<string, { x: number; y: number }>();
   for (const g of genKeys) {
-    const ids = gens.get(g) ?? [];
+    const ids = gens.get(g)!;
     const count = ids.length;
     const totalW = count * NODE_W + Math.max(0, count - 1) * GAP_X;
-    // startX so generation is centered relative to widest generation
-    const startX = (maxWidth - totalW) / 2 + 40; // small left padding
+    const startX = (maxWidth - totalW) / 2 + 40;
     const y = 40 + g * (NODE_H + GAP_Y);
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i];
-      const x = startX + i * (NODE_W + GAP_X);
-      positioned.set(id, { x, y });
+    for (let i = 0; i < count; i++) {
+      positioned.set(ids[i], { x: startX + i * (NODE_W + GAP_X), y });
     }
   }
 
-  // Build result nodes: sims positioned, unions placed at midpoint between partners
+  // Build result — clone all nodes then update positions
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
-  // Place sim nodes
   for (const s of simNodes) {
     const pos = positioned.get(s.id as string) ?? { x: 40, y: 40 };
     const idx = result.findIndex((r) => r.id === s.id);
-    if (idx !== -1) result[idx] = { ...result[idx], position: { x: pos.x, y: pos.y } };
+    if (idx !== -1) result[idx] = { ...result[idx], position: pos };
   }
 
-  // Place unions at midpoint between partners (same Y as partners). If partners missing, leave existing position.
+  // Place unions at midpoint between their partners
   for (const u of unionNodes) {
-    const data = u.data as { union?: unknown } | undefined;
-    const union = data?.union as { partnerAId?: string; partnerBId?: string } | undefined;
-    if (!union || !union.partnerAId || !union.partnerBId) continue;
-    const aId = `sim:${union.partnerAId}`;
-    const bId = `sim:${union.partnerBId}`;
-    const apos = positioned.get(aId);
-    const bpos = positioned.get(bId);
-    const idx = result.findIndex((r) => r.id === u.id);
-    if (idx === -1) continue;
+    const partners = unionPartners.get(u.id as string) ?? [];
+    if (partners.length < 2) continue;
+    const apos = positioned.get(partners[0]);
+    const bpos = positioned.get(partners[1]);
     if (!apos || !bpos) continue;
 
-    // midpoint between right edge of left node and left edge of right node
-    const left = apos.x <= bpos.x ? apos : bpos;
+    const left  = apos.x <= bpos.x ? apos : bpos;
     const right = apos.x <= bpos.x ? bpos : apos;
-    const leftEndX = left.x + NODE_W;
-    const rightEndX = right.x;
-    const midX = (leftEndX + rightEndX) / 2;
-    const ay = left.y + NODE_H / 2;
-    const by = right.y + NODE_H / 2;
-    const lineY = (ay + by) / 2;
+    const midX  = (left.x + NODE_W + right.x) / 2;
+    const midY  = (left.y + right.y) / 2 + NODE_H / 2;
 
-    const unionX = midX - 1 / 2; // union node small; center at midpoint
-    const unionY = lineY - 1 / 2;
-
-    result[idx] = { ...result[idx], position: { x: unionX, y: unionY } };
+    const idx = result.findIndex((r) => r.id === u.id);
+    if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX - 0.5, y: midY - 0.5 } };
   }
 
   return result;
