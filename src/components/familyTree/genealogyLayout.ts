@@ -117,23 +117,65 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const [id, g] of genBySim) gens.set(g, [...(gens.get(g) ?? []), id]);
   const genKeys = Array.from(gens.keys()).sort((a, b) => a - b);
 
-  // Sort each generation: group spouses together, order couples by their children's future position
-  // Simple approach: pair up spouses, then order pairs by earliest child index in next gen
+  // Sort each generation: group spouses together, ordered by parent position
   const sortedGens = new Map<number, string[]>();
   for (const g of genKeys) {
     const ids = new Set(gens.get(g)!);
-    const ordered: string[] = [];
-    const visited = new Set<string>();
 
+    // For each sim, find their leftmost parent's X (use previously positioned gens)
+    const parentX = (id: string): number => {
+      const parents = childToParentSims.get(id);
+      if (!parents || parents.size === 0) {
+        // Married-in: use spouse's parent X
+        const spouse = spouseOf.get(id);
+        if (spouse) return parentX(spouse);
+        return 999999;
+      }
+      let minX = 999999;
+      for (const p of parents) {
+        const pos = positioned.get(p);
+        if (pos && pos.x < minX) minX = pos.x;
+      }
+      return minX;
+    };
+
+    // Group into couples first
+    const couples: string[][] = [];
+    const visited = new Set<string>();
     for (const id of ids) {
       if (visited.has(id)) continue;
       visited.add(id);
-      ordered.push(id);
-      // If this sim has a spouse in the same generation, place spouse immediately after
       const spouse = spouseOf.get(id);
       if (spouse && ids.has(spouse) && !visited.has(spouse)) {
         visited.add(spouse);
-        ordered.push(spouse);
+        couples.push([id, spouse]);
+      } else {
+        couples.push([id]);
+      }
+    }
+
+    // Sort couples by their leftmost parent X
+    couples.sort((a, b) => {
+      const aX = Math.min(...a.map(parentX));
+      const bX = Math.min(...b.map(parentX));
+      return aX - bX;
+    });
+
+    // Within each couple, put the one with parents first (not married-in)
+    const ordered: string[] = [];
+    for (const couple of couples) {
+      if (couple.length === 2) {
+        const [x, y] = couple;
+        const xHasParents = (childToParentSims.get(x)?.size ?? 0) > 0;
+        const yHasParents = (childToParentSims.get(y)?.size ?? 0) > 0;
+        // Put the one with parents on the left
+        if (!xHasParents && yHasParents) {
+          ordered.push(y, x);
+        } else {
+          ordered.push(x, y);
+        }
+      } else {
+        ordered.push(...couple);
       }
     }
     sortedGens.set(g, ordered);
