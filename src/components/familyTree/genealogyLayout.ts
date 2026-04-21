@@ -162,6 +162,50 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     }
   }
 
+  // Third pass: nudge each sim group to center under their parents
+  // For each union, find all its children and center them as a group under the union midpoint
+  const childrenByUnion = new Map<string, string[]>();
+  for (const e of edges) {
+    const src = String(e.source);
+    const tgt = String(e.target);
+    const kind = (e.data as { kind?: string } | undefined)?.kind;
+    if (kind !== 'parent' || !tgt.startsWith('sim:') || !src.startsWith('union:')) continue;
+    const arr = childrenByUnion.get(src) ?? [];
+    arr.push(tgt);
+    childrenByUnion.set(src, arr);
+  }
+
+  for (const u of unionNodes) {
+    const uid = u.id as string;
+    const partners = unionPartners.get(uid);
+    if (!partners) continue;
+    const pA = positioned.get(partners[0]);
+    const pB = positioned.get(partners[1]);
+    if (!pA || !pB) continue;
+    const parentMidX = (pA.x + pB.x + NODE_W) / 2;
+
+    const children = childrenByUnion.get(uid) ?? [];
+    if (children.length === 0) continue;
+
+    // Get current child positions
+    const childPositions = children.map(c => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
+    if (childPositions.length === 0) continue;
+
+    // Current center of children group
+    const leftmost = Math.min(...childPositions.map(p => p.x));
+    const rightmost = Math.max(...childPositions.map(p => p.x)) + NODE_W;
+    const childGroupMidX = (leftmost + rightmost) / 2;
+
+    // Shift all children to center under parents
+    const shift = parentMidX - childGroupMidX;
+    if (Math.abs(shift) > 1) {
+      for (const c of children) {
+        const pos = positioned.get(c);
+        if (pos) positioned.set(c, { x: pos.x + shift, y: pos.y });
+      }
+    }
+  }
+
   // Build result
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
