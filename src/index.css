@@ -1107,9 +1107,32 @@ body {
   gap: 0.25rem;
   overflow: hidden;
 }
-.ft-sim.compact { padding: 0.4rem; }
+.ft-sim.compact {
+  padding: 0.4rem;
+  height: auto;
+  min-height: 122px;
+  max-height: none;
+  justify-content: flex-start;
+}
 .ft-sim.compact .ft-meta { display: none; }
-.ft-sim.compact .ft-name { font-size: 0.75rem; }
+.ft-sim.compact .ft-name {
+  font-size: 0.75rem;
+  margin-bottom: 0;
+}
+.ft-sim.compact .ft-avatar-ring {
+  width: 72px;
+  height: 72px;
+}
+.ft-sim.compact .ft-avatar,
+.ft-sim.compact .ft-avatar img,
+.ft-sim.compact .ft-avatar-cropped {
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
+  min-height: 62px;
+  max-width: 62px;
+  max-height: 62px;
+}
 .ft-sim-dead { opacity: 0.6; }
 
 /* Generation ring wraps the avatar */
