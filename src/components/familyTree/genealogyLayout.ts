@@ -236,48 +236,16 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     childrenByParent.set(src, arr);
   }
 
-  // For each parent sim, find its spouse and center children under their midpoint
-  const processed = new Set<string>();
-  for (const [parentId, children] of childrenByParent) {
-    if (processed.has(parentId)) continue;
-    const spouseId = spouseOf.get(parentId);
-    // Mark both parents as processed so we don't double-shift
-    processed.add(parentId);
-    if (spouseId) processed.add(spouseId);
+  // ── Bottom-up spacing pass ──────────────────────────────────────────────
+  // Work from deepest generation upward.
+  // For each generation, ensure each couple has enough horizontal space
+  // to fit all their children without overlapping adjacent couples' branches.
 
-    const pA = positioned.get(parentId);
-    const pB = spouseId ? positioned.get(spouseId) : null;
-    if (!pA) continue;
+  const genKeysSorted = [...genKeys].sort((a, b) => b - a); // deepest first
 
-    // Also include children from the spouse if they share children
-    const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
-    const allChildren = Array.from(new Set([...children, ...spouseChildren]));
-    if (allChildren.length === 0) continue;
-
-    const parentMidX = pB
-      ? (Math.min(pA.x, pB.x) + Math.max(pA.x, pB.x) + NODE_W) / 2
-      : pA.x + NODE_W / 2;
-
-    const childPositions = allChildren.map(c => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
-    if (childPositions.length === 0) continue;
-
-    const leftmost = Math.min(...childPositions.map(p => p.x));
-    const rightmost = Math.max(...childPositions.map(p => p.x)) + NODE_W;
-    const childGroupMidX = (leftmost + rightmost) / 2;
-
-    const shift = parentMidX - childGroupMidX;
-    if (Math.abs(shift) > 1) {
-      for (const c of allChildren) {
-        const pos = positioned.get(c);
-        if (pos) positioned.set(c, { x: pos.x + shift, y: pos.y });
-      }
-    }
-  }
-
-  // Final pass: fix overlapping nodes within each generation
-  for (const g of genKeys) {
-    const ids = sortedGens.get(g)!;
-    // Sort by current X position
+  for (const g of genKeysSorted) {
+    // Fix overlaps in this generation first (sort by X, push right if needed)
+    const ids = [...(sortedGens.get(g) ?? [])];
     ids.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
     for (let i = 1; i < ids.length; i++) {
       const prev = positioned.get(ids[i - 1]);
@@ -285,13 +253,61 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (!prev || !cur) continue;
       const gap = spouseOf.get(ids[i - 1]) === ids[i] ? GAP_COUPLE : GAP_X;
       const minX = prev.x + NODE_W + gap;
-      if (cur.x < minX) {
-        positioned.set(ids[i], { x: minX, y: cur.y });
-      }
+      if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
+    }
+
+    // For each couple in this generation, center their children under them
+    const processedCouples = new Set<string>();
+    for (const simId of ids) {
+      if (processedCouples.has(simId)) continue;
+      processedCouples.add(simId);
+      const spouseId = spouseOf.get(simId);
+      if (spouseId) processedCouples.add(spouseId);
+
+      const pA = positioned.get(simId);
+      const pB = spouseId ? positioned.get(spouseId) : null;
+      if (!pA) continue;
+
+      const myChildren = childrenByParent.get(simId) ?? [];
+      const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
+      const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+      if (allChildren.length === 0) continue;
+
+      const coupleLeftX = Math.min(pA.x, pB?.x ?? pA.x);
+      const coupleRightX = Math.max(pA.x, pB?.x ?? pA.x) + NODE_W;
+      const coupleMidX = (coupleLeftX + coupleRightX) / 2;
+
+      // Calculate total width needed for children
+      const numChildren = allChildren.length;
+      const childrenWidth = numChildren * NODE_W + (numChildren - 1) * GAP_X;
+      const childStartX = coupleMidX - childrenWidth / 2;
+
+      // Place children evenly spaced under the couple midpoint
+      const sortedChildren = [...allChildren].sort((a, b) => {
+        const ax = positioned.get(a)?.x ?? 0;
+        const bx = positioned.get(b)?.x ?? 0;
+        return ax - bx;
+      });
+      sortedChildren.forEach((c, i) => {
+        const pos = positioned.get(c);
+        if (pos) positioned.set(c, { x: childStartX + i * (NODE_W + GAP_X), y: pos.y });
+      });
     }
   }
 
-  // (Fourth pass removed — pushing parents apart causes couples to spread too wide)
+  // Final overlap fix on all generations after bottom-up pass
+  for (const g of genKeys) {
+    const ids = [...(sortedGens.get(g) ?? [])];
+    ids.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+    for (let i = 1; i < ids.length; i++) {
+      const prev = positioned.get(ids[i - 1]);
+      const cur = positioned.get(ids[i]);
+      if (!prev || !cur) continue;
+      const gap = spouseOf.get(ids[i - 1]) === ids[i] ? GAP_COUPLE : GAP_X;
+      const minX = prev.x + NODE_W + gap;
+      if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
+    }
+  }
 
   // Re-run collision detection after parent widening
   for (const g of genKeys) {
