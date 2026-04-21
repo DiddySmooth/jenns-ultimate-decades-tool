@@ -103,11 +103,17 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   }, []);
 
   const handleNodesChange = useCallback((changes: Parameters<typeof onNodesChange>[0]) => {
+    // Only reposition unions when a SIM node finishes dragging (dragging=false)
+    const simDragEnd = changes.some((c) => {
+      if (c.type !== 'position') return false;
+      const id = (c as { id: string }).id;
+      return String(id).startsWith('sim:') && (c as { dragging?: boolean }).dragging === false;
+    });
     onNodesChange(changes);
-    // After position changes, reposition union hearts
-    const hasPositionChange = changes.some((c) => c.type === 'position');
-    if (hasPositionChange) {
-      setNodes((cur) => repositionUnions(cur));
+    if (simDragEnd) {
+      requestAnimationFrame(() => {
+        setNodes((cur) => repositionUnions(cur));
+      });
     }
   }, [onNodesChange, setNodes, repositionUnions]);
 
