@@ -4,7 +4,7 @@ const NODE_W = 110; // matches CSS width
 const NODE_H = 200; // matches fixed CSS height
 const GAP_X = 60;   // gap between sim nodes in same generation
 const GAP_COUPLE = 30; // gap between spouses — enough for the 24px heart
-const GAP_Y = 160;  // vertical gap — must be enough for heart + trunk line to clear before children
+const GAP_Y = 200;  // extra room for heart + child lines below cards
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));

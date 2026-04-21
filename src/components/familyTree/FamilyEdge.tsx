@@ -3,21 +3,21 @@ import type { EdgeProps } from 'reactflow';
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 /**
- * FamilyEdge: drops from the midpoint between two parents down to a child.
- * sourceX/sourceY come from partnerA's parent-out handle.
- * We receive partnerBX via edge data to calculate the true midpoint.
+ * FamilyEdge: drops from the midpoint between two parents (below their heart)
+ * down to a child using right-angle routing.
  */
-export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, style, data }: EdgeProps) {
-  // If we have the partner's X, use the midpoint; otherwise fall back to sourceX
-  const partnerBX = (data as { partnerBX?: number } | undefined)?.partnerBX;
-  const startX = partnerBX != null ? (sourceX + partnerBX) / 2 : sourceX;
+export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data }: EdgeProps) {
+  // midX is injected by genealogyLayout — the X midpoint between the two parents
+  const midX = (data as { midX?: number } | undefined)?.midX ?? sourceX;
+  // startY is below the cards at the heart level (sourceY + 20 matches MarriageEdge bottomY offset)
+  const startY = sourceY + 20;
 
-  const gap = targetY - sourceY;
-  const desiredSplitY = sourceY + clamp(gap * 0.55, 36, 110);
-  const maxSplitY = Math.max(sourceY, targetY - 14);
-  const splitY = clamp(desiredSplitY, sourceY + 10, maxSplitY);
+  const gap = targetY - startY;
+  const desiredSplitY = startY + clamp(gap * 0.5, 30, 100);
+  const maxSplitY = Math.max(startY, targetY - 14);
+  const splitY = clamp(desiredSplitY, startY + 10, maxSplitY);
 
-  const path = `M ${startX} ${sourceY} L ${startX} ${splitY} L ${targetX} ${splitY} L ${targetX} ${targetY}`;
+  const path = `M ${midX} ${startY} L ${midX} ${splitY} L ${targetX} ${splitY} L ${targetX} ${targetY}`;
 
   return (
     <path
@@ -25,13 +25,10 @@ export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, mar
       d={path}
       fill="none"
       markerEnd={markerEnd}
-      style={{
-        ...style,
-        strokeWidth: 2,
-        strokeLinecap: 'round',
-        strokeLinejoin: 'round',
-        stroke: 'rgba(0,0,0,0.35)',
-      }}
+      stroke="rgba(0,0,0,0.35)"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
     />
   );
 }
