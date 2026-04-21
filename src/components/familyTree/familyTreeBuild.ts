@@ -72,76 +72,25 @@ export function buildFamilyTree(
     });
   });
 
-  // Unions
-  // NOTE: These sizes should match actual rendered node sizes.
-  // Sims can vary in width by name length, so for *exact* centering we
-  // also adjust union positions in FamilyTree.tsx using measured node widths.
+  // Unions: do NOT create union nodes in the ReactFlow graph. Instead
+  // draw a single marriage edge directly between the two sims when both
+  // partners exist. We still keep unions in the data model (unions array)
+  // but they won't be rendered as nodes.
+  // Constants kept for potential layout/measurement elsewhere.
   const SIM_W = 110;
   const SIM_H = 200;
-  // Union node is invisible but must be non-zero sized for ReactFlow edge geometry.
-  const UNION_W = 1;
-  const UNION_H = 1;
 
-  unions.forEach((u, idx) => {
-    const id = `union:${u.id}`;
-
-    // Default union position: use saved position, otherwise place at the midpoint of partners.
-    // We keep the union dot sitting ON the marriage line (center Y of sim nodes).
-    const fallbackPos = (() => {
-      const a = u.partnerAId ? savedPos.get(`sim:${u.partnerAId}`) : null;
-      const b = u.partnerBId ? savedPos.get(`sim:${u.partnerBId}`) : null;
-      if (a && b) {
-        // Center union on the *gap midpoint* between spouse nodes.
-        // (Marriage line is drawn between right edge of left node and left edge of right node.)
-        const left = a.x <= b.x ? a : b;
-        const right = a.x <= b.x ? b : a;
-
-        const leftEndX = left.x + SIM_W;
-        const rightEndX = right.x;
-        const midX = (leftEndX + rightEndX) / 2;
-
-        const ay = left.y + SIM_H / 2;
-        const by = right.y + SIM_H / 2;
-        const lineY = (ay + by) / 2;
-
-        return { x: midX - UNION_W / 2, y: lineY - UNION_H / 2 };
-      }
-      return { x: 180 + (idx % 5) * 220, y: 100 + Math.floor(idx / 5) * 140 };
-    })();
-
-    const hasPartners = !!(u.partnerAId && u.partnerBId);
-
-    nodes.push({
-      id,
-      type: 'union',
-      data: { union: u },
-      // If a union has partners, always compute midpoint (ignore saved) so it stays centered.
-      position: hasPartners ? fallbackPos : (savedPos.get(id) ?? fallbackPos),
-      draggable: false,
-      selectable: false,
-    });
-
-    // Marriage line: A right-edge → union heart → B left-edge
+  unions.forEach((u) => {
     if (u.partnerAId && u.partnerBId) {
       edges.push({
-        id: `e:marriage:${u.id}:a`,
+        id: `e:marriage:${u.id}`,
         source: `sim:${u.partnerAId}`,
-        target: id,
-        sourceHandle: 'spouse-out',
-        targetHandle: 'partner-in-left',
-        type: 'marriage',
-        zIndex: 10,
-        data: { kind: 'spouse' },
-      });
-      edges.push({
-        id: `e:marriage:${u.id}:b`,
-        source: id,
         target: `sim:${u.partnerBId}`,
-        sourceHandle: 'partner-in-right',
+        sourceHandle: 'spouse-out',
         targetHandle: 'spouse-in',
         type: 'marriage',
         zIndex: 10,
-        data: { kind: 'spouse' },
+        data: { kind: 'spouse', unionId: u.id },
       });
     }
   });
@@ -214,7 +163,11 @@ export function buildFamilyTree(
     if (m && visibleSimIds.has(m)) fallbackParentEdges.push({ id: `e:sim:${m}->${childNode}`, source: `sim:${m}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'smoothstep', data: { kind: 'parent' } });
   });
 
-  // Emit union->child edges sorted by birthYear
+  // Emit union->child edges sorted by birthYear. Since unions are not
+  // rendered as nodes, connect children from the union's primary partner
+  // (partnerA) if present, otherwise partnerB. Use the 'trunk' edge type
+  // and set sourceHandle 'parent-out' so child lines originate from the
+  // parent's out handle.
   for (const [unionNode, kids] of childrenByUnion.entries()) {
     kids.sort((a, b) => {
       const ay = a.birthYear ?? 999999;
@@ -223,23 +176,38 @@ export function buildFamilyTree(
       return String(a.id).localeCompare(String(b.id));
     });
 
+    // unionNode is like "union:XYZ"; extract the id to find the union object
+    const unionId = unionNode.replace(/^union:/, '');
+    const unionObj = unions.find((u) => String(u.id) === String(unionId));
+    const primaryParent = unionObj?.partnerAId ?? unionObj?.partnerBId ?? null;
+
     kids.forEach((kid, idx) => {
       const childNode = `sim:${kid.id}`;
       const birthYear = kid.birthYear ?? null;
-      edges.push({
-        id: `e:${unionNode}->${childNode}:${idx}`,
-        source: unionNode,
-        target: childNode,
-        sourceHandle: 'child-out',
-        targetHandle: 'parent-in',
-        type: 'trunk',
-        data: { kind: 'parent', birthYear },
-      });
+      if (primaryParent && visibleSimIds.has(primaryParent)) {
+        edges.push({
+          id: `e:union:${unionId}->${childNode}:${idx}`,
+          source: `sim:${primaryParent}`,
+          target: childNode,
+          sourceHandle: 'parent-out',
+          targetHandle: 'parent-in',
+          type: 'trunk',
+          data: { kind: 'parent', birthYear },
+        });
+      } else {
+        // If primary parent isn't visible, fall back to connecting from any visible parent.
+        if (unionObj?.partnerAId && visibleSimIds.has(unionObj.partnerAId)) {
+          edges.push({ id: `e:union:${unionId}->${childNode}:${idx}:a`, source: `sim:${unionObj.partnerAId}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'trunk', data: { kind: 'parent', birthYear } });
+        } else if (unionObj?.partnerBId && visibleSimIds.has(unionObj.partnerBId)) {
+          edges.push({ id: `e:union:${unionId}->${childNode}:${idx}:b`, source: `sim:${unionObj.partnerBId}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'trunk', data: { kind: 'parent', birthYear } });
+        } else {
+          // Neither partner visible; nothing to do (children may be connected via fallbackParentEdges)
+        }
+      }
     });
   }
 
   edges.push(...fallbackParentEdges);
-
 
   return { nodes, edges };
 }
