@@ -14,6 +14,7 @@ import type { FamilyTreeConfig, FamilyTreeState, SimEntry, TrackerConfig, UnionN
 import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
 import TrunkEdge from './TrunkEdge';
+import MarriageEdge from './MarriageEdge';
 import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
 import { genealogyLayout } from './genealogyLayout';
@@ -25,6 +26,7 @@ const nodeTypes = {
 
 const edgeTypes = {
   trunk: TrunkEdge,
+  marriage: MarriageEdge,
 };
 
 interface Props {
@@ -62,9 +64,8 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         if (kind === 'spouse') {
           return {
             ...e,
-            type: 'straight',
+            type: 'marriage',
             zIndex: 10,
-            style: { strokeWidth: 2, stroke: 'rgba(120,120,120,0.7)' },
           };
         }
         return {

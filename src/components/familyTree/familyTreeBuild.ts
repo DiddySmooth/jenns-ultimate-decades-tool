@@ -129,9 +129,8 @@ export function buildFamilyTree(
         target: id,
         sourceHandle: 'spouse-out',
         targetHandle: 'partner-in-left',
-        type: 'straight',
+        type: 'marriage',
         zIndex: 10,
-        style: { stroke: 'rgba(120,120,120,0.7)', strokeWidth: 2 },
         data: { kind: 'spouse' },
       });
       edges.push({
@@ -140,9 +139,8 @@ export function buildFamilyTree(
         target: `sim:${u.partnerBId}`,
         sourceHandle: 'partner-in-right',
         targetHandle: 'spouse-in',
-        type: 'straight',
+        type: 'marriage',
         zIndex: 10,
-        style: { stroke: 'rgba(120,120,120,0.7)', strokeWidth: 2 },
         data: { kind: 'spouse' },
       });
     }
