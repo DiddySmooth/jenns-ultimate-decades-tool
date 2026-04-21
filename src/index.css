@@ -1201,6 +1201,8 @@ body {
   box-shadow: none !important;
   outline: none !important;
   background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 /* keep the node as an invisible anchor point; edges originate here */
 .ft-union-dot { width: 1px; height: 1px; opacity: 0; }
