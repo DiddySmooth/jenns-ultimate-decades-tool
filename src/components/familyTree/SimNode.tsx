@@ -31,6 +31,7 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
   const by = getBirthYear(sim, trackerConfig);
   const dy = getDeathYear(sim, trackerConfig);
 
+  const avatarClass = treeConfig.avatarShape === 'circle' ? 'circle' : treeConfig.avatarShape === 'rounded' ? 'rounded' : 'square';
   const d = treeConfig.display;
   const gen = sim.generation ?? 0;
   const mode = d.ringColorMode ?? 'generation';
@@ -71,8 +72,8 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
       <Handle type="target" position={Position.Bottom} id="spouse-in"  style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
 
       {/* Avatar with generation ring */}
-      <div className="ft-avatar-ring" style={{ borderColor: ringColor }}>
-        <div className="ft-avatar circle">
+      <div className="ft-avatar-ring" style={{ borderColor: ringColor, borderRadius: treeConfig.avatarShape === 'circle' ? '50%' : treeConfig.avatarShape === 'rounded' ? '12px' : '4px' }}>
+        <div className={`ft-avatar ${avatarClass}`}>
           {avatar ? (
             crop ? (
               <div
