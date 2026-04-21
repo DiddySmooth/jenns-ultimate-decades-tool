@@ -76,51 +76,40 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   }, [built.nodes, built.edges, rf, setEdges, setNodes]);
 
   // Keep union nodes centered on the marriage line while dragging.
-  useEffect(() => {
+    // Reposition union hearts when sim nodes move
+  const repositionUnions = useCallback((nodeList: typeof nodes) => {
     const SIM_W = 180;
     const SIM_H = 220;
     const UNION_W = 24;
-
-    setNodes((cur) => {
-      const simPos = new Map<string, { x: number; y: number }>();
-      for (const n of cur) {
-        if (String(n.id).startsWith('sim:')) simPos.set(String(n.id), n.position);
-      }
-
-      let changed = false;
-      const next = cur.map((n) => {
-        if (!String(n.id).startsWith('union:')) return n;
-        const u = (n.data as { union?: UnionNode } | undefined)?.union;
-        if (!u?.partnerAId || !u?.partnerBId) return n;
-
-        const a = simPos.get(`sim:${u.partnerAId}`);
-        const b = simPos.get(`sim:${u.partnerBId}`);
-        if (!a || !b) return n;
-
-        // ReactFlow position is top-left; for true centering we need actual node widths.
-        const aBox = rf?.getNode(`sim:${u.partnerAId}`)?.width;
-        const bBox = rf?.getNode(`sim:${u.partnerBId}`)?.width;
-        const aw = typeof aBox === 'number' && aBox > 0 ? aBox : SIM_W;
-        const bw = typeof bBox === 'number' && bBox > 0 ? bBox : SIM_W;
-
-        // Center union on the *marriage line midpoint* (handles are on spouse-out/right and spouse-in/left).
-        // Using node centers can appear biased when node widths differ.
-        const left = a.x <= b.x ? { p: a, w: aw } : { p: b, w: bw };
-        const right = a.x <= b.x ? { p: b, w: bw } : { p: a, w: aw };
-
-        // Heart sits centered horizontally between the two cards, at mid-card height
-        const midX = (left.p.x + left.w + right.p.x) / 2;
-        const lineY = Math.max(left.p.y, right.p.y) + SIM_H / 2;
-        const pos = { x: midX - UNION_W / 2, y: lineY - 12 };
-
-        if (Math.abs(n.position.x - pos.x) < 0.5 && Math.abs(n.position.y - pos.y) < 0.5) return n;
-        changed = true;
-        return { ...n, position: pos };
-      });
-
-      return changed ? next : cur;
+    const simPos = new Map<string, { x: number; y: number }>();
+    for (const n of nodeList) {
+      if (String(n.id).startsWith('sim:')) simPos.set(String(n.id), n.position);
+    }
+    return nodeList.map((n) => {
+      if (!String(n.id).startsWith('union:')) return n;
+      const u = (n.data as { union?: UnionNode } | undefined)?.union;
+      if (!u?.partnerAId || !u?.partnerBId) return n;
+      const a = simPos.get(`sim:${u.partnerAId}`);
+      const b = simPos.get(`sim:${u.partnerBId}`);
+      if (!a || !b) return n;
+      const left = a.x <= b.x ? { p: a, w: SIM_W } : { p: b, w: SIM_W };
+      const right = a.x <= b.x ? { p: b, w: SIM_W } : { p: a, w: SIM_W };
+      const midX = (left.p.x + left.w + right.p.x) / 2;
+      const lineY = Math.max(left.p.y, right.p.y) + SIM_H / 2;
+      const pos = { x: midX - UNION_W / 2, y: lineY - 12 };
+      if (Math.abs(n.position.x - pos.x) < 1 && Math.abs(n.position.y - pos.y) < 1) return n;
+      return { ...n, position: pos };
     });
-  }, [unions, setNodes, rf]);
+  }, []);
+
+  const handleNodesChange = useCallback((changes: Parameters<typeof onNodesChange>[0]) => {
+    onNodesChange(changes);
+    // After position changes, reposition union hearts
+    const hasPositionChange = changes.some((c) => c.type === 'position');
+    if (hasPositionChange) {
+      setNodes((cur) => repositionUnions(cur));
+    }
+  }, [onNodesChange, setNodes, repositionUnions]);
 
   // Persist node positions (only) back into save
   const lastPosSig = useRef<string>('');
@@ -266,7 +255,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             edges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
+            onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
             onNodeClick={(_, n) => {
