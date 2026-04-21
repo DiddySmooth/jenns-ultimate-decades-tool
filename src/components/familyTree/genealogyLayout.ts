@@ -267,7 +267,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const kind = (e.data as { kind?: string; unionId?: string } | undefined)?.kind;
     if (kind !== 'parent') return e;
     // Find the source sim's spouse
-    const srcId = String(e.source).replace(/^sim:/, '');
     const spouseId = spouseOf.get(String(e.source));
     if (!spouseId) return e;
     const srcPos = positioned.get(String(e.source));

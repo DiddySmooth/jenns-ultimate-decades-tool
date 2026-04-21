@@ -183,7 +183,6 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
           <button
             className="btn-secondary btn-sm"
             onClick={() => {
-              const NODE_W = 110; // matches CSS width
               // Run generational layout on sims + edges
               const { nodes: laidOut, edges: laidEdges } = genealogyLayout(nodes, edges);
               // Update edges with midX data for FamilyEdge
