@@ -447,17 +447,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Build result
-  const result: Node[] = nodes.map((n) => ({ ...n }));
-
-  for (const s of simNodes) {
-    const pos = positioned.get(s.id as string) ?? { x: 40, y: 40 };
-    const idx = result.findIndex((r) => r.id === s.id);
-    if (idx !== -1) result[idx] = { ...result[idx], position: pos };
-  }
-
-
-
   // Final single-child centering: ensure lone children are exactly under their couple midpoint
   for (const [parentId] of childrenByParent) {
     const spouseId = spouseOf.get(parentId);
@@ -474,6 +463,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const child = allChildren[0];
     const childPos = positioned.get(child);
     if (childPos) positioned.set(child, { x: coupleMidX - NODE_W / 2, y: childPos.y });
+  }
+
+  // Build result
+  const result: Node[] = nodes.map((n) => ({ ...n }));
+
+  for (const s of simNodes) {
+    const pos = positioned.get(s.id as string) ?? { x: 40, y: 40 };
+    const idx = result.findIndex((r) => r.id === s.id);
+    if (idx !== -1) result[idx] = { ...result[idx], position: pos };
   }
 
   // Inject midX into child edges so FamilyEdge can draw from the correct X between parents
