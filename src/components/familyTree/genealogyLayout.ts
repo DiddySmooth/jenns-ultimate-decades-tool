@@ -2,7 +2,7 @@ import type { Edge, Node } from 'reactflow';
 
 const NODE_W = 110; // matches CSS width
 const NODE_H = 200; // matches fixed CSS height
-const GAP_X = 80;   // gap between sim nodes in same generation
+const GAP_X = 120;  // gap between couples/unrelated sims
 const GAP_COUPLE = 40; // gap between spouses
 const GAP_Y = 200;  // extra room for heart + child lines below cards
 
