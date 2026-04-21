@@ -181,7 +181,6 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             className="btn-secondary btn-sm"
             onClick={() => {
               const NODE_W = 180;
-              const NODE_H = 220;
               // Run generational layout on sims + edges
               const laidOut = genealogyLayout(nodes, edges);
               // Build a position map for union heart placement
