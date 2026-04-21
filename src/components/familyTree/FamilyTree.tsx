@@ -62,8 +62,9 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         if (kind === 'spouse') {
           return {
             ...e,
-            type: 'smoothstep',
-            style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.4)' },
+            type: 'straight',
+            zIndex: 10,
+            style: { strokeWidth: 2, stroke: 'rgba(120,120,120,0.7)' },
           };
         }
         return {

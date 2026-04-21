@@ -3,7 +3,7 @@ import type { Edge, Node } from 'reactflow';
 const NODE_W = 180;
 const NODE_H = 220;
 const GAP_X = 60;   // gap between sim nodes in same generation
-const GAP_COUPLE = 40; // gap between spouses — wide enough for the heart icon
+const GAP_COUPLE = 30; // gap between spouses — enough for the 24px heart
 const GAP_Y = 160;  // vertical gap — must be enough for heart + trunk line to clear before children
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
