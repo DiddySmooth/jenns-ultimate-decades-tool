@@ -44,39 +44,45 @@ interface Props {
 }
 
 export default function FamilyTree({ sims, unions, saved, config, trackerConfig, currentDay, onSavedChange, onConfigChange, onUnionsChange, onSimsChange }: Props) {
-  // Capture saved positions only on mount — never re-read after that to avoid rebuild loops
-  const savedOnMount = useRef(saved);
-
-  // Build graph structure from sims/unions/config — NOT from saved positions
-  // Positions are managed separately in ReactFlow state to avoid rebuild loops
-  const built = useMemo(() => buildFamilyTree(sims, unions, savedOnMount.current, config, trackerConfig, currentDay), [sims, unions, config, trackerConfig, currentDay]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Build graph structure from sims/unions/config.
+  // Layout is always recomputed from the currently visible graph.
+  const built = useMemo(() => buildFamilyTree(sims, unions, undefined, config, trackerConfig, currentDay), [sims, unions, config, trackerConfig, currentDay]);
 
   const [rf, setRf] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(built.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(built.edges);
   const [selectedSimId, setSelectedSimId] = useState<string | null>(null);
 
-  // When underlying sims/unions change, rebuild the graph.
+  // When underlying sims/unions/filters change, rebuild and fully re-layout the visible graph.
   useEffect(() => {
-    setNodes(built.nodes);
     const mappedEdges = built.edges.map((e) => {
       const kind = (e.data as { kind?: string } | undefined)?.kind;
       if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
       if (kind === 'parent') return { ...e, type: 'family' };
       return { ...e, style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' } };
     });
-    // Inject midX into edges using saved node positions (don't re-layout, just enrich edges)
-    const { edges: enrichedEdges } = genealogyLayout(built.nodes, mappedEdges);
-    setEdges(enrichedEdges.map((e) => {
+
+    const { nodes: laidOut, edges: laidEdges } = genealogyLayout(built.nodes, mappedEdges);
+
+    setNodes(laidOut);
+    setEdges(laidEdges.map((e) => {
       const kind = (e.data as { kind?: string } | undefined)?.kind;
       if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
       if (kind === 'parent') return { ...e, type: 'family' };
       return e;
     }));
-    // Try to bring something into view shortly after rebuild.
+
+    onSavedChange({
+      ...savedRef.current,
+      nodes: laidOut
+        .filter((n) => !String(n.id).startsWith('union:'))
+        .map((n) => ({ id: n.id, type: 'sim' as const, position: n.position })),
+      edges: savedRef.current.edges ?? [],
+    });
+
     setTimeout(() => {
       if (!rf) return;
-      if (built.nodes.length === 0) return;
+      if (laidOut.length === 0) return;
       rf.fitView({ padding: 0.2, duration: 250 });
     }, 60);
   }, [built.nodes, built.edges, rf, setEdges, setNodes]);
@@ -147,7 +153,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
     <div className="family-tree">
       <div className="sheet-header">
         <h2>Family Tree</h2>
-        <span className="field-hint">Drag nodes to arrange. Tree auto-populates from Sims Info.</span>
+        <span className="field-hint">Tree auto-arranges from Sims Info. Pan and zoom to explore.</span>
         <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
           <button
             className="btn-secondary btn-sm"
