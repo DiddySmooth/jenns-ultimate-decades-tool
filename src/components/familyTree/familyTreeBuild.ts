@@ -76,9 +76,6 @@ export function buildFamilyTree(
   // draw a single marriage edge directly between the two sims when both
   // partners exist. We still keep unions in the data model (unions array)
   // but they won't be rendered as nodes.
-  // Constants kept for potential layout/measurement elsewhere.
-  const SIM_W = 110;
-  const SIM_H = 200;
 
   unions.forEach((u) => {
     if (u.partnerAId && u.partnerBId) {
