@@ -41,7 +41,12 @@ interface Props {
 }
 
 export default function FamilyTree({ sims, unions, saved, config, trackerConfig, currentDay, onSavedChange, onConfigChange, onUnionsChange, onSimsChange }: Props) {
-  const built = useMemo(() => buildFamilyTree(sims, unions, saved, config, trackerConfig, currentDay), [sims, unions, saved, config, trackerConfig, currentDay]);
+  // Capture saved positions only on mount — never re-read after that to avoid rebuild loops
+  const savedOnMount = useRef(saved);
+
+  // Build graph structure from sims/unions/config — NOT from saved positions
+  // Positions are managed separately in ReactFlow state to avoid rebuild loops
+  const built = useMemo(() => buildFamilyTree(sims, unions, savedOnMount.current, config, trackerConfig, currentDay), [sims, unions, config, trackerConfig, currentDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [rf, setRf] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(built.nodes);
