@@ -27,7 +27,7 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY }:
         id={id}
         d={path}
         fill="none"
-        stroke="#d4a017"
+        stroke="rgba(0,0,0,0.35)"
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -38,8 +38,8 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY }:
           width: 24,
           height: 24,
           borderRadius: '50%',
-          background: '#fff8e6',
-          border: '2px solid #d4a017',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
