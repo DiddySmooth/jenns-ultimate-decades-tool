@@ -65,7 +65,14 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
       if (kind === 'parent') return { ...e, type: 'family' };
       return { ...e, style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' } };
     });
-    setEdges(mappedEdges);
+    // Inject midX into edges using saved node positions (don't re-layout, just enrich edges)
+    const { edges: enrichedEdges } = genealogyLayout(built.nodes, mappedEdges);
+    setEdges(enrichedEdges.map((e) => {
+      const kind = (e.data as { kind?: string } | undefined)?.kind;
+      if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
+      if (kind === 'parent') return { ...e, type: 'family' };
+      return e;
+    }));
     // Try to bring something into view shortly after rebuild.
     setTimeout(() => {
       if (!rf) return;
