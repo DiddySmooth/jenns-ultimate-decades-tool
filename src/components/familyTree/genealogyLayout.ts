@@ -8,20 +8,15 @@ const GAP_Y = 160;  // vertical gap — must be enough for heart + trunk line to
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
-  const unionNodes = nodes.filter((n) => String(n.id).startsWith('union:'));
+  // Union nodes no longer exist in the graph; spouses derived from marriage edges below
 
-  // Build union -> [partnerA, partnerB] from node data
-  const unionPartners = new Map<string, [string, string]>();
-  for (const u of unionNodes) {
-    const union = (u.data as { union?: { partnerAId?: string; partnerBId?: string } } | undefined)?.union;
-    if (!union?.partnerAId || !union?.partnerBId) continue;
-    unionPartners.set(u.id as string, [`sim:${union.partnerAId}`, `sim:${union.partnerBId}`]);
-  }
-
-  // Build spouse sets (bidirectional)
+  // Build spouse sets from marriage edges (union nodes no longer exist in graph)
   const spouseOf = new Map<string, string>();
-  for (const [, [a, b]] of unionPartners) {
-    // Only set if not already set (first union wins for layout purposes)
+  for (const e of edges) {
+    const kind = (e.data as { kind?: string } | undefined)?.kind;
+    if (kind !== 'spouse') continue;
+    const a = String(e.source);
+    const b = String(e.target);
     if (!spouseOf.has(a)) spouseOf.set(a, b);
     if (!spouseOf.has(b)) spouseOf.set(b, a);
   }
@@ -38,9 +33,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const parentSims: string[] = [];
     if (src.startsWith('sim:')) {
       parentSims.push(src);
-    } else if (src.startsWith('union:')) {
-      const partners = unionPartners.get(src);
-      if (partners) parentSims.push(...partners);
     }
     const set = childToParentSims.get(tgt) ?? new Set<string>();
     for (const p of parentSims) set.add(p);
@@ -175,9 +167,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     childrenByUnion.set(src, arr);
   }
 
-  for (const u of unionNodes) {
-    const uid = u.id as string;
-    const partners = unionPartners.get(uid);
+  for (const _u of []) { // union nodes removed
+    const uid = '';
+    const partners: [string,string] | undefined = undefined;
     if (!partners) continue;
     const pA = positioned.get(partners[0]);
     const pB = positioned.get(partners[1]);
@@ -244,23 +236,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (idx !== -1) result[idx] = { ...result[idx], position: pos };
   }
 
-  // Place unions at midpoint between partners
-  for (const u of unionNodes) {
-    const partners = unionPartners.get(u.id as string);
-    if (!partners) continue;
-    const apos = positioned.get(partners[0]);
-    const bpos = positioned.get(partners[1]);
-    if (!apos || !bpos) continue;
-    const leftCard = apos.x <= bpos.x ? apos : bpos;
-    const rightCard = apos.x <= bpos.x ? bpos : apos;
-    const gapStart = leftCard.x + NODE_W;
-    const gapEnd = rightCard.x;
-    const midX = (gapStart + gapEnd) / 2 - 12;
-    // Place heart at a fixed offset from the top of the higher card so it aligns with handle 50% height.
-    const midY = Math.min(apos.y, bpos.y) + 26; // handle at top:50px, heart center = 50-12 = 38 // 200/2 - 12 = 88 // 25% of ~220px card = 55px, minus 12 for heart center = 43
-    const idx = result.findIndex((r) => r.id === u.id);
-    if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX, y: midY } };
-  }
+
 
   // Inject midX into child edges so FamilyEdge can draw from the correct X between parents
   const updatedEdges = edges.map((e) => {
