@@ -1,7 +1,6 @@
 import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
-  Background,
   Controls,
   MiniMap,
   type ReactFlowInstance,
@@ -229,7 +228,6 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             fitView
             fitViewOptions={{ padding: 0.2 }}
           >
-            <Background />
             <Controls />
             <MiniMap />
           </ReactFlow>
