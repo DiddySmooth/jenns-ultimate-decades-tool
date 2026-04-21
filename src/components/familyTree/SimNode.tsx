@@ -100,9 +100,11 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
       <div className="ft-name" title={name}>{name}</div>
 
       {/* Dates */}
-      {!d.compactNodes && by != null && (
+      {!d.compactNodes && (d.showBirthYear || d.showDeathYear) && (by != null || dy != null) && (
         <div className="ft-dates" style={{ color: ringColor }}>
-          {by}{dy ? ` · ${dy}` : ' · Present'}
+          {d.showBirthYear && by != null ? `${by}` : ''}
+          {d.showBirthYear && d.showDeathYear && (by != null || dy != null) ? ' · ' : ''}
+          {d.showDeathYear ? (dy != null ? `${dy}` : 'Present') : ''}
         </div>
       )}
 
