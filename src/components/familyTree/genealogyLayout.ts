@@ -6,7 +6,7 @@ const GAP_X = 60;   // gap between sim nodes in same generation
 const GAP_COUPLE = 30; // gap between spouses — enough for the 24px heart
 const GAP_Y = 160;  // vertical gap — must be enough for heart + trunk line to clear before children
 
-export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
+export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
   const unionNodes = nodes.filter((n) => String(n.id).startsWith('union:'));
 
@@ -262,5 +262,20 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX, y: midY } };
   }
 
-  return result;
+  // Inject midX into child edges so FamilyEdge can draw from the correct X between parents
+  const updatedEdges = edges.map((e) => {
+    const kind = (e.data as { kind?: string; unionId?: string } | undefined)?.kind;
+    if (kind !== 'parent') return e;
+    // Find the source sim's spouse
+    const srcId = String(e.source).replace(/^sim:/, '');
+    const spouseId = spouseOf.get(String(e.source));
+    if (!spouseId) return e;
+    const srcPos = positioned.get(String(e.source));
+    const spousePos = positioned.get(spouseId);
+    if (!srcPos || !spousePos) return e;
+    const midX = (srcPos.x + spousePos.x + NODE_W) / 2;
+    return { ...e, data: { ...e.data, midX } };
+  });
+
+  return { nodes: result, edges: updatedEdges };
 }

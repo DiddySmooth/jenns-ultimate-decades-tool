@@ -2,11 +2,13 @@ import type { EdgeProps } from 'reactflow';
 import { BaseEdge } from 'reactflow';
 
 export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, style }: EdgeProps) {
-  // Force perfectly horizontal line at the average Y
+  // Force perfectly horizontal line — always draw left to right
   const y = (sourceY + targetY) / 2;
-  const midX = (sourceX + targetX) / 2;
+  const leftX = Math.min(sourceX, targetX);
+  const rightX = Math.max(sourceX, targetX);
+  const midX = (leftX + rightX) / 2;
 
-  const path = `M ${sourceX} ${y} L ${targetX} ${y}`;
+  const path = `M ${leftX} ${y} L ${rightX} ${y}`;
 
   return (
     <>

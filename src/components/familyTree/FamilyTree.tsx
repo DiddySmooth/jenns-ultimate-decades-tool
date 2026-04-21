@@ -15,6 +15,7 @@ import SimNode from './SimNode';
 import UnionNodeView from './UnionNode';
 import TrunkEdge from './TrunkEdge';
 import MarriageEdge from './MarriageEdge';
+import FamilyEdge from './FamilyEdge';
 import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
 import { genealogyLayout } from './genealogyLayout';
@@ -27,6 +28,7 @@ const nodeTypes = {
 const edgeTypes = {
   trunk: TrunkEdge,
   marriage: MarriageEdge,
+  family: FamilyEdge,
 };
 
 interface Props {
@@ -62,16 +64,12 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
       built.edges.map((e) => {
         const kind = (e.data as { kind?: string } | undefined)?.kind;
         if (kind === 'spouse') {
-          return {
-            ...e,
-            type: 'marriage',
-            zIndex: 10,
-          };
+          return { ...e, type: 'marriage', zIndex: 10 };
         }
-        return {
-          ...e,
-          style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' },
-        };
+        if (kind === 'parent') {
+          return { ...e, type: 'family' };
+        }
+        return { ...e, style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' } };
       })
     );
     // Try to bring something into view shortly after rebuild.
@@ -184,33 +182,20 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             onClick={() => {
               const NODE_W = 110; // matches CSS width
               // Run generational layout on sims + edges
-              const laidOut = genealogyLayout(nodes, edges);
-              // Build a position map for union heart placement
-              const simPos = new Map<string, { x: number; y: number }>();
-              for (const n of laidOut) {
-                if (String(n.id).startsWith('sim:')) {
-                  simPos.set(String(n.id).replace(/^sim:/, ''), n.position);
-                }
-              }
-              // Position union hearts between their partners at mid-card height
-              const finalNodes = laidOut.map((n) => {
-                if (!String(n.id).startsWith('union:')) return n;
-                const unionId = String(n.id).replace(/^union:/, '');
-                const u = unions.find(x => x.id === unionId);
-                if (!u?.partnerAId || !u?.partnerBId) return n;
-                const pA = simPos.get(u.partnerAId);
-                const pB = simPos.get(u.partnerBId);
-                if (!pA || !pB) return n;
-                const left2 = pA.x <= pB.x ? pA : pB;
-                const right2 = pA.x <= pB.x ? pB : pA;
-                const heartX = (left2.x + NODE_W + right2.x) / 2 - 12;
-                const heartY = Math.min(left2.y, right2.y) + 26; // handle at top:50px, heart center = 50-12 = 38
-                return { ...n, position: { x: heartX, y: heartY } };
-              });
+              const { nodes: laidOut, edges: laidEdges } = genealogyLayout(nodes, edges);
+              // Update edges with midX data for FamilyEdge
+              setEdges(laidEdges.map((e) => {
+                const kind = (e.data as { kind?: string } | undefined)?.kind;
+                if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
+                if (kind === 'parent') return { ...e, type: 'family' };
+                return e;
+              }));
               const next = {
-                ...saved,
-                nodes: finalNodes.map((n) => ({ id: n.id, type: (String(n.id).startsWith('union:') ? 'union' : 'sim') as 'union' | 'sim', position: n.position })),
-                edges: saved.edges ?? [],
+                ...savedRef.current,
+                nodes: laidOut
+                  .filter((n) => !String(n.id).startsWith('union:'))
+                  .map((n) => ({ id: n.id, type: 'sim' as const, position: n.position })),
+                edges: savedRef.current.edges ?? [],
               };
               onSavedChange(next);
               setTimeout(() => rf?.fitView({ padding: 0.2, duration: 300 }), 50);
