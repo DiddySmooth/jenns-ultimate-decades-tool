@@ -203,7 +203,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                 const left = pA.x <= pB.x ? pA : pB;
                 const right = pA.x <= pB.x ? pB : pA;
                 const heartX = (left.x + NODE_W + right.x) / 2 - 12;
-                const heartY = left.y + NODE_H / 2 - 12;
+                const heartY = Math.max(left.y, right.y) + NODE_H + 10;
                 return { ...n, position: { x: heartX, y: heartY } };
               });
               const next = {

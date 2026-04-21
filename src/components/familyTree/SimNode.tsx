@@ -52,8 +52,8 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
       {/* Handles — invisible */}
       <Handle type="target" position={Position.Top}    id="parent-in"  style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
       <Handle type="source" position={Position.Bottom} id="parent-out" style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
-      <Handle type="source" position={Position.Right}  id="spouse-out" style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
-      <Handle type="target" position={Position.Left}   id="spouse-in"  style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
+      <Handle type="source" position={Position.Bottom} id="spouse-out" style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0, left: '100%' }} />
+      <Handle type="target" position={Position.Bottom} id="spouse-in"  style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0, left: 0 }} />
 
       {/* Avatar with generation ring */}
       <div className="ft-avatar-ring" style={{ borderColor: ringColor }}>
