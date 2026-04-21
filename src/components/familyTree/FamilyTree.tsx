@@ -60,18 +60,21 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   // When underlying sims/unions change, rebuild the graph.
   useEffect(() => {
     setNodes(built.nodes);
-    setEdges(
-      built.edges.map((e) => {
-        const kind = (e.data as { kind?: string } | undefined)?.kind;
-        if (kind === 'spouse') {
-          return { ...e, type: 'marriage', zIndex: 10 };
-        }
-        if (kind === 'parent') {
-          return { ...e, type: 'family' };
-        }
-        return { ...e, style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' } };
-      })
-    );
+    const mappedEdges = built.edges.map((e) => {
+      const kind = (e.data as { kind?: string } | undefined)?.kind;
+      if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
+      if (kind === 'parent') return { ...e, type: 'family' };
+      return { ...e, style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' } };
+    });
+    // Run layout immediately to inject midX into parent edges
+    const { nodes: laidNodes, edges: laidEdges } = genealogyLayout(built.nodes, mappedEdges);
+    setNodes(laidNodes);
+    setEdges(laidEdges.map((e) => {
+      const kind = (e.data as { kind?: string } | undefined)?.kind;
+      if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
+      if (kind === 'parent') return { ...e, type: 'family' };
+      return e;
+    }));
     // Try to bring something into view shortly after rebuild.
     setTimeout(() => {
       if (!rf) return;
