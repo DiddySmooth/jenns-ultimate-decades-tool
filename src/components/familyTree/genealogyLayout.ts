@@ -122,21 +122,22 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const g of genKeys) {
     const ids = new Set(gens.get(g)!);
 
-    // For each sim, find their leftmost parent's X (use previously positioned gens)
-    const parentX = (id: string): number => {
-      const parents = childToParentSims.get(id);
-      if (!parents || parents.size === 0) {
-        // Married-in: use spouse's parent X
-        const spouse = spouseOf.get(id);
-        if (spouse) return parentX(spouse);
+    // For each sim, find their parent's birth order (index in previous generation)
+    // Use the sim's own ID hash as tiebreaker for stable sort
+    const parentOrder = (simId: string): number => {
+      const pars = childToParentSims.get(simId);
+      if (!pars || pars.size === 0) {
+        const spouse = spouseOf.get(simId);
+        if (spouse) return parentOrder(spouse);
         return 999999;
       }
-      let minX = 999999;
-      for (const p of parents) {
-        const pos = positioned.get(p);
-        if (pos && pos.x < minX) minX = pos.x;
+      // Use lowest parent sim index in simNodes as proxy for left-to-right order
+      let minIdx = 999999;
+      for (const par of pars) {
+        const idx = simNodes.findIndex(n => n.id === par);
+        if (idx >= 0 && idx < minIdx) minIdx = idx;
       }
-      return minX;
+      return minIdx;
     };
 
     // Group into couples first
@@ -154,10 +155,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       }
     }
 
-    // Sort couples by their leftmost parent X
+    // Sort couples by their leftmost parent order
     couples.sort((a, b) => {
-      const aX = Math.min(...a.map(parentX));
-      const bX = Math.min(...b.map(parentX));
+      const aX = Math.min(...a.map(parentOrder));
+      const bX = Math.min(...b.map(parentOrder));
       return aX - bX;
     });
 
