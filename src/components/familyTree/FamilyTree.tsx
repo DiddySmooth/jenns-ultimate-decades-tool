@@ -177,7 +177,8 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             onClick={() => {
               // Run generational layout on sims + edges
               const { nodes: laidOut, edges: laidEdges } = genealogyLayout(nodes, edges);
-              // Update edges with midX data for FamilyEdge
+              // Update BOTH nodes and edges
+              setNodes(laidOut);
               setEdges(laidEdges.map((e) => {
                 const kind = (e.data as { kind?: string } | undefined)?.kind;
                 if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
