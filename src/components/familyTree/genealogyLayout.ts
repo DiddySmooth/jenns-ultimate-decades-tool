@@ -236,76 +236,130 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     childrenByParent.set(src, arr);
   }
 
-  // ── Bottom-up spacing pass ──────────────────────────────────────────────
-  // Work from deepest generation upward.
-  // For each generation, ensure each couple has enough horizontal space
-  // to fit all their children without overlapping adjacent couples' branches.
+  // ── Bottom-up subtree width layout ───────────────────────────────────────
+  // Calculate how wide each couple's subtree needs to be, then position
+  // each generation based on subtree widths rather than fixed gaps.
 
   const genKeysSorted = [...genKeys].sort((a, b) => b - a); // deepest first
 
-  for (const g of genKeysSorted) {
-    // Fix overlaps in this generation first (sort by X, push right if needed)
-    const ids = [...(sortedGens.get(g) ?? [])];
-    ids.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
-    for (let i = 1; i < ids.length; i++) {
-      const prev = positioned.get(ids[i - 1]);
-      const cur = positioned.get(ids[i]);
-      if (!prev || !cur) continue;
-      const gap = spouseOf.get(ids[i - 1]) === ids[i] ? GAP_COUPLE : GAP_X;
-      const minX = prev.x + NODE_W + gap;
-      if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
-    }
+  // subtreeWidth: minimum width needed for a sim's entire subtree
+  const subtreeWidth = new Map<string, number>();
 
-    // For each couple in this generation, center their children under them
+  // Process deepest generation first, work upward
+  for (const g of genKeysSorted) {
+    const ids = sortedGens.get(g)!;
     const processedCouples = new Set<string>();
+
     for (const simId of ids) {
       if (processedCouples.has(simId)) continue;
       processedCouples.add(simId);
       const spouseId = spouseOf.get(simId);
       if (spouseId) processedCouples.add(spouseId);
 
-      const pA = positioned.get(simId);
-      const pB = spouseId ? positioned.get(spouseId) : null;
-      if (!pA) continue;
-
       const myChildren = childrenByParent.get(simId) ?? [];
       const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
       const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
-      if (allChildren.length === 0) continue;
 
-      const coupleLeftX = Math.min(pA.x, pB?.x ?? pA.x);
-      const coupleRightX = Math.max(pA.x, pB?.x ?? pA.x) + NODE_W;
-      const coupleMidX = (coupleLeftX + coupleRightX) / 2;
-
-      // Calculate total width needed for children
-      const numChildren = allChildren.length;
-      const childrenWidth = numChildren * NODE_W + (numChildren - 1) * GAP_X;
-      const childStartX = coupleMidX - childrenWidth / 2;
-
-      // Place children evenly spaced under the couple midpoint
-      const sortedChildren = [...allChildren].sort((a, b) => {
-        const ax = positioned.get(a)?.x ?? 0;
-        const bx = positioned.get(b)?.x ?? 0;
-        return ax - bx;
-      });
-      sortedChildren.forEach((c, i) => {
-        const pos = positioned.get(c);
-        if (pos) positioned.set(c, { x: childStartX + i * (NODE_W + GAP_X), y: pos.y });
-      });
+      if (allChildren.length === 0) {
+        // Leaf couple: width is just the two cards + couple gap
+        const coupleW = spouseId ? NODE_W * 2 + GAP_COUPLE : NODE_W;
+        subtreeWidth.set(simId, coupleW);
+        if (spouseId) subtreeWidth.set(spouseId, coupleW);
+      } else {
+        // Width = sum of children subtree widths + gaps between them
+        let childrenTotalWidth = 0;
+        allChildren.forEach((c, i) => {
+          childrenTotalWidth += subtreeWidth.get(c) ?? NODE_W;
+          if (i > 0) childrenTotalWidth += GAP_X;
+        });
+        const coupleMinWidth = spouseId ? NODE_W * 2 + GAP_COUPLE : NODE_W;
+        const totalWidth = Math.max(coupleMinWidth, childrenTotalWidth);
+        subtreeWidth.set(simId, totalWidth);
+        if (spouseId) subtreeWidth.set(spouseId, totalWidth);
+      }
     }
   }
 
-  // Final overlap fix on all generations after bottom-up pass
+  // Now re-position all generations top-down using subtree widths
+  // Gen 0 starts centered at x=40
   for (const g of genKeys) {
-    const ids = [...(sortedGens.get(g) ?? [])];
-    ids.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
-    for (let i = 1; i < ids.length; i++) {
-      const prev = positioned.get(ids[i - 1]);
-      const cur = positioned.get(ids[i]);
-      if (!prev || !cur) continue;
-      const gap = spouseOf.get(ids[i - 1]) === ids[i] ? GAP_COUPLE : GAP_X;
-      const minX = prev.x + NODE_W + gap;
-      if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
+    const ids = sortedGens.get(g)!;
+    // Sort by current X (from initial positioning)
+    const sorted = [...ids].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+
+    // Group into couples
+    const coupleGroups: string[][] = [];
+    const seen = new Set<string>();
+    for (const id of sorted) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const spouse = spouseOf.get(id);
+      if (spouse && ids.includes(spouse) && !seen.has(spouse)) {
+        seen.add(spouse);
+        // Put parent-child first
+        const idHasParents = (childToParentSims.get(id)?.size ?? 0) > 0;
+        const spouseHasParents = (childToParentSims.get(spouse)?.size ?? 0) > 0;
+        coupleGroups.push((!idHasParents && spouseHasParents) ? [spouse, id] : [id, spouse]);
+      } else {
+        coupleGroups.push([id]);
+      }
+    }
+
+    // Place couple groups left to right with inter-couple gap
+    // Total width of generation
+    let totalGenWidth = 0;
+    coupleGroups.forEach((grp, i) => {
+      const sw = subtreeWidth.get(grp[0]) ?? NODE_W;
+      totalGenWidth += sw;
+      if (i > 0) totalGenWidth += GAP_X;
+    });
+
+    const startX = 40;
+    let curX = startX;
+    const y = 40 + g * (NODE_H + GAP_Y);
+
+    for (const grp of coupleGroups) {
+      const sw = subtreeWidth.get(grp[0]) ?? NODE_W;
+      const grpMidX = curX + sw / 2;
+
+      if (grp.length === 2) {
+        // Place couple centered within their subtree width
+        positioned.set(grp[0], { x: grpMidX - NODE_W - GAP_COUPLE / 2, y });
+        positioned.set(grp[1], { x: grpMidX + GAP_COUPLE / 2, y });
+      } else {
+        positioned.set(grp[0], { x: grpMidX - NODE_W / 2, y });
+      }
+
+      // Place children evenly within the subtree width
+      const myChildren = childrenByParent.get(grp[0]) ?? [];
+      const spouseChildren = grp[1] ? (childrenByParent.get(grp[1]) ?? []) : [];
+      const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+
+      if (allChildren.length > 0) {
+        const childrenSorted = [...allChildren].sort((a, b) => {
+          const ax = positioned.get(a)?.x ?? 0;
+          const bx = positioned.get(b)?.x ?? 0;
+          return ax - bx;
+        });
+
+        // Calculate total children width using their subtree widths
+        let totalChildW = 0;
+        childrenSorted.forEach((c, i) => {
+          totalChildW += subtreeWidth.get(c) ?? NODE_W;
+          if (i > 0) totalChildW += GAP_X;
+        });
+
+        let childX = curX + (sw - totalChildW) / 2;
+        for (const c of childrenSorted) {
+          const csw = subtreeWidth.get(c) ?? NODE_W;
+          const childMidX = childX + csw / 2;
+          const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
+          positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
+          childX += csw + GAP_X;
+        }
+      }
+
+      curX += sw + GAP_X;
     }
   }
 
