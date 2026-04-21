@@ -76,46 +76,8 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   }, [built.nodes, built.edges, rf, setEdges, setNodes]);
 
   // Keep union nodes centered on the marriage line while dragging.
-    // Reposition union hearts when sim nodes move
-  const repositionUnions = useCallback((nodeList: typeof nodes) => {
-    const SIM_W = 180;
-    const SIM_H = 220;
-    const UNION_W = 24;
-    const simPos = new Map<string, { x: number; y: number }>();
-    for (const n of nodeList) {
-      if (String(n.id).startsWith('sim:')) simPos.set(String(n.id), n.position);
-    }
-    return nodeList.map((n) => {
-      if (!String(n.id).startsWith('union:')) return n;
-      const u = (n.data as { union?: UnionNode } | undefined)?.union;
-      if (!u?.partnerAId || !u?.partnerBId) return n;
-      const a = simPos.get(`sim:${u.partnerAId}`);
-      const b = simPos.get(`sim:${u.partnerBId}`);
-      if (!a || !b) return n;
-      const left = a.x <= b.x ? { p: a, w: SIM_W } : { p: b, w: SIM_W };
-      const right = a.x <= b.x ? { p: b, w: SIM_W } : { p: a, w: SIM_W };
-      const midX = (left.p.x + left.w + right.p.x) / 2;
-      const lineY = Math.max(left.p.y, right.p.y) + SIM_H / 2;
-      const pos = { x: midX - UNION_W / 2, y: lineY - 12 };
-      if (Math.abs(n.position.x - pos.x) < 1 && Math.abs(n.position.y - pos.y) < 1) return n;
-      return { ...n, position: pos };
-    });
-  }, []);
-
-  const handleNodesChange = useCallback((changes: Parameters<typeof onNodesChange>[0]) => {
-    // Only reposition unions when a SIM node finishes dragging (dragging=false)
-    const simDragEnd = changes.some((c) => {
-      if (c.type !== 'position') return false;
-      const id = (c as { id: string }).id;
-      return String(id).startsWith('sim:') && (c as { dragging?: boolean }).dragging === false;
-    });
-    onNodesChange(changes);
-    if (simDragEnd) {
-      requestAnimationFrame(() => {
-        setNodes((cur) => repositionUnions(cur));
-      });
-    }
-  }, [onNodesChange, setNodes, repositionUnions]);
+    // Union hearts are positioned by auto-arrange; no live repositioning during drag
+  // (live repositioning caused React #185 infinite update loops)
 
   // Persist node positions (only) back into save
   const lastPosSig = useRef<string>('');
@@ -261,7 +223,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             edges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
-            onNodesChange={handleNodesChange}
+            onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
             onNodeClick={(_, n) => {
