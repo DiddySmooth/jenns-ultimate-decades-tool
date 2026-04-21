@@ -3,7 +3,7 @@ import type { Edge, Node } from 'reactflow';
 const NODE_W = 180;
 const NODE_H = 220;
 const GAP_X = 60;   // gap between sim nodes in same generation
-const GAP_COUPLE = 20; // tighter gap between spouses
+const GAP_COUPLE = 40; // gap between spouses — wide enough for the heart icon
 const GAP_Y = 160;  // vertical gap — must be enough for heart + trunk line to clear before children
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
@@ -239,10 +239,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     const apos = positioned.get(partners[0]);
     const bpos = positioned.get(partners[1]);
     if (!apos || !bpos) continue;
-    const midX = (apos.x + NODE_W + bpos.x) / 2 - 12; // center of gap between cards, offset for 24px heart
-    const midY = (apos.y + bpos.y) / 2 + NODE_H / 2 - 12; // vertically centered on cards
+    // Heart sits in the gap between the two cards, vertically centered
+    const leftCard = apos.x <= bpos.x ? apos : bpos;
+    const rightCard = apos.x <= bpos.x ? bpos : apos;
+    const gapStart = leftCard.x + NODE_W;
+    const gapEnd = rightCard.x;
+    const midX = (gapStart + gapEnd) / 2 - 12; // 12 = half of 24px heart
+    const midY = (apos.y + bpos.y) / 2 + NODE_H / 2 - 12;
     const idx = result.findIndex((r) => r.id === u.id);
-    if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX - 0.5, y: midY - 0.5 } };
+    if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX, y: midY } };
   }
 
   return result;
