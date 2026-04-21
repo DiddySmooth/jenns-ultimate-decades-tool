@@ -458,6 +458,24 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
 
 
+  // Final single-child centering: ensure lone children are exactly under their couple midpoint
+  for (const [parentId] of childrenByParent) {
+    const spouseId = spouseOf.get(parentId);
+    const myChildren = childrenByParent.get(parentId) ?? [];
+    const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
+    const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+    if (allChildren.length !== 1) continue; // only fix single children here
+    const pA = positioned.get(parentId);
+    const pB = spouseId ? positioned.get(spouseId) : null;
+    if (!pA) continue;
+    const coupleMidX = pB
+      ? (pA.x + pB.x + NODE_W) / 2
+      : pA.x + NODE_W / 2;
+    const child = allChildren[0];
+    const childPos = positioned.get(child);
+    if (childPos) positioned.set(child, { x: coupleMidX - NODE_W / 2, y: childPos.y });
+  }
+
   // Inject midX into child edges so FamilyEdge can draw from the correct X between parents
   const updatedEdges = edges.map((e) => {
     const kind = (e.data as { kind?: string; unionId?: string } | undefined)?.kind;
