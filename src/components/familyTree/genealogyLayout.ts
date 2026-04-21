@@ -380,6 +380,61 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // ── Top-down centering pass ─────────────────────────────────────────────
+  // For each couple, re-center their children group under the couple's midpoint,
+  // then fix any overlaps that result.
+  for (const g of genKeys) {
+    const ids = sortedGens.get(g)!;
+    const processedCouples = new Set<string>();
+
+    for (const simId of ids) {
+      if (processedCouples.has(simId)) continue;
+      processedCouples.add(simId);
+      const spouseId = spouseOf.get(simId);
+      if (spouseId) processedCouples.add(spouseId);
+
+      const pA = positioned.get(simId);
+      const pB = spouseId ? positioned.get(spouseId) : null;
+      if (!pA) continue;
+
+      const myChildren = childrenByParent.get(simId) ?? [];
+      const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
+      const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+      if (allChildren.length === 0) continue;
+
+      // Couple midpoint
+      const leftX = Math.min(pA.x, pB?.x ?? pA.x);
+      const rightX = Math.max(pA.x, pB?.x ?? pA.x) + NODE_W;
+      const coupleMidX = (leftX + rightX) / 2;
+
+      // Current children group bounds
+      const childPositions = allChildren.map(c => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
+      if (childPositions.length === 0) continue;
+      const childLeft = Math.min(...childPositions.map(p => p.x));
+      const childRight = Math.max(...childPositions.map(p => p.x)) + NODE_W;
+      const childGroupMidX = (childLeft + childRight) / 2;
+
+      const shift = coupleMidX - childGroupMidX;
+      if (Math.abs(shift) > 1) {
+        for (const c of allChildren) {
+          const pos = positioned.get(c);
+          if (pos) positioned.set(c, { x: pos.x + shift, y: pos.y });
+        }
+      }
+    }
+
+    // Fix overlaps after centering
+    const sortedIds = [...ids].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+    for (let i = 1; i < sortedIds.length; i++) {
+      const prev = positioned.get(sortedIds[i - 1]);
+      const cur = positioned.get(sortedIds[i]);
+      if (!prev || !cur) continue;
+      const gap = spouseOf.get(sortedIds[i - 1]) === sortedIds[i] ? GAP_COUPLE : GAP_X;
+      const minX = prev.x + NODE_W + gap;
+      if (cur.x < minX) positioned.set(sortedIds[i], { x: minX, y: cur.y });
+    }
+  }
+
   // Snap spouses to identical Y so marriage lines are perfectly horizontal
   for (const [a, b] of spouseOf) {
     const posA = positioned.get(a);
