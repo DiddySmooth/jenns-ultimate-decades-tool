@@ -337,9 +337,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
       if (allChildren.length > 0) {
         const childrenSorted = [...allChildren].sort((a, b) => {
-          const ax = positioned.get(a)?.x ?? 0;
-          const bx = positioned.get(b)?.x ?? 0;
-          return ax - bx;
+          // Sort by birth year for stable left-to-right ordering
+          const aNode = simNodes.find(n => n.id === a);
+          const bNode = simNodes.find(n => n.id === b);
+          const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+          const by2 = (bNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+          return ay - by2;
         });
 
         // Calculate total children width using their subtree widths
