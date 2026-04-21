@@ -161,12 +161,15 @@ export interface FamilyTreeState {
 
 export type AvatarShape = 'circle' | 'rounded' | 'square';
 
+export type RingColorMode = 'generation' | 'gender' | 'lastName';
+
 export interface FamilyTreeDisplayConfig {
   showBirthYear: boolean;
   showDeathYear: boolean;
   showAge: boolean;
   showLifeStage: boolean;
   showGeneration: boolean;
+  ringColorMode?: RingColorMode;
 
   /** Compact mode: only render avatar + name on the node; other fields show on hover. */
   compactNodes?: boolean;

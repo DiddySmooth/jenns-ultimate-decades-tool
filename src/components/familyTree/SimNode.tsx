@@ -33,7 +33,22 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
 
   const d = treeConfig.display;
   const gen = sim.generation ?? 0;
-  const ringColor = GEN_COLORS[gen % GEN_COLORS.length];
+  const mode = d.ringColorMode ?? 'generation';
+
+  // Last name color — hash the last name to a consistent color
+  const lastNameHash = (str: string) => {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xfffffff;
+    return h;
+  };
+
+  const GENDER_COLORS = { Female: '#e91e8c', Male: '#4a90d9', default: '#888888' };
+
+  const ringColor = mode === 'gender'
+    ? (sim.sex === 'Female' ? GENDER_COLORS.Female : sim.sex === 'Male' ? GENDER_COLORS.Male : GENDER_COLORS.default)
+    : mode === 'lastName'
+    ? GEN_COLORS[lastNameHash(sim.lastName || sim.name || 'unknown') % GEN_COLORS.length]
+    : GEN_COLORS[gen % GEN_COLORS.length];
 
   const tooltip = [
     name,

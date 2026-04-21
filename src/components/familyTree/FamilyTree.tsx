@@ -241,6 +241,18 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
               </select>
             </div>
 
+            <div className="field-group">
+              <label>Ring color by</label>
+              <select
+                value={config.display.ringColorMode ?? 'generation'}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, ringColorMode: e.target.value as 'generation' | 'gender' | 'lastName' } })}
+              >
+                <option value="generation">Generation</option>
+                <option value="gender">Gender</option>
+                <option value="lastName">Last name</option>
+              </select>
+            </div>
+
             <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
               <input
                 type="checkbox"
