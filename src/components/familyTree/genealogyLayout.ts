@@ -291,38 +291,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Fourth pass: ensure parent couples are wide enough for their children
-  // If children span wider than the couple gap, push the right parent outward
-  for (const [parentId, children] of childrenByParent) {
-    const spouseId = spouseOf.get(parentId);
-    if (!spouseId) continue;
-    const pA = positioned.get(parentId);
-    const pB = positioned.get(spouseId);
-    if (!pA || !pB) continue;
-
-    const leftParent = pA.x <= pB.x ? parentId : spouseId;
-    const rightParent = pA.x <= pB.x ? spouseId : parentId;
-    const leftPos = positioned.get(leftParent)!;
-    const rightPos = positioned.get(rightParent)!;
-
-    const spouseChildren = childrenByParent.get(spouseId) ?? [];
-    const allChildren = Array.from(new Set([...children, ...spouseChildren]));
-    const childPositions = allChildren.map(c => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
-    if (childPositions.length === 0) continue;
-
-    const childLeft = Math.min(...childPositions.map(p => p.x));
-    const childRight = Math.max(...childPositions.map(p => p.x)) + NODE_W;
-
-    // If children extend beyond right parent, push right parent right
-    const minRightX = childRight - NODE_W;
-    if (rightPos.x < minRightX) {
-      positioned.set(rightParent, { ...rightPos, x: minRightX });
-    }
-    // If children extend before left parent, push left parent left  
-    if (leftPos.x > childLeft) {
-      positioned.set(leftParent, { ...leftPos, x: childLeft });
-    }
-  }
+  // (Fourth pass removed — pushing parents apart causes couples to spread too wide)
 
   // Re-run collision detection after parent widening
   for (const g of genKeys) {
