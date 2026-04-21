@@ -71,18 +71,44 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (!genBySim.has(s.id as string)) genBySim.set(s.id as string, 0);
   }
 
-  // Married-in sims: if a sim has no parents but their spouse has a generation,
-  // place them on the same generation as their spouse instead of gen 0
-  for (const s of simNodes) {
-    const id = s.id as string;
-    const parents = childToParentSims.get(id);
-    const hasParents = parents && parents.size > 0;
-    if (hasParents) continue; // skip sims with known parents
-    const spouse = spouseOf.get(id);
-    if (!spouse) continue;
-    const spouseGen = genBySim.get(spouse);
-    if (spouseGen !== undefined && spouseGen > 0) {
-      genBySim.set(id, spouseGen);
+  // Married-in sims: iterate until stable so chained inheritance works
+  let inheritChanged = true;
+  while (inheritChanged) {
+    inheritChanged = false;
+    for (const s of simNodes) {
+      const id = s.id as string;
+      const parents = childToParentSims.get(id);
+      const hasParents = parents && parents.size > 0;
+      if (hasParents) continue;
+      const spouse = spouseOf.get(id);
+      if (!spouse) continue;
+      const spouseGen = genBySim.get(spouse);
+      if (spouseGen !== undefined && spouseGen >= 0) {
+        if (genBySim.get(id) !== spouseGen) {
+          genBySim.set(id, spouseGen);
+          inheritChanged = true;
+        }
+      }
+    }
+  }
+
+  // Re-run child generation assignment now that married-in sims have correct generations
+  let rerunChanged = true;
+  while (rerunChanged) {
+    rerunChanged = false;
+    for (const s of simNodes) {
+      const id = s.id as string;
+      const parents = childToParentSims.get(id);
+      if (!parents || parents.size === 0) continue;
+      let maxPG = -1, allKnown = true;
+      for (const p of parents) {
+        const pg = genBySim.get(p);
+        if (pg === undefined) { allKnown = false; break; }
+        if (pg > maxPG) maxPG = pg;
+      }
+      if (!allKnown) continue;
+      const want = maxPG + 1;
+      if (genBySim.get(id) !== want) { genBySim.set(id, want); rerunChanged = true; }
     }
   }
 
