@@ -80,6 +80,9 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   // (live repositioning caused React #185 infinite update loops)
 
   // Persist node positions (only) back into save
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
+
   const lastPosSig = useRef<string>('');
   useEffect(() => {
     // Union nodes are derived from partner positions; don't persist them.
@@ -90,8 +93,8 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
     const sig = JSON.stringify(pos);
     if (sig === lastPosSig.current) return;
     lastPosSig.current = sig;
-    onSavedChange({ ...saved, nodes: pos, edges: saved.edges ?? [] });
-  }, [nodes, onSavedChange, saved]);
+    onSavedChange({ ...savedRef.current, nodes: pos, edges: savedRef.current.edges ?? [] });
+  }, [nodes, onSavedChange]);
 
   // Console diagnostics (disabled by default)
   // const lastDiagRef = useRef<string>('');
