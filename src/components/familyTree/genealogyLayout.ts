@@ -1,7 +1,7 @@
 import type { Edge, Node } from 'reactflow';
 
-const NODE_W = 180;
-const NODE_H = 220;
+const NODE_W = 110; // matches CSS width
+const NODE_H = 200; // matches fixed CSS height
 const GAP_X = 60;   // gap between sim nodes in same generation
 const GAP_COUPLE = 30; // gap between spouses — enough for the 24px heart
 const GAP_Y = 160;  // vertical gap — must be enough for heart + trunk line to clear before children
@@ -257,7 +257,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     const gapEnd = rightCard.x;
     const midX = (gapStart + gapEnd) / 2 - 12;
     // Place heart at a fixed offset from the top of the higher card so it aligns with handle 50% height.
-    const midY = Math.min(apos.y, bpos.y) + 98; // 25% of ~220px card = 55px, minus 12 for heart center = 43
+    const midY = Math.min(apos.y, bpos.y) + 88; // 200/2 - 12 = 88 // 25% of ~220px card = 55px, minus 12 for heart center = 43
     const idx = result.findIndex((r) => r.id === u.id);
     if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX, y: midY } };
   }

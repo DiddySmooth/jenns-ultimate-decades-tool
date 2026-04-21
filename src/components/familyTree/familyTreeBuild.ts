@@ -76,8 +76,8 @@ export function buildFamilyTree(
   // NOTE: These sizes should match actual rendered node sizes.
   // Sims can vary in width by name length, so for *exact* centering we
   // also adjust union positions in FamilyTree.tsx using measured node widths.
-  const SIM_W = 180;
-  const SIM_H = 220;
+  const SIM_W = 110;
+  const SIM_H = 200;
   // Union node is invisible but must be non-zero sized for ReactFlow edge geometry.
   const UNION_W = 1;
   const UNION_H = 1;

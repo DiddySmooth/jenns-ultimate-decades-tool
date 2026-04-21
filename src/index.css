@@ -1097,12 +1097,15 @@ body {
   color: var(--color-text);
   width: 110px;
   min-width: 110px;
+  height: 200px;
+  max-height: 200px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
   gap: 0.25rem;
+  overflow: hidden;
 }
 .ft-sim.compact { padding: 0.4rem; }
 .ft-sim.compact .ft-meta { display: none; }
