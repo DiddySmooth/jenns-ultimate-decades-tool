@@ -257,7 +257,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     const gapEnd = rightCard.x;
     const midX = (gapStart + gapEnd) / 2 - 12;
     // Place heart at a fixed offset from the top of the higher card so it aligns with handle 50% height.
-    const midY = Math.min(apos.y, bpos.y) + 43; // 25% of ~220px card = 55px, minus 12 for heart center = 43
+    const midY = Math.min(apos.y, bpos.y) + 98; // 25% of ~220px card = 55px, minus 12 for heart center = 43
     const idx = result.findIndex((r) => r.id === u.id);
     if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX, y: midY } };
   }
