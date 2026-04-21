@@ -120,7 +120,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
       return changed ? next : cur;
     });
-  }, [nodes, unions, setNodes, rf]);
+  }, [unions, setNodes, rf]);
 
   // Persist node positions (only) back into save
   const lastPosSig = useRef<string>('');

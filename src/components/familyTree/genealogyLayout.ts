@@ -4,7 +4,7 @@ const NODE_W = 180;
 const NODE_H = 220;
 const GAP_X = 60;   // gap between sim nodes in same generation
 const GAP_COUPLE = 20; // tighter gap between spouses
-const GAP_Y = 80;  // vertical gap between generations
+const GAP_Y = 120;  // vertical gap between generations — needs to be tall enough for trunk lines to clear cards
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
