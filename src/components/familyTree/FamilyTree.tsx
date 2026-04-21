@@ -81,26 +81,9 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
     }, 60);
   }, [built.nodes, built.edges, rf, setEdges, setNodes]);
 
-  // Keep union nodes centered on the marriage line while dragging.
-    // Union hearts are positioned by auto-arrange; no live repositioning during drag
-  // (live repositioning caused React #185 infinite update loops)
-
-  // Persist node positions (only) back into save
+    // Positions are always managed by auto-arrange, not manual dragging
   const savedRef = useRef(saved);
   savedRef.current = saved;
-
-  const lastPosSig = useRef<string>('');
-  useEffect(() => {
-    // Union nodes are derived from partner positions; don't persist them.
-    const pos = nodes
-      .filter((n) => !String(n.id).startsWith('union:'))
-      .map((n) => ({ id: n.id, type: ((n.type as 'sim' | 'union') ?? 'sim'), position: n.position }));
-
-    const sig = JSON.stringify(pos);
-    if (sig === lastPosSig.current) return;
-    lastPosSig.current = sig;
-    onSavedChange({ ...savedRef.current, nodes: pos, edges: savedRef.current.edges ?? [] });
-  }, [nodes, onSavedChange]);
 
   // Console diagnostics (disabled by default)
   // const lastDiagRef = useRef<string>('');
@@ -219,6 +202,9 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             onNodesChange={onNodesChange}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
             onNodeClick={(_, n) => {
