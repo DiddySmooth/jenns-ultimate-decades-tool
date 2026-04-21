@@ -447,22 +447,48 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Final single-child centering: ensure lone children are exactly under their couple midpoint
+  // Final family centering pass: after all spacing/overlap nudges are done,
+  // shift each visible child group so its rendered center matches the final
+  // midpoint of its parent couple. This fixes the slight kinks that can appear
+  // when filters (like hide dead sims) change the visible set.
+  const recenteredParents = new Set<string>();
   for (const [parentId] of childrenByParent) {
+    if (recenteredParents.has(parentId)) continue;
     const spouseId = spouseOf.get(parentId);
+    if (spouseId && recenteredParents.has(spouseId)) continue;
+
     const myChildren = childrenByParent.get(parentId) ?? [];
     const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
     const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
-    if (allChildren.length !== 1) continue; // only fix single children here
+    if (allChildren.length === 0) continue;
+
+    recenteredParents.add(parentId);
+    if (spouseId) recenteredParents.add(spouseId);
+
     const pA = positioned.get(parentId);
     const pB = spouseId ? positioned.get(spouseId) : null;
     if (!pA) continue;
+
     const coupleMidX = pB
       ? (pA.x + pB.x + NODE_W) / 2
       : pA.x + NODE_W / 2;
-    const child = allChildren[0];
-    const childPos = positioned.get(child);
-    if (childPos) positioned.set(child, { x: coupleMidX - NODE_W / 2, y: childPos.y });
+
+    const childPositions = allChildren
+      .map((childId) => positioned.get(childId))
+      .filter(Boolean) as { x: number; y: number }[];
+    if (childPositions.length === 0) continue;
+
+    const childLeft = Math.min(...childPositions.map((p) => p.x));
+    const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
+    const childGroupMidX = (childLeft + childRight) / 2;
+    const shift = coupleMidX - childGroupMidX;
+
+    if (Math.abs(shift) > 0.5) {
+      for (const childId of allChildren) {
+        const childPos = positioned.get(childId);
+        if (childPos) positioned.set(childId, { x: childPos.x + shift, y: childPos.y });
+      }
+    }
   }
 
   // Build result
