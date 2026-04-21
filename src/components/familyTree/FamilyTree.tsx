@@ -484,11 +484,31 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                     />
                   </div>
                   <div className="field-group">
+                    <label>Birth Day of Year</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={trackerConfig.daysPerYear}
+                      value={sim.birthDayOfYear ?? ''}
+                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, birthDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
+                    />
+                  </div>
+                  <div className="field-group">
                     <label>Death Year</label>
                     <input
                       type="number"
                       value={sim.deathYear ?? ''}
                       onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, deathYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label>Death Day of Year</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={trackerConfig.daysPerYear}
+                      value={sim.deathDayOfYear ?? ''}
+                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, deathDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
                     />
                   </div>
 

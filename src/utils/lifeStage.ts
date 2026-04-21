@@ -1,6 +1,6 @@
 import type { AgingConfig, SimEntry, TrackerConfig } from '../types/tracker';
 import { formatChallengeDate } from './timeConvert';
-import { currentYearFromCurrentDay, getBirthYear, getDeathYear } from './simDates';
+import { computeAgeDays } from './simDates';
 
 export function getFullName(sim: Pick<SimEntry, 'firstName' | 'lastName' | 'name' | 'maidenName' | 'showMaidenName'>): string {
   const first = (sim.firstName ?? '').trim();
@@ -16,8 +16,8 @@ export function getFullName(sim: Pick<SimEntry, 'firstName' | 'lastName' | 'name
 }
 
 /**
- * Compute life stage from birth YEAR (preferred) + current timeline year.
- * If birthYear is missing, falls back to legacy day-number-based fields.
+ * Compute life stage from total sim days lived.
+ * Supports precise birth/death year + day-of-year, with legacy fallbacks.
  */
 export function computeLifeStage(
   sim: SimEntry,
@@ -25,18 +25,8 @@ export function computeLifeStage(
   currentDay: number,
   aging: AgingConfig = config.humanAging
 ): string {
-  const birthYear = getBirthYear(sim, config);
-  if (!birthYear) return '';
-
-  // Convert current day -> year
-  const currentYear = currentYearFromCurrentDay(config, currentDay);
-
-  // If dead, compute stage based on age at death (not current year)
-  const deathYear = getDeathYear(sim, config);
-  const endYear = deathYear ?? currentYear;
-
-  const ageYears = Math.max(0, endYear - birthYear);
-  const ageDays = ageYears * config.daysPerYear;
+  const ageDays = computeAgeDays(sim, config, currentDay);
+  if (ageDays == null) return '';
 
   let cursor = 0;
   for (const stage of aging.lifeStages) {

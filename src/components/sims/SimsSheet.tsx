@@ -264,6 +264,18 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                 onChange={(e) => setEditing({ ...editing, birthYear: e.target.value ? Number(e.target.value) : undefined })}
               />
             </div>
+            <div className="field-group">
+              <label>Birth Day of Year</label>
+              <input
+                type="number"
+                min={1}
+                max={config.daysPerYear}
+                placeholder={`1-${config.daysPerYear}`}
+                value={editing.birthDayOfYear ?? ''}
+                onChange={(e) => setEditing({ ...editing, birthDayOfYear: e.target.value ? Number(e.target.value) : undefined })}
+              />
+              <span className="field-hint">Used for accurate life stage aging. Only the birth year is shown in the main sheet.</span>
+            </div>
 
             <div className="field-group">
               <label>Place of Birth</label>
@@ -281,7 +293,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                 readOnly
                 value={computeLifeStage(editing, config, currentDay) || ''}
               />
-              <span className="field-hint">Computed from Birth Year + current timeline year.</span>
+              <span className="field-hint">Computed from total sim days lived, not just the year number.</span>
             </div>
             <div className="field-group">
               <label>Death Year</label>
@@ -291,6 +303,18 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                 value={editing.deathYear ?? ''}
                 onChange={(e) => setEditing({ ...editing, deathYear: e.target.value ? Number(e.target.value) : undefined })}
               />
+            </div>
+            <div className="field-group">
+              <label>Death Day of Year</label>
+              <input
+                type="number"
+                min={1}
+                max={config.daysPerYear}
+                placeholder={`1-${config.daysPerYear}`}
+                value={editing.deathDayOfYear ?? ''}
+                onChange={(e) => setEditing({ ...editing, deathDayOfYear: e.target.value ? Number(e.target.value) : undefined })}
+              />
+              <span className="field-hint">For dead sims, life stage is based on the exact sim day they died.</span>
             </div>
             <div className="field-group">
               <label>Cause of Death</label>

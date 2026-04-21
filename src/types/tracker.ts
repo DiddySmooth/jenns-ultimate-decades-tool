@@ -73,9 +73,11 @@ export interface SimEntry {
   // If parents had multiple unions, allow explicit assignment
   birthUnionId?: string;
 
-  // Dates (year-only, preferred)
+  // Dates
   birthYear?: number;
+  birthDayOfYear?: number;   // 1..daysPerYear; preferred for accurate aging/life stage
   deathYear?: number;
+  deathDayOfYear?: number;   // 1..daysPerYear; preferred for accurate aging/life stage
   marriageYear?: number;
 
   // Legacy fields (still supported)

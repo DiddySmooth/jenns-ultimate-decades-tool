@@ -5,6 +5,18 @@ export function yearFromDayNumber(dayNumber: number, config: Pick<TrackerConfig,
   return config.startYear + yearsElapsed;
 }
 
+export function dayOfYearFromDayNumber(dayNumber: number, config: Pick<TrackerConfig, 'daysPerYear'>): number {
+  return ((dayNumber - 1) % config.daysPerYear) + 1;
+}
+
+export function absoluteDayFromYearAndDayOfYear(
+  year: number,
+  dayOfYear: number,
+  config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>,
+): number {
+  return (year - config.startYear) * config.daysPerYear + dayOfYear;
+}
+
 export function parseDayNumberFromLegacyDate(dateStr?: string): number | undefined {
   if (!dateStr) return undefined;
   const m = dateStr.match(/Day\s*(\d+)/i);
@@ -19,11 +31,36 @@ export function getBirthYear(sim: SimEntry, config: Pick<TrackerConfig, 'startYe
   return day ? yearFromDayNumber(day, config) : undefined;
 }
 
+export function getBirthDayOfYear(sim: SimEntry, config: Pick<TrackerConfig, 'daysPerYear'>): number | undefined {
+  if (sim.birthDayOfYear) return sim.birthDayOfYear;
+  const day = sim.birthDayNumber ?? parseDayNumberFromLegacyDate(sim.dateOfBirth);
+  return day ? dayOfYearFromDayNumber(day, config) : undefined;
+}
+
 export function getDeathYear(sim: SimEntry, config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>): number | undefined {
-  // Guard: deathYear should be a plausible calendar year (>= startYear), not a day number
   if (sim.deathYear && sim.deathYear >= (config.startYear ?? 0)) return sim.deathYear;
   const day = sim.deathDayNumber ?? parseDayNumberFromLegacyDate(sim.dateOfDeath);
   return day ? yearFromDayNumber(day, config) : undefined;
+}
+
+export function getDeathDayOfYear(sim: SimEntry, config: Pick<TrackerConfig, 'daysPerYear'>): number | undefined {
+  if (sim.deathDayOfYear) return sim.deathDayOfYear;
+  const day = sim.deathDayNumber ?? parseDayNumberFromLegacyDate(sim.dateOfDeath);
+  return day ? dayOfYearFromDayNumber(day, config) : undefined;
+}
+
+export function getBirthAbsoluteDay(sim: SimEntry, config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>): number | undefined {
+  const year = getBirthYear(sim, config);
+  const dayOfYear = getBirthDayOfYear(sim, config);
+  if (year == null) return undefined;
+  return absoluteDayFromYearAndDayOfYear(year, dayOfYear ?? 1, config);
+}
+
+export function getDeathAbsoluteDay(sim: SimEntry, config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>): number | undefined {
+  const year = getDeathYear(sim, config);
+  if (year == null) return undefined;
+  const dayOfYear = getDeathDayOfYear(sim, config);
+  return absoluteDayFromYearAndDayOfYear(year, dayOfYear ?? config.daysPerYear, config);
 }
 
 export function formatYear(year?: number): string {
@@ -43,13 +80,24 @@ export function computeAgeYears(
   config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>,
   currentDay: number
 ): number | undefined {
-  const by = getBirthYear(sim, config);
-  if (!by) return undefined;
+  const birthAbs = getBirthAbsoluteDay(sim, config);
+  if (birthAbs == null) return undefined;
 
-  const cy = currentYearFromCurrentDay(config, currentDay);
-  const dy = getDeathYear(sim, config);
+  const deathAbs = getDeathAbsoluteDay(sim, config);
+  const endAbs = deathAbs ?? Math.max(1, currentDay);
+  const daysAlive = Math.max(0, endAbs - birthAbs);
+  return Math.floor(daysAlive / config.daysPerYear);
+}
 
-  // If the sim has a death year, show the age at death.
-  const endYear = dy ?? cy;
-  return Math.max(0, endYear - by);
+export function computeAgeDays(
+  sim: SimEntry,
+  config: Pick<TrackerConfig, 'startYear' | 'daysPerYear'>,
+  currentDay: number
+): number | undefined {
+  const birthAbs = getBirthAbsoluteDay(sim, config);
+  if (birthAbs == null) return undefined;
+
+  const deathAbs = getDeathAbsoluteDay(sim, config);
+  const endAbs = deathAbs ?? Math.max(1, currentDay);
+  return Math.max(0, endAbs - birthAbs);
 }
