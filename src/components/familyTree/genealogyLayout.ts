@@ -239,13 +239,14 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     const apos = positioned.get(partners[0]);
     const bpos = positioned.get(partners[1]);
     if (!apos || !bpos) continue;
-    // Heart sits in the gap between the two cards, vertically centered
+    // Heart Y: fixed 55px from card top to match handle position (inside avatar area)
+    const HANDLE_Y = 55;
     const leftCard = apos.x <= bpos.x ? apos : bpos;
     const rightCard = apos.x <= bpos.x ? bpos : apos;
     const gapStart = leftCard.x + NODE_W;
     const gapEnd = rightCard.x;
-    const midX = (gapStart + gapEnd) / 2 - 12; // 12 = half of 24px heart
-    const midY = (apos.y + bpos.y) / 2 + NODE_H / 2 - 12;
+    const midX = (gapStart + gapEnd) / 2 - 12;
+    const midY = leftCard.y + HANDLE_Y - 12;
     const idx = result.findIndex((r) => r.id === u.id);
     if (idx !== -1) result[idx] = { ...result[idx], position: { x: midX, y: midY } };
   }
