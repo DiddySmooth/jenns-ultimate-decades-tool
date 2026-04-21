@@ -206,6 +206,23 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     }
   }
 
+  // Final pass: fix overlapping nodes within each generation
+  for (const g of genKeys) {
+    const ids = sortedGens.get(g)!;
+    // Sort by current X position
+    ids.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+    for (let i = 1; i < ids.length; i++) {
+      const prev = positioned.get(ids[i - 1]);
+      const cur = positioned.get(ids[i]);
+      if (!prev || !cur) continue;
+      const gap = spouseOf.get(ids[i - 1]) === ids[i] ? GAP_COUPLE : GAP_X;
+      const minX = prev.x + NODE_W + gap;
+      if (cur.x < minX) {
+        positioned.set(ids[i], { x: minX, y: cur.y });
+      }
+    }
+  }
+
   // Build result
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
