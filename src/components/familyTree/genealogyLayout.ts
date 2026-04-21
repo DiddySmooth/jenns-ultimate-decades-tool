@@ -223,6 +223,18 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): Node[] {
     }
   }
 
+  // Snap spouses to identical Y so marriage lines are perfectly horizontal
+  for (const [a, b] of spouseOf) {
+    const posA = positioned.get(a);
+    const posB = positioned.get(b);
+    if (!posA || !posB) continue;
+    if (posA.y !== posB.y) {
+      const sharedY = Math.min(posA.y, posB.y);
+      positioned.set(a, { ...posA, y: sharedY });
+      positioned.set(b, { ...posB, y: sharedY });
+    }
+  }
+
   // Build result
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
