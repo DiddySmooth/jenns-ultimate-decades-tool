@@ -180,44 +180,51 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Third pass: nudge each sim group to center under their parents
-  // For each union, find all its children and center them as a group under the union midpoint
-  const childrenByUnion = new Map<string, string[]>();
+  // Third pass: center each group of children under their parents' midpoint
+  // Group children by their source parent sim
+  const childrenByParent = new Map<string, string[]>();
   for (const e of edges) {
     const src = String(e.source);
     const tgt = String(e.target);
     const kind = (e.data as { kind?: string } | undefined)?.kind;
-    if (kind !== 'parent' || !tgt.startsWith('sim:') || !src.startsWith('union:')) continue;
-    const arr = childrenByUnion.get(src) ?? [];
+    if (kind !== 'parent' || !tgt.startsWith('sim:') || !src.startsWith('sim:')) continue;
+    const arr = childrenByParent.get(src) ?? [];
     arr.push(tgt);
-    childrenByUnion.set(src, arr);
+    childrenByParent.set(src, arr);
   }
 
-  for (const _u of []) { // union nodes removed
-    const uid = '';
-    const partners: [string,string] | undefined = undefined;
-    if (!partners) continue;
-    const pA = positioned.get(partners[0]);
-    const pB = positioned.get(partners[1]);
-    if (!pA || !pB) continue;
-    const parentMidX = (pA.x + pB.x + NODE_W) / 2;
+  // For each parent sim, find its spouse and center children under their midpoint
+  const processed = new Set<string>();
+  for (const [parentId, children] of childrenByParent) {
+    if (processed.has(parentId)) continue;
+    const spouseId = spouseOf.get(parentId);
+    // Mark both parents as processed so we don't double-shift
+    processed.add(parentId);
+    if (spouseId) processed.add(spouseId);
 
-    const children = childrenByUnion.get(uid) ?? [];
-    if (children.length === 0) continue;
+    const pA = positioned.get(parentId);
+    const pB = spouseId ? positioned.get(spouseId) : null;
+    if (!pA) continue;
 
-    // Get current child positions
-    const childPositions = children.map(c => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
+    // Also include children from the spouse if they share children
+    const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
+    const allChildren = Array.from(new Set([...children, ...spouseChildren]));
+    if (allChildren.length === 0) continue;
+
+    const parentMidX = pB
+      ? (Math.min(pA.x, pB.x) + Math.max(pA.x, pB.x) + NODE_W) / 2
+      : pA.x + NODE_W / 2;
+
+    const childPositions = allChildren.map(c => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
     if (childPositions.length === 0) continue;
 
-    // Current center of children group
     const leftmost = Math.min(...childPositions.map(p => p.x));
     const rightmost = Math.max(...childPositions.map(p => p.x)) + NODE_W;
     const childGroupMidX = (leftmost + rightmost) / 2;
 
-    // Shift all children to center under parents
     const shift = parentMidX - childGroupMidX;
     if (Math.abs(shift) > 1) {
-      for (const c of children) {
+      for (const c of allChildren) {
         const pos = positioned.get(c);
         if (pos) positioned.set(c, { x: pos.x + shift, y: pos.y });
       }
