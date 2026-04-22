@@ -768,9 +768,12 @@ body {
 .sim-row.expanded { outline: 2px solid var(--color-accent); outline-offset: -2px; }
 
 .sim-cell {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.3;
   font-size: 0.86rem;
   color: var(--color-text);
 }
@@ -779,9 +782,6 @@ body {
   flex-wrap: wrap;
   gap: 0.25rem;
   align-items: flex-start;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
   min-height: 1.8rem;
 }
 .sim-cell.traits-cell .cell-tag {
