@@ -399,7 +399,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     for (const group of groups) {
       const allChildren = getChildrenForLayoutGroup(group);
       const minWidth = group.type === 'cluster'
-        ? Math.max(NODE_W * group.memberIds.length + GAP_COUPLE * Math.max(0, group.memberIds.length - 1), NODE_W * 2 + GAP_COUPLE)
+        ? (() => {
+            const unionSlots = group.unionIds.length;
+            const clusterCore = NODE_W; // anchor sim
+            const unionsSpan = unionSlots > 0 ? (unionSlots * (NODE_W * 2 + GAP_COUPLE)) + ((unionSlots - 1) * 36) : 0;
+            return Math.max(clusterCore + unionsSpan, NODE_W * 3 + GAP_X);
+          })()
         : group.type === 'couple'
         ? NODE_W * 2 + GAP_COUPLE
         : NODE_W;
@@ -452,14 +457,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           const bUnion = (simToUnionIds.get(anchorId) ?? []).find((uid) => (unionInfos.get(uid)?.partners ?? []).includes(b));
           return (unionInfos.get(aUnion ?? '')?.secondaryIndex ?? 0) - (unionInfos.get(bUnion ?? '')?.secondaryIndex ?? 0);
         });
-        positioned.set(anchorId, { x: grpMidX - NODE_W / 2, y });
+
+        const clusterLeft = curX;
+        const clusterRight = curX + sw;
+        const anchorX = clusterLeft + Math.max(0, (sw - (NODE_W + secondaries.length * (NODE_W + GAP_COUPLE + 24))) / 2);
+        positioned.set(anchorId, { x: anchorX, y });
+
         secondaries.forEach((sid, i) => {
-          const side = i % 2 === 0 ? 1 : -1;
-          const slot = Math.ceil((i + 1) / 2);
-          const x = side === 1
-            ? grpMidX - NODE_W / 2 + (NODE_W + GAP_COUPLE) * slot
-            : grpMidX - NODE_W / 2 - (NODE_W + GAP_COUPLE) * slot;
-          positioned.set(sid, { x, y });
+          const x = anchorX + NODE_W + GAP_COUPLE + (i * (NODE_W + GAP_COUPLE + 24));
+          positioned.set(sid, { x: Math.min(x, clusterRight - NODE_W), y });
         });
       }
 
