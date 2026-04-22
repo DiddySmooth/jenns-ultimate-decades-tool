@@ -1,6 +1,7 @@
 import type { Edge, Node } from 'reactflow';
 import type { FamilyTreeConfig, FamilyTreeState, SimEntry, TrackerConfig, UnionNode } from '../../types/tracker';
 import { computeLifeStage } from '../../utils/lifeStage';
+import { buildRelationshipGraph } from './graphModel';
 import { getDeathYear } from '../../utils/simDates';
 
 export function buildFamilyTree(
@@ -19,18 +20,17 @@ export function buildFamilyTree(
 
   // Precompute living-descendant status on the FULL sim set (so dead-branch pruning
   // is not affected by other filters like "hide life stages").
-  const childrenByParent = new Map<string, string[]>();
-  for (const s of sims) {
-    if (s.fatherId) childrenByParent.set(s.fatherId, [...(childrenByParent.get(s.fatherId) ?? []), s.id]);
-    if (s.motherId) childrenByParent.set(s.motherId, [...(childrenByParent.get(s.motherId) ?? []), s.id]);
-  }
+  // Build canonical relationship graph (people, unions, parentage)
+  const graph = buildRelationshipGraph(sims, unions);
+
   const memo = new Map<string, boolean>();
   const hasLivingDesc = (id: string): boolean => {
     if (memo.has(id)) return memo.get(id)!;
-    const sim = sims.find((x) => x.id === id);
-    if (!sim) { memo.set(id, false); return false; }
+    const simNode = graph.people.get(id);
+    if (!simNode) { memo.set(id, false); return false; }
+    const sim = simNode.raw;
     if (!isDead(sim)) { memo.set(id, true); return true; }
-    const kids = childrenByParent.get(id) ?? [];
+    const kids = graph.childrenByParent.get(id) ?? [];
     const res = kids.some((kid) => hasLivingDesc(kid));
     memo.set(id, res);
     return res;
@@ -79,7 +79,8 @@ export function buildFamilyTree(
   // Layout still uses one primary/current marriage per sim, but we can render
   // additional unions visually as secondary edges without letting them affect
   // spouse grouping/placement.
-  const inferredUnionChildCount = (union: UnionNode): number => {
+  // helper: inferred child count for a union (keeps previous behavior)
+  const inferredUnionChildCount = (union: any): number => {
     const a = union.partnerAId;
     const b = union.partnerBId;
     if (!a || !b) return 0;
@@ -194,16 +195,8 @@ export function buildFamilyTree(
 
   // Children edges derived from sims father/mother
   // Prefer explicit child.birthUnionId. Otherwise, attempt to match union by parents + birthYear.
-  const unionsByParents = new Map<string, UnionNode[]>();
-  unions.forEach((u) => {
-    const a = u.partnerAId;
-    const b = u.partnerBId;
-    if (!a || !b) return;
-    const key = [a, b].sort().join('|');
-    const arr = unionsByParents.get(key) ?? [];
-    arr.push(u);
-    unionsByParents.set(key, arr);
-  });
+  // Use the relationship graph's unions-by-parents map as a starting point
+  const unionsByParents = graph.unionsByParents;
 
   // Build child edges, sorted oldest->youngest per union when possible.
   const childrenByUnion = new Map<string, SimEntry[]>();
@@ -229,18 +222,15 @@ export function buildFamilyTree(
       const key = [f, m].sort().join('|');
       const candidates = unionsByParents.get(key) ?? [];
 
+      // map union ids to union objects
+      const candidateObjs = candidates.map((id) => graph.unions.get(String(id))).filter(Boolean) as any[];
+
       const birthYear = child.birthYear ?? undefined;
       const pick = (() => {
-        if (candidates.length === 0) return null;
-
-        // Best case: exact parent pair maps to exactly one union. Use it even if
-        // birthUnionId is missing and even if birthYear isn't filled in yet.
-        if (candidates.length === 1) return candidates[0];
-
-        // If we have a birth year, try to choose the union whose active window
-        // includes that birth year.
+        if (candidateObjs.length === 0) return null;
+        if (candidateObjs.length === 1) return candidateObjs[0];
         if (birthYear) {
-          const matching = candidates.filter((u) => {
+          const matching = candidateObjs.filter((u) => {
             const start = u.startYear ?? -Infinity;
             const end = u.endYear ?? Infinity;
             return birthYear >= start && birthYear <= end;
@@ -251,15 +241,11 @@ export function buildFamilyTree(
             return matching[0];
           }
         }
-
-        // Final fallback: latest union for this exact parent pair.
-        const latest = [...candidates].sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0));
+        const latest = [...candidateObjs].sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0));
         return latest[0] ?? null;
       })();
 
       if (pick) {
-        // Persist the picked union so subsequent renders don't fall back to parent->child edges.
-        // (The UI also surfaces ambiguous cases for manual selection.)
         child.birthUnionId = pick.id;
         addUnionChild(pick.id, child);
       } else {
