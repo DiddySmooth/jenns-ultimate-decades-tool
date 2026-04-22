@@ -189,6 +189,18 @@ export interface FamilyTreeConfig {
   filters: FamilyTreeFilterConfig;
 }
 
+export interface SimsSheetConfig {
+  showAge: boolean;
+  showSex: boolean;
+  showGeneration: boolean;
+  showBirthplace: boolean;
+  showParents: boolean;
+  showPartners: boolean;
+  showCauseOfDeath: boolean;
+  showNotes: boolean;
+  showTraits: boolean;
+}
+
 export interface TrackerSave {
   config: TrackerConfig;
   sims: SimEntry[];
@@ -199,6 +211,7 @@ export interface TrackerSave {
   unions: UnionNode[];
   familyTree: FamilyTreeState;
   familyTreeConfig: FamilyTreeConfig;
+  simsSheetConfig: SimsSheetConfig;
 }
 
 // Setup wizard state

@@ -1,4 +1,4 @@
-import type { AvatarCrop, SimEntry, TrackerConfig, SimSex } from '../../types/tracker';
+import type { AvatarCrop, SimEntry, TrackerConfig, SimSex, SimsSheetConfig } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 import { useMemo, useState } from 'react';
 import {
@@ -28,6 +28,8 @@ interface Props {
   currentDay: number;
   userId: string;
   saveId: string;
+  sheetConfig: SimsSheetConfig;
+  onSheetConfigChange: (next: SimsSheetConfig) => void;
   onAdd: (sim: SimEntry) => void;
   onUpdate: (sim: SimEntry) => void;
   onDelete: (id: string) => void;
@@ -42,7 +44,7 @@ const blankSim = (): SimEntry => ({
   generation: 1,
 });
 
-export default function SimsSheet({ sims, config, currentDay, userId, saveId, onAdd, onUpdate, onDelete, onReorder }: Props) {
+export default function SimsSheet({ sims, config, currentDay, userId, saveId, sheetConfig, onSheetConfigChange, onAdd, onUpdate, onDelete, onReorder }: Props) {
   const [editing, setEditing] = useState<SimEntry | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -137,7 +139,25 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
     <div className="sims-sheet">
       <div className="sheet-header">
         <h2>Sims Info Sheet</h2>
-        <button className="btn-primary btn-sm" onClick={startNew}>+ Add Sim</button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button className="btn-primary btn-sm" onClick={startNew}>+ Add Sim</button>
+        </div>
+      </div>
+
+      <div className="sidebar-card" style={{ marginBottom: '0.9rem' }}>
+        <h3 style={{ marginTop: 0 }}>Display</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.45rem 1rem' }}>
+          <label><input type="checkbox" checked={sheetConfig.showAge} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showAge: e.target.checked })} /> Age</label>
+          <label><input type="checkbox" checked={sheetConfig.showSex} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showSex: e.target.checked })} /> Sex</label>
+          <label><input type="checkbox" checked={sheetConfig.showGeneration} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showGeneration: e.target.checked })} /> Generation</label>
+          <label><input type="checkbox" checked={sheetConfig.showBirthplace} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showBirthplace: e.target.checked })} /> Birthplace</label>
+          <label><input type="checkbox" checked={sheetConfig.showParents} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showParents: e.target.checked })} /> Parents</label>
+          <label><input type="checkbox" checked={sheetConfig.showPartners} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showPartners: e.target.checked })} /> Partners</label>
+          <label><input type="checkbox" checked={sheetConfig.showCauseOfDeath} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showCauseOfDeath: e.target.checked })} /> Cause of death</label>
+          <label><input type="checkbox" checked={sheetConfig.showNotes} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showNotes: e.target.checked })} /> Notes</label>
+          <label><input type="checkbox" checked={sheetConfig.showTraits} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showTraits: e.target.checked })} /> Traits</label>
+        </div>
+        <div className="field-hint" style={{ marginTop: '0.5rem' }}>Always shown: Name, Date of birth, Date of death, Life stage.</div>
       </div>
 
       <div className="sim-table-header">
@@ -145,17 +165,17 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
         <span />
         <span>Name</span>
         <span>Stage</span>
-        <span>Age</span>
-        <span>Sex</span>
-        <span>Gen</span>
+        {sheetConfig.showAge && <span>Age</span>}
+        {sheetConfig.showSex && <span>Sex</span>}
+        {sheetConfig.showGeneration && <span>Gen</span>}
         <span>Born</span>
-        <span>Birthplace</span>
-        <span>Father</span>
-        <span>Mother</span>
-        <span>Spouse</span>
-        <span>Married</span>
+        {sheetConfig.showBirthplace && <span>Birthplace</span>}
+        {sheetConfig.showParents && <span>Father</span>}
+        {sheetConfig.showParents && <span>Mother</span>}
+        {sheetConfig.showPartners && <span>Spouse</span>}
+        {sheetConfig.showPartners && <span>Married</span>}
         <span>Died</span>
-        <span>COD</span>
+        {sheetConfig.showCauseOfDeath && <span>COD</span>}
         <span />
       </div>
 
@@ -167,6 +187,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, on
                 key={sim.id}
                 sim={sim}
                 config={config}
+                sheetConfig={sheetConfig}
                 currentDay={currentDay}
                 resolveName={resolveName}
                 expanded={!!expandedIds[sim.id]}

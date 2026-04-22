@@ -84,6 +84,17 @@ export default function SetupWizard({ onComplete }: Props) {
           hideDeadBranches: false,
         },
       },
+      simsSheetConfig: {
+        showAge: true,
+        showSex: true,
+        showGeneration: true,
+        showBirthplace: true,
+        showParents: true,
+        showPartners: true,
+        showCauseOfDeath: true,
+        showNotes: true,
+        showTraits: true,
+      },
     };
 
     onComplete(save);

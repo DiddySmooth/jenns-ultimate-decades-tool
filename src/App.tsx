@@ -211,6 +211,17 @@ export default function App() {
                 hideDeadBranches: false,
               },
             },
+            simsSheetConfig: s.simsSheetConfig ?? {
+              showAge: true,
+              showSex: true,
+              showGeneration: true,
+              showBirthplace: true,
+              showParents: true,
+              showPartners: true,
+              showCauseOfDeath: true,
+              showNotes: true,
+              showTraits: true,
+            },
           }
         : s;
       setSave(normalized);
@@ -501,6 +512,12 @@ export default function App() {
             currentDay={save.currentDay}
             userId={user.sub}
             saveId={saveId}
+            sheetConfig={save.simsSheetConfig}
+            onSheetConfigChange={(next) => {
+              const current = saveRef.current;
+              if (!current) return;
+              updateSave({ ...current, simsSheetConfig: next });
+            }}
             onAdd={addSim}
             onUpdate={updateSim}
             onDelete={deleteSim}
