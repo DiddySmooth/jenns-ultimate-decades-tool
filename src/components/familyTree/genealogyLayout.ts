@@ -630,38 +630,29 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // ── Top-down centering pass ─────────────────────────────────────────────
-  // For each couple, re-center their children group under the couple's midpoint,
-  // then fix any overlaps that result.
+  // Re-center each non-cluster layout group under its own union/group midpoint.
   for (const g of genKeys) {
     const ids = sortedGens.get(g)!;
-    const processedCouples = new Set<string>();
+    const groups = buildGroupsForGeneration(ids);
 
-    for (const simId of ids) {
-      if (processedCouples.has(simId)) continue;
-      processedCouples.add(simId);
-      const spouseId = spouseOf.get(simId);
-      if (spouseId) processedCouples.add(spouseId);
-
-      const pA = positioned.get(simId);
-      const pB = spouseId ? positioned.get(spouseId) : null;
-      if (!pA) continue;
-
-      const allChildren = getChildrenForGroup(simId, spouseId);
+    for (const group of groups) {
+      if (group.type === 'cluster') continue; // cluster unions are handled later
+      const memberPositions = group.memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      if (memberPositions.length === 0) continue;
+      const allChildren = getChildrenForLayoutGroup(group);
       if (allChildren.length === 0) continue;
 
-      // Couple midpoint
-      const leftX = Math.min(pA.x, pB?.x ?? pA.x);
-      const rightX = Math.max(pA.x, pB?.x ?? pA.x) + NODE_W;
-      const coupleMidX = (leftX + rightX) / 2;
+      const leftX = Math.min(...memberPositions.map((p) => p.x));
+      const rightX = Math.max(...memberPositions.map((p) => p.x)) + NODE_W;
+      const groupMidX = (leftX + rightX) / 2;
 
-      // Current children group bounds
-      const childPositions = allChildren.map(c => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
+      const childPositions = allChildren.map((c) => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
       if (childPositions.length === 0) continue;
-      const childLeft = Math.min(...childPositions.map(p => p.x));
-      const childRight = Math.max(...childPositions.map(p => p.x)) + NODE_W;
+      const childLeft = Math.min(...childPositions.map((p) => p.x));
+      const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
       const childGroupMidX = (childLeft + childRight) / 2;
 
-      const shift = coupleMidX - childGroupMidX;
+      const shift = groupMidX - childGroupMidX;
       if (Math.abs(shift) > 1) {
         for (const c of allChildren) {
           const pos = positioned.get(c);
@@ -670,14 +661,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       }
     }
 
-    // Fix overlaps after centering
     const sortedIds = [...ids].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
     for (let i = 1; i < sortedIds.length; i++) {
       const prev = positioned.get(sortedIds[i - 1]);
       const cur = positioned.get(sortedIds[i]);
       if (!prev || !cur) continue;
-      const gap = spouseOf.get(sortedIds[i - 1]) === sortedIds[i] ? GAP_COUPLE : GAP_X;
-      const minX = prev.x + NODE_W + gap;
+      const minX = prev.x + NODE_W + 18;
       if (cur.x < minX) positioned.set(sortedIds[i], { x: minX, y: cur.y });
     }
   }
@@ -694,45 +683,35 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Final family centering pass: after all spacing/overlap nudges are done,
-  // shift each visible child group so its rendered center matches the final
-  // midpoint of its parent couple. This fixes the slight kinks that can appear
-  // when filters (like hide dead sims) change the visible set.
-  const recenteredParents = new Set<string>();
-  for (const [parentId] of childrenByParent) {
-    if (recenteredParents.has(parentId)) continue;
-    if ((simToUnionIds.get(parentId)?.length ?? 0) > 1) continue; // cluster unions already handled above
-    const spouseId = spouseOf.get(parentId);
-    if (spouseId && recenteredParents.has(spouseId)) continue;
+  // Final family centering pass: non-cluster groups only.
+  const recenteredGroups = new Set<string>();
+  for (const g of genKeys) {
+    const groups = buildGroupsForGeneration(sortedGens.get(g) ?? []);
+    for (const group of groups) {
+      if (group.type === 'cluster') continue;
+      if (recenteredGroups.has(group.id)) continue;
+      recenteredGroups.add(group.id);
 
-    const allChildren = getChildrenForGroup(parentId, spouseId);
-    if (allChildren.length === 0) continue;
+      const allChildren = getChildrenForLayoutGroup(group);
+      if (allChildren.length === 0) continue;
+      const memberPositions = group.memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      if (memberPositions.length === 0) continue;
+      const groupLeft = Math.min(...memberPositions.map((p) => p.x));
+      const groupRight = Math.max(...memberPositions.map((p) => p.x)) + NODE_W;
+      const groupMidX = (groupLeft + groupRight) / 2;
 
-    recenteredParents.add(parentId);
-    if (spouseId) recenteredParents.add(spouseId);
+      const childPositions = allChildren.map((childId) => positioned.get(childId)).filter(Boolean) as { x: number; y: number }[];
+      if (childPositions.length === 0) continue;
+      const childLeft = Math.min(...childPositions.map((p) => p.x));
+      const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
+      const childGroupMidX = (childLeft + childRight) / 2;
+      const shift = groupMidX - childGroupMidX;
 
-    const pA = positioned.get(parentId);
-    const pB = spouseId ? positioned.get(spouseId) : null;
-    if (!pA) continue;
-
-    const coupleMidX = pB
-      ? (pA.x + pB.x + NODE_W) / 2
-      : pA.x + NODE_W / 2;
-
-    const childPositions = allChildren
-      .map((childId) => positioned.get(childId))
-      .filter(Boolean) as { x: number; y: number }[];
-    if (childPositions.length === 0) continue;
-
-    const childLeft = Math.min(...childPositions.map((p) => p.x));
-    const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
-    const childGroupMidX = (childLeft + childRight) / 2;
-    const shift = coupleMidX - childGroupMidX;
-
-    if (Math.abs(shift) > 0.5) {
-      for (const childId of allChildren) {
-        const childPos = positioned.get(childId);
-        if (childPos) positioned.set(childId, { x: childPos.x + shift, y: childPos.y });
+      if (Math.abs(shift) > 0.5) {
+        for (const childId of allChildren) {
+          const childPos = positioned.get(childId);
+          if (childPos) positioned.set(childId, { x: childPos.x + shift, y: childPos.y });
+        }
       }
     }
   }
