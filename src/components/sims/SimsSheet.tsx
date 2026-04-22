@@ -49,6 +49,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
   const [isNew, setIsNew] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [customTraitInput, setCustomTraitInput] = useState('');
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
 
   async function uploadAvatar(file: File, simId: string) {
     const dataBase64 = await new Promise<string>((resolve, reject) => {
@@ -140,24 +141,11 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
       <div className="sheet-header">
         <h2>Sims Info Sheet</h2>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button className="btn-secondary btn-sm" onClick={() => setShowDisplaySettings(true)} title="Display settings">
+            ⚙️ Display
+          </button>
           <button className="btn-primary btn-sm" onClick={startNew}>+ Add Sim</button>
         </div>
-      </div>
-
-      <div className="sidebar-card" style={{ marginBottom: '0.9rem' }}>
-        <h3 style={{ marginTop: 0 }}>Display</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.45rem 1rem' }}>
-          <label><input type="checkbox" checked={sheetConfig.showAge} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showAge: e.target.checked })} /> Age</label>
-          <label><input type="checkbox" checked={sheetConfig.showSex} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showSex: e.target.checked })} /> Sex</label>
-          <label><input type="checkbox" checked={sheetConfig.showGeneration} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showGeneration: e.target.checked })} /> Generation</label>
-          <label><input type="checkbox" checked={sheetConfig.showBirthplace} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showBirthplace: e.target.checked })} /> Birthplace</label>
-          <label><input type="checkbox" checked={sheetConfig.showParents} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showParents: e.target.checked })} /> Parents</label>
-          <label><input type="checkbox" checked={sheetConfig.showPartners} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showPartners: e.target.checked })} /> Partners</label>
-          <label><input type="checkbox" checked={sheetConfig.showCauseOfDeath} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showCauseOfDeath: e.target.checked })} /> Cause of death</label>
-          <label><input type="checkbox" checked={sheetConfig.showNotes} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showNotes: e.target.checked })} /> Notes</label>
-          <label><input type="checkbox" checked={sheetConfig.showTraits} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showTraits: e.target.checked })} /> Traits</label>
-        </div>
-        <div className="field-hint" style={{ marginTop: '0.5rem' }}>Always shown: Name, Date of birth, Date of death, Life stage.</div>
       </div>
 
       <div className="sim-table-header">
@@ -202,6 +190,29 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
 
       {sims.length === 0 && (
         <p className="empty-state">No sims yet. Add your founder to get started.</p>
+      )}
+
+      {showDisplaySettings && (
+        <div className="modal-overlay" onClick={() => setShowDisplaySettings(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Sims Info Sheet Display</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.45rem 1rem' }}>
+              <label><input type="checkbox" checked={sheetConfig.showAge} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showAge: e.target.checked })} /> Age</label>
+              <label><input type="checkbox" checked={sheetConfig.showSex} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showSex: e.target.checked })} /> Sex</label>
+              <label><input type="checkbox" checked={sheetConfig.showGeneration} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showGeneration: e.target.checked })} /> Generation</label>
+              <label><input type="checkbox" checked={sheetConfig.showBirthplace} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showBirthplace: e.target.checked })} /> Birthplace</label>
+              <label><input type="checkbox" checked={sheetConfig.showParents} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showParents: e.target.checked })} /> Parents</label>
+              <label><input type="checkbox" checked={sheetConfig.showPartners} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showPartners: e.target.checked })} /> Partners</label>
+              <label><input type="checkbox" checked={sheetConfig.showCauseOfDeath} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showCauseOfDeath: e.target.checked })} /> Cause of death</label>
+              <label><input type="checkbox" checked={sheetConfig.showNotes} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showNotes: e.target.checked })} /> Notes</label>
+              <label><input type="checkbox" checked={sheetConfig.showTraits} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showTraits: e.target.checked })} /> Traits</label>
+            </div>
+            <div className="field-hint" style={{ marginTop: '0.75rem' }}>Always shown: Name, Date of birth, Date of death, Life stage.</div>
+            <div className="modal-actions">
+              <button className="btn-primary" onClick={() => setShowDisplaySettings(false)}>Done</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editing && (
