@@ -769,8 +769,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           totalChildW += subtreeWidth.get(c) ?? NODE_W;
           if (i > 0) totalChildW += GAP_X;
         });
-        const slotMidX = nextSlotStart + unionSlotWidth / 2;
-        let childX = slotMidX - totalChildW / 2;
+        // In a shared-parent strip, make the children visually belong to the
+        // non-shared partner for this union. Use the same partner-biased heart/drop
+        // point as MarriageEdge instead of the broad slot midpoint.
+        const heartX = (anchorX + NODE_W / 2) + ((partnerX + NODE_W / 2) - (anchorX + NODE_W / 2)) * 0.7;
+        let childX = heartX - totalChildW / 2;
         for (const c of childrenSorted) {
           const csw = subtreeWidth.get(c) ?? NODE_W;
           const childMidX = childX + csw / 2;
@@ -824,7 +827,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (partnerPositions.length >= 2) {
         const leftX = Math.min(...partnerPositions.map((p) => p.x));
         const rightX = Math.max(...partnerPositions.map((p) => p.x));
-        const midX = (leftX + rightX + NODE_W) / 2;
+        const partnerCenterA = leftX + NODE_W / 2;
+        const partnerCenterB = rightX + NODE_W / 2;
+        const isMultiUnion = partners.length > 1 && Array.from(partners).some((id) => (simToUnionIds.get(id)?.length ?? 0) > 1);
+        const midX = isMultiUnion
+          ? partnerCenterA + (partnerCenterB - partnerCenterA) * 0.7
+          : (leftX + rightX + NODE_W) / 2;
         return { ...e, data: { ...e.data, midX } };
       }
     }
