@@ -709,6 +709,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  const unionHeartX = new Map<string, number>();
+
   // Final multi-union normalization pass.
   // Hidden/dead spouses and old pair-centering logic can still leave the strip
   // visually backwards or mixed. Force shared-sim clusters into a clean strip:
@@ -756,6 +758,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       }
 
       const unionChildren = info.children ?? [];
+      const heartX = (anchorX + NODE_W / 2) + ((partnerX + NODE_W / 2) - (anchorX + NODE_W / 2)) * 0.82;
+      unionHeartX.set(layout.uid, heartX);
+
       if (unionChildren.length > 0) {
         const childrenSorted = [...unionChildren].sort((a, b) => {
           const aNode = simNodes.find(n => n.id === a);
@@ -769,10 +774,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           totalChildW += subtreeWidth.get(c) ?? NODE_W;
           if (i > 0) totalChildW += GAP_X;
         });
-        // In a shared-parent strip, make the children visually belong to the
-        // non-shared partner for this union. Use the same partner-biased heart/drop
-        // point as MarriageEdge instead of the broad slot midpoint.
-        const heartX = (anchorX + NODE_W / 2) + ((partnerX + NODE_W / 2) - (anchorX + NODE_W / 2)) * 0.7;
+        // Children should visually belong to the specific spouse/union, not the
+        // broad strip midpoint, so use the same explicit heartX.
         let childX = heartX - totalChildW / 2;
         for (const c of childrenSorted) {
           const csw = subtreeWidth.get(c) ?? NODE_W;
@@ -820,6 +823,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     // Prefer the exact union partners when available.
     if (data?.unionId) {
+      const explicitHeartX = unionHeartX.get(data.unionId);
+      if (explicitHeartX != null) {
+        return { ...e, data: { ...e.data, midX: explicitHeartX } };
+      }
+
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
       const partnerPositions = partners
         .map((id) => positioned.get(id))
@@ -831,7 +839,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const partnerCenterB = rightX + NODE_W / 2;
         const isMultiUnion = partners.length > 1 && Array.from(partners).some((id) => (simToUnionIds.get(id)?.length ?? 0) > 1);
         const midX = isMultiUnion
-          ? partnerCenterA + (partnerCenterB - partnerCenterA) * 0.7
+          ? partnerCenterA + (partnerCenterB - partnerCenterA) * 0.82
           : (leftX + rightX + NODE_W) / 2;
         return { ...e, data: { ...e.data, midX } };
       }
