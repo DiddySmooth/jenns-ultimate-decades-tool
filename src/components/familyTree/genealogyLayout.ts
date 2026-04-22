@@ -709,6 +709,71 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // Final multi-union normalization pass.
+  // Hidden/dead spouses and old pair-centering logic can still leave the strip
+  // visually backwards or mixed. Force shared-sim clusters into a clean strip:
+  // anchor sim first, then visible partners to the right, then re-center each
+  // union's children under the corrected midpoint.
+  for (const [anchorId, unionIds] of simToUnionIds) {
+    if (unionIds.length <= 1) continue;
+    const anchorPos = positioned.get(anchorId);
+    if (!anchorPos) continue;
+
+    const visibleUnionLayouts = unionIds
+      .map((uid) => ({ uid, info: unionInfos.get(uid) }))
+      .filter((x) => x.info && x.info.partners.some((p) => p !== anchorId && positioned.has(p)))
+      .sort((a, b) => (a.info?.secondaryIndex ?? 0) - (b.info?.secondaryIndex ?? 0));
+    if (visibleUnionLayouts.length === 0) continue;
+
+    const clusterMemberPositions = [anchorId, ...visibleUnionLayouts.flatMap((x) => x.info?.partners ?? [])]
+      .filter((id, idx, arr) => arr.indexOf(id) === idx)
+      .map((id) => positioned.get(id)?.x)
+      .filter((x): x is number => x != null);
+    if (clusterMemberPositions.length === 0) continue;
+
+    const anchorX = Math.min(...clusterMemberPositions);
+    positioned.set(anchorId, { x: anchorX, y: anchorPos.y });
+
+    let nextPartnerX = anchorX + NODE_W + GAP_COUPLE;
+    for (const layout of visibleUnionLayouts) {
+      const info = layout.info;
+      if (!info) continue;
+      const partnerId = info.partners.find((id) => id !== anchorId && positioned.has(id));
+      if (!partnerId) continue;
+      const partnerPos = positioned.get(partnerId);
+      if (!partnerPos) continue;
+
+      positioned.set(partnerId, { x: nextPartnerX, y: anchorPos.y });
+
+      const unionChildren = info.children ?? [];
+      if (unionChildren.length > 0) {
+        const childrenSorted = [...unionChildren].sort((a, b) => {
+          const aNode = simNodes.find(n => n.id === a);
+          const bNode = simNodes.find(n => n.id === b);
+          const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+          const by2 = (bNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+          return ay - by2;
+        });
+        let totalChildW = 0;
+        childrenSorted.forEach((c, i) => {
+          totalChildW += subtreeWidth.get(c) ?? NODE_W;
+          if (i > 0) totalChildW += GAP_X;
+        });
+        const unionMidX = (anchorX + nextPartnerX + NODE_W) / 2;
+        let childX = unionMidX - totalChildW / 2;
+        for (const c of childrenSorted) {
+          const csw = subtreeWidth.get(c) ?? NODE_W;
+          const childMidX = childX + csw / 2;
+          const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
+          positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
+          childX += csw + GAP_X;
+        }
+      }
+
+      nextPartnerX += NODE_W + 18;
+    }
+  }
+
   // Build result
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
