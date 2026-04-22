@@ -1,4 +1,4 @@
-import type { AvatarCrop, SimEntry, TrackerConfig, SimSex, SimsSheetConfig } from '../../types/tracker';
+import type { AvatarCrop, SimEntry, TrackerConfig, SimSex, SimsSheetConfig, UnionNode } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 import { useMemo, useState } from 'react';
 import {
@@ -24,6 +24,7 @@ import AvatarCropEditor from './AvatarCropEditor';
 
 interface Props {
   sims: SimEntry[];
+  unions: UnionNode[];
   config: TrackerConfig;
   currentDay: number;
   userId: string;
@@ -33,6 +34,7 @@ interface Props {
   onAdd: (sim: SimEntry) => void;
   onUpdate: (sim: SimEntry) => void;
   onDelete: (id: string) => void;
+  onUnionsChange: (next: UnionNode[]) => void;
   onReorder: (next: SimEntry[]) => void;
 }
 
@@ -44,7 +46,7 @@ const blankSim = (): SimEntry => ({
   generation: 1,
 });
 
-export default function SimsSheet({ sims, config, currentDay, userId, saveId, sheetConfig, onSheetConfigChange, onAdd, onUpdate, onDelete, onReorder }: Props) {
+export default function SimsSheet({ sims, unions, config, currentDay, userId, saveId, sheetConfig, onSheetConfigChange, onAdd, onUpdate, onDelete, onUnionsChange, onReorder }: Props) {
   const [editing, setEditing] = useState<SimEntry | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -81,6 +83,23 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
   const simsNormalized = useMemo(() => sims.map(migrateSimEntry), [sims]);
   const simOptions = useMemo(() => simsNormalized.map((s) => ({ id: s.id, label: getFullName(s) })), [simsNormalized]);
 
+  const unionsForSim = (simId?: string) => (unions ?? []).filter((u) => u.partnerAId === simId || u.partnerBId === simId);
+
+  const syncLegacyPartnerFields = (sim: SimEntry, nextUnions: UnionNode[]): SimEntry => {
+    const related = nextUnions
+      .filter((u) => u.partnerAId === sim.id || u.partnerBId === sim.id)
+      .sort((a, b) => {
+        const aActive = a.endYear == null ? 1 : 0;
+        const bActive = b.endYear == null ? 1 : 0;
+        if (aActive !== bActive) return bActive - aActive;
+        return (b.startYear ?? -Infinity) - (a.startYear ?? -Infinity);
+      });
+    const primary = related[0];
+    if (!primary) return { ...sim, spouseId: undefined, marriageYear: undefined };
+    const partnerId = primary.partnerAId === sim.id ? primary.partnerBId : primary.partnerAId;
+    return { ...sim, spouseId: partnerId, marriageYear: primary.startYear };
+  };
+
   const startNew = () => {
     setEditing(blankSim());
     setIsNew(true);
@@ -90,10 +109,10 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
     if (!editing) return;
 
     // Keep legacy name field populated for any old code paths
-    const normalized: SimEntry = {
+    const normalized: SimEntry = syncLegacyPartnerFields({
       ...editing,
       name: `${editing.firstName} ${editing.lastName}`.trim(),
-    };
+    }, unions);
 
     if (isNew) onAdd(normalized);
     else onUpdate(normalized);
@@ -171,10 +190,12 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={simsNormalized.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <div className="sims-list rows">
-            {simsNormalized.map((sim) => (
+            {simsNormalized.map((sim) => {
+              const hydratedSim = syncLegacyPartnerFields(sim, unions);
+              return (
               <SortableSimRow
                 key={sim.id}
-                sim={sim}
+                sim={hydratedSim}
                 config={config}
                 sheetConfig={sheetConfig}
                 currentDay={currentDay}
@@ -184,7 +205,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
                 onEdit={() => { setEditing({ ...sim }); setIsNew(false); }}
                 onDelete={() => onDelete(sim.id)}
               />
-            ))}
+            );})}
           </div>
         </SortableContext>
       </DndContext>
@@ -371,20 +392,69 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
             </div>
 
             <div className="field-group">
-              <label>Spouse</label>
-              <select value={editing.spouseId ?? ''} onChange={(e) => setEditing({ ...editing, spouseId: e.target.value || undefined })}>
-                <option value="">—</option>
-                {simOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-              </select>
-            </div>
-
-            <div className="field-group">
-              <label>Marriage Year</label>
-              <input
-                type="number"
-                value={editing.marriageYear ?? ''}
-                onChange={(e) => setEditing({ ...editing, marriageYear: e.target.value ? Number(e.target.value) : undefined })}
-              />
+              <label>Relationships</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {unionsForSim(editing.id).map((u) => {
+                  const partnerId = u.partnerAId === editing.id ? u.partnerBId : u.partnerAId;
+                  return (
+                    <div key={u.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.75rem', display: 'grid', gap: '0.5rem' }}>
+                      <div className="field-group" style={{ margin: 0 }}>
+                        <label>Partner</label>
+                        <select
+                          value={partnerId ?? ''}
+                          onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? {
+                            ...x,
+                            partnerAId: editing.id,
+                            partnerBId: e.target.value || undefined,
+                          } : x))}
+                        >
+                          <option value="">—</option>
+                          {simOptions.filter((o) => o.id !== editing.id).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem' }}>
+                        <div className="field-group" style={{ margin: 0 }}>
+                          <label>Start Year</label>
+                          <input type="number" value={u.startYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, startYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
+                        </div>
+                        <div className="field-group" style={{ margin: 0 }}>
+                          <label>Start Day</label>
+                          <input type="number" min={1} max={config.daysPerYear} value={u.startDayOfYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, startDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
+                        </div>
+                        <div className="field-group" style={{ margin: 0 }}>
+                          <label>End Year</label>
+                          <input type="number" value={u.endYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
+                        </div>
+                        <div className="field-group" style={{ margin: 0 }}>
+                          <label>End Day</label>
+                          <input type="number" min={1} max={config.daysPerYear} value={u.endDayOfYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
+                        </div>
+                      </div>
+                      <div className="field-group" style={{ margin: 0 }}>
+                        <label>End Reason</label>
+                        <select value={u.endReason ?? 'unknown'} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endReason: e.target.value as UnionNode['endReason'] } : x))}>
+                          <option value="unknown">Unknown</option>
+                          <option value="divorce">Divorce</option>
+                          <option value="death">Death</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button className="btn-ghost btn-sm btn-danger" onClick={() => onUnionsChange(unions.filter((x) => x.id !== u.id))}>Remove relationship</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button
+                  className="btn-secondary btn-sm"
+                  onClick={() => onUnionsChange([
+                    ...unions,
+                    { id: nanoid(), partnerAId: editing.id, partnerBId: undefined, startYear: undefined, startDayOfYear: undefined, endYear: undefined, endDayOfYear: undefined, endReason: 'unknown' },
+                  ])}
+                >
+                  + Add Relationship
+                </button>
+                <span className="field-hint">Supports remarriage, widowhood, and multiple partners. Family tree rendering still uses one primary/current relationship for layout stability.</span>
+              </div>
             </div>
             <div className="field-group">
               <label>Notes</label>

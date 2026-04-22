@@ -315,7 +315,15 @@ export default function App() {
 
   const addSim = (sim: SimEntry) => { const c = saveRef.current; if (c) updateSave({ ...c, sims: [...c.sims, sim] }); };
   const updateSim = (sim: SimEntry) => { const c = saveRef.current; if (c) updateSave({ ...c, sims: c.sims.map((s) => s.id === sim.id ? sim : s) }); };
-  const deleteSim = (id: string) => { const c = saveRef.current; if (c) updateSave({ ...c, sims: c.sims.filter((s) => s.id !== id) }); };
+  const deleteSim = (id: string) => {
+    const c = saveRef.current;
+    if (!c) return;
+    updateSave({
+      ...c,
+      sims: c.sims.filter((s) => s.id !== id),
+      unions: (c.unions ?? []).filter((u) => u.partnerAId !== id && u.partnerBId !== id),
+    });
+  };
 
   if (loading || saveLoading) {
     return <div className="loading-screen"><p>Loading…</p></div>;
@@ -508,6 +516,7 @@ export default function App() {
         {tab === 'sims' && (
           <SimsSheet
             sims={save.sims}
+            unions={save.unions ?? []}
             config={save.config}
             currentDay={save.currentDay}
             userId={user.sub}
@@ -521,6 +530,11 @@ export default function App() {
             onAdd={addSim}
             onUpdate={updateSim}
             onDelete={deleteSim}
+            onUnionsChange={(next) => {
+              const current = saveRef.current;
+              if (!current) return;
+              updateSave({ ...current, unions: next });
+            }}
             onReorder={(next) => {
               const current = saveRef.current;
               if (!current) return;

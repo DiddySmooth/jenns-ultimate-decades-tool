@@ -77,19 +77,36 @@ export function buildFamilyTree(
   // partners exist. We still keep unions in the data model (unions array)
   // but they won't be rendered as nodes.
 
-  unions.forEach((u) => {
-    if (u.partnerAId && u.partnerBId) {
-      edges.push({
-        id: `e:marriage:${u.id}`,
-        source: `sim:${u.partnerAId}`,
-        target: `sim:${u.partnerBId}`,
-        sourceHandle: 'spouse-out',
-        targetHandle: 'spouse-in',
-        type: 'marriage',
-        zIndex: 10,
-        data: { kind: 'spouse', unionId: u.id },
-      });
-    }
+  // Render only one primary/current marriage edge per visible sim so the
+  // existing family-tree layout (which assumes one spouse per sim) stays stable.
+  const renderedMarriageSimIds = new Set<string>();
+  const marriageCandidates = [...unions]
+    .filter((u) => u.partnerAId && u.partnerBId && visibleSimIds.has(u.partnerAId) && visibleSimIds.has(u.partnerBId))
+    .sort((a, b) => {
+      const aActive = a.endYear == null ? 1 : 0;
+      const bActive = b.endYear == null ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+      const aStart = a.startYear ?? -Infinity;
+      const bStart = b.startYear ?? -Infinity;
+      if (aStart !== bStart) return bStart - aStart;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+  marriageCandidates.forEach((u) => {
+    if (!u.partnerAId || !u.partnerBId) return;
+    if (renderedMarriageSimIds.has(u.partnerAId) || renderedMarriageSimIds.has(u.partnerBId)) return;
+    renderedMarriageSimIds.add(u.partnerAId);
+    renderedMarriageSimIds.add(u.partnerBId);
+    edges.push({
+      id: `e:marriage:${u.id}`,
+      source: `sim:${u.partnerAId}`,
+      target: `sim:${u.partnerBId}`,
+      sourceHandle: 'spouse-out',
+      targetHandle: 'spouse-in',
+      type: 'marriage',
+      zIndex: 10,
+      data: { kind: 'spouse', unionId: u.id },
+    });
   });
 
   // Children edges derived from sims father/mother

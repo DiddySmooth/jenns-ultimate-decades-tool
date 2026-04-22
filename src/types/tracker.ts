@@ -151,7 +151,9 @@ export interface UnionNode {
   partnerAId?: string;
   partnerBId?: string;
   startYear?: number;
+  startDayOfYear?: number;
   endYear?: number;
+  endDayOfYear?: number;
   endReason?: UnionEndReason;
   notes?: string;
 }
