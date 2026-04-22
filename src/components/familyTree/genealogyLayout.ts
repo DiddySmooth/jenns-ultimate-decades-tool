@@ -488,6 +488,83 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // Secondary union satellite pass.
+  // Keep the current primary-couple layout intact, but pull additional partners
+  // closer to the shared sim when one sim has many unions and the other sim is
+  // only in that one union. This is a pragmatic step toward union-centric layout.
+  const marriageEdges = edges.filter((e) => (e.data as { kind?: string } | undefined)?.kind === 'spouse');
+  const marriageCountBySim = new Map<string, number>();
+  for (const e of marriageEdges) {
+    const a = String(e.source);
+    const b = String(e.target);
+    marriageCountBySim.set(a, (marriageCountBySim.get(a) ?? 0) + 1);
+    marriageCountBySim.set(b, (marriageCountBySim.get(b) ?? 0) + 1);
+  }
+  const secondaryMarriageEdges = marriageEdges
+    .filter((e) => (e.data as { primary?: boolean } | undefined)?.primary === false)
+    .sort((a, b) => (((a.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0) - ((b.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0)));
+
+  for (const e of secondaryMarriageEdges) {
+    const data = (e.data as { unionId?: string; secondaryIndex?: number } | undefined);
+    const a = String(e.source);
+    const b = String(e.target);
+    const aCount = marriageCountBySim.get(a) ?? 0;
+    const bCount = marriageCountBySim.get(b) ?? 0;
+
+    // Only do the satellite collapse when one endpoint is the obvious shared anchor
+    // and the other endpoint is a one-union partner.
+    let anchorId: string | null = null;
+    let satelliteId: string | null = null;
+    if (aCount > 1 && bCount === 1) {
+      anchorId = a;
+      satelliteId = b;
+    } else if (bCount > 1 && aCount === 1) {
+      anchorId = b;
+      satelliteId = a;
+    } else {
+      continue;
+    }
+
+    const anchorPos = positioned.get(anchorId);
+    const satellitePos = positioned.get(satelliteId);
+    if (!anchorPos || !satellitePos) continue;
+
+    const idx = Math.max(1, data?.secondaryIndex ?? 1);
+    const side = idx % 2 === 1 ? 1 : -1;
+    const slot = Math.ceil(idx / 2);
+    const extraGap = (slot - 1) * (NODE_W + 24);
+    const nextX = side === 1
+      ? anchorPos.x + NODE_W + GAP_COUPLE + extraGap
+      : anchorPos.x - GAP_COUPLE - NODE_W - extraGap;
+
+    positioned.set(satelliteId, { x: nextX, y: anchorPos.y });
+
+    // If the union has children, re-center that child group under the satellite union.
+    const unionId = data?.unionId;
+    const unionChildren = unionId ? (childrenByUnion.get(unionId) ?? []) : [];
+    if (unionChildren.length > 0) {
+      const anchorAfter = positioned.get(anchorId);
+      const satAfter = positioned.get(satelliteId);
+      if (!anchorAfter || !satAfter) continue;
+      const unionMidX = (anchorAfter.x + satAfter.x + NODE_W) / 2;
+      const childPositions = unionChildren
+        .map((childId) => positioned.get(childId))
+        .filter(Boolean) as { x: number; y: number }[];
+      if (childPositions.length > 0) {
+        const childLeft = Math.min(...childPositions.map((p) => p.x));
+        const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
+        const childMidX = (childLeft + childRight) / 2;
+        const shift = unionMidX - childMidX;
+        if (Math.abs(shift) > 0.5) {
+          for (const childId of unionChildren) {
+            const pos = positioned.get(childId);
+            if (pos) positioned.set(childId, { x: pos.x + shift, y: pos.y });
+          }
+        }
+      }
+    }
+  }
+
   // Final family centering pass: after all spacing/overlap nudges are done,
   // shift each visible child group so its rendered center matches the final
   // midpoint of its parent couple. This fixes the slight kinks that can appear
