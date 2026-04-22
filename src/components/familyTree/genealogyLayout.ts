@@ -11,9 +11,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   // Union nodes no longer exist in the graph; spouses derived from marriage edges below
 
   // Build explicit union-aware relationship indices from edge metadata.
-  // Keep spouseOf only as a temporary compatibility helper for the remaining
-  // pair-centric passes that haven't been removed yet.
-  const spouseOf = new Map<string, string>();
   const unionPartnersAll = new Map<string, Set<string>>();
   const unionChildrenAll = new Map<string, Set<string>>();
   const personToUnionIds = new Map<string, Set<string>>();
@@ -26,10 +23,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const b = String(e.target);
 
     if (kind === 'spouse') {
-      if (!data || data.primary !== false) {
-        if (!spouseOf.has(a)) spouseOf.set(a, b);
-        if (!spouseOf.has(b)) spouseOf.set(b, a);
-      }
       if (data?.unionId) {
         const set = unionPartnersAll.get(data.unionId) ?? new Set<string>();
         set.add(a);
@@ -231,8 +224,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     for (const id of ids) {
       if (visited.has(id)) continue;
       visited.add(id);
-      // prefer explicit union pair detection; fall back to spouseOf for compatibility
-      const spouse = Array.from(ids).find((other) => (shareExclusivePairUnion(id, other) || spouseOf.get(id) === other));
+      // prefer explicit union pair detection
+      const spouse = Array.from(ids).find((other) => shareExclusivePairUnion(id, other));
       if (spouse && spouse !== id && !visited.has(spouse)) {
         visited.add(spouse);
         couples.push([id, spouse]);
@@ -281,7 +274,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const prev = ids[i - 1];
         const cur = ids[i];
         // Use tighter gap if this is a couple
-        const isCouple = shareExclusivePairUnion(prev, cur) || spouseOf.get(prev) === cur;
+        const isCouple = shareExclusivePairUnion(prev, cur);
         const gap = isCouple ? GAP_COUPLE : GAP_X;
         w += gap;
       }
@@ -303,7 +296,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (i > 0) {
         const prev = ids[i - 1];
         const cur = ids[i];
-        const isCouple = shareExclusivePairUnion(prev, cur) || spouseOf.get(prev) === cur;
+        const isCouple = shareExclusivePairUnion(prev, cur);
         x += isCouple ? GAP_COUPLE : GAP_X;
       }
       positioned.set(ids[i], { x, y });
@@ -338,9 +331,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       unionArr.push(tgt);
       childrenByUnion.set(data.unionId, unionArr);
       const set = unionPartners.get(data.unionId) ?? new Set<string>();
+      for (const partnerId of Array.from(unionPartnersAll.get(data.unionId) ?? [])) set.add(partnerId);
       set.add(src);
-      const spouse = spouseOf.get(src);
-      if (spouse) set.add(spouse);
       unionPartners.set(data.unionId, set);
     }
   }
@@ -439,12 +431,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         continue;
       }
 
-      const spouse = spouseOf.get(id);
-      if (spouse && ids.includes(spouse) && !seen.has(spouse)) {
+      const explicitSpouse = Array.from(ids).find((other) => other !== id && !seen.has(other) && shareExclusivePairUnion(id, other));
+      if (explicitSpouse) {
         seen.add(id);
-        seen.add(spouse);
-        const unionIds = (simToUnionIds.get(id) ?? []).filter((uid) => (unionInfos.get(uid)?.partners ?? []).includes(spouse));
-        groups.push({ id: `couple:${id}:${spouse}`, type: 'couple', anchorId: id, memberIds: [id, spouse], unionIds });
+        seen.add(explicitSpouse);
+        const unionIds = (simToUnionIds.get(id) ?? []).filter((uid) => (unionInfos.get(uid)?.partners ?? []).includes(explicitSpouse));
+        groups.push({ id: `couple:${id}:${explicitSpouse}`, type: 'couple', anchorId: id, memberIds: [id, explicitSpouse], unionIds });
       } else {
         seen.add(id);
         groups.push({ id: `single:${id}`, type: 'single', anchorId: id, memberIds: [id], unionIds: simToUnionIds.get(id) ?? [] });
@@ -652,7 +644,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const prev = positioned.get(ids[i - 1]);
       const cur = positioned.get(ids[i]);
       if (!prev || !cur) continue;
-      const gap = spouseOf.get(ids[i - 1]) === ids[i] ? GAP_COUPLE : GAP_X;
+      const gap = shareExclusivePairUnion(ids[i - 1], ids[i]) ? GAP_COUPLE : GAP_X;
       const minX = prev.x + NODE_W + gap;
       if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
     }
@@ -882,13 +874,18 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       }
     }
 
-    // Fallback to the primary spouse pair assumption when no union is known.
-    const spouseId = spouseOf.get(String(e.source));
-    if (!spouseId) return e;
-    const spousePos = positioned.get(spouseId);
-    if (!spousePos) return e;
-    const midX = (srcPos.x + spousePos.x + NODE_W) / 2;
-    return { ...e, data: { ...e.data, midX } };
+    // Fallback: if we know both parents from childToParentSims, use their midpoint.
+    const parentIds = Array.from(childToParentSims.get(String(e.target)) ?? []).filter((id) => positioned.has(id));
+    if (parentIds.length >= 2) {
+      const parentPositions = parentIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      const leftX = Math.min(...parentPositions.map((p) => p.x));
+      const rightX = Math.max(...parentPositions.map((p) => p.x));
+      const midX = (leftX + rightX + NODE_W) / 2;
+      return { ...e, data: { ...e.data, midX } };
+    }
+
+    // Last resort: single-parent center.
+    return { ...e, data: { ...e.data, midX: srcPos.x + NODE_W / 2 } };
   });
 
   return { nodes: result, edges: updatedEdges };
