@@ -164,6 +164,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
         {sheetConfig.showPartners && <span>Married</span>}
         <span>Died</span>
         {sheetConfig.showCauseOfDeath && <span>COD</span>}
+        {sheetConfig.showTraits && <span>Traits</span>}
         <span />
       </div>
 
@@ -207,7 +208,7 @@ export default function SimsSheet({ sims, config, currentDay, userId, saveId, sh
               <label><input type="checkbox" checked={sheetConfig.showNotes} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showNotes: e.target.checked })} /> Notes</label>
               <label><input type="checkbox" checked={sheetConfig.showTraits} onChange={(e) => onSheetConfigChange({ ...sheetConfig, showTraits: e.target.checked })} /> Traits</label>
             </div>
-            <div className="field-hint" style={{ marginTop: '0.75rem' }}>Always shown: Name, Date of birth, Date of death, Life stage.</div>
+            <div className="field-hint" style={{ marginTop: '0.75rem' }}>Always shown: Name, Date of birth, Date of death, Life stage, and traits in expanded sim details.</div>
             <div className="modal-actions">
               <button className="btn-primary" onClick={() => setShowDisplaySettings(false)}>Done</button>
             </div>
