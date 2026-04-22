@@ -233,18 +233,55 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Third pass: center each group of children under their parents' midpoint
-  // Group children by their source parent sim
+  // Third pass: group children by BOTH source parent sim and union id.
+  // This is the first Phase 3 step toward union-centric layout: children of
+  // different unions should not be merged just because they share one parent.
   const childrenByParent = new Map<string, string[]>();
+  const childrenByUnion = new Map<string, string[]>();
+  const unionPartners = new Map<string, Set<string>>();
   for (const e of edges) {
     const src = String(e.source);
     const tgt = String(e.target);
-    const kind = (e.data as { kind?: string } | undefined)?.kind;
+    const data = (e.data as { kind?: string; unionId?: string } | undefined);
+    const kind = data?.kind;
+    if (kind === 'spouse' && data?.unionId && src.startsWith('sim:') && String(e.target).startsWith('sim:')) {
+      const set = unionPartners.get(data.unionId) ?? new Set<string>();
+      set.add(src);
+      set.add(String(e.target));
+      unionPartners.set(data.unionId, set);
+    }
     if (kind !== 'parent' || !tgt.startsWith('sim:') || !src.startsWith('sim:')) continue;
     const arr = childrenByParent.get(src) ?? [];
     arr.push(tgt);
     childrenByParent.set(src, arr);
+
+    if (data?.unionId) {
+      const unionArr = childrenByUnion.get(data.unionId) ?? [];
+      unionArr.push(tgt);
+      childrenByUnion.set(data.unionId, unionArr);
+      const set = unionPartners.get(data.unionId) ?? new Set<string>();
+      set.add(src);
+      const spouse = spouseOf.get(src);
+      if (spouse) set.add(spouse);
+      unionPartners.set(data.unionId, set);
+    }
   }
+
+  const getChildrenForGroup = (parentA: string, parentB?: string): string[] => {
+    const unionChildIds = Array.from(childrenByUnion.entries())
+      .filter(([unionId]) => {
+        const partners = unionPartners.get(unionId);
+        if (!partners) return false;
+        if (!partners.has(parentA)) return false;
+        if (parentB) return partners.has(parentB);
+        return true;
+      })
+      .flatMap(([, ids]) => ids);
+
+    const directA = childrenByParent.get(parentA) ?? [];
+    const directB = parentB ? (childrenByParent.get(parentB) ?? []) : [];
+    return Array.from(new Set([...unionChildIds, ...directA, ...directB]));
+  };
 
   // ── Bottom-up subtree width layout ───────────────────────────────────────
   // Calculate how wide each couple's subtree needs to be, then position
@@ -266,9 +303,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const spouseId = spouseOf.get(simId);
       if (spouseId) processedCouples.add(spouseId);
 
-      const myChildren = childrenByParent.get(simId) ?? [];
-      const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
-      const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+      const allChildren = getChildrenForGroup(simId, spouseId);
 
       if (allChildren.length === 0) {
         // Leaf couple: width is just the two cards + couple gap
@@ -341,9 +376,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       }
 
       // Place children evenly within the subtree width
-      const myChildren = childrenByParent.get(grp[0]) ?? [];
-      const spouseChildren = grp[1] ? (childrenByParent.get(grp[1]) ?? []) : [];
-      const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+      const allChildren = getChildrenForGroup(grp[0], grp[1]);
 
       if (allChildren.length > 0) {
         const childrenSorted = [...allChildren].sort((a, b) => {
@@ -407,9 +440,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const pB = spouseId ? positioned.get(spouseId) : null;
       if (!pA) continue;
 
-      const myChildren = childrenByParent.get(simId) ?? [];
-      const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
-      const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+      const allChildren = getChildrenForGroup(simId, spouseId);
       if (allChildren.length === 0) continue;
 
       // Couple midpoint
@@ -467,9 +498,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const spouseId = spouseOf.get(parentId);
     if (spouseId && recenteredParents.has(spouseId)) continue;
 
-    const myChildren = childrenByParent.get(parentId) ?? [];
-    const spouseChildren = spouseId ? (childrenByParent.get(spouseId) ?? []) : [];
-    const allChildren = Array.from(new Set([...myChildren, ...spouseChildren]));
+    const allChildren = getChildrenForGroup(parentId, spouseId);
     if (allChildren.length === 0) continue;
 
     recenteredParents.add(parentId);
@@ -512,14 +541,32 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
   // Inject midX into child edges so FamilyEdge can draw from the correct X between parents
   const updatedEdges = edges.map((e) => {
-    const kind = (e.data as { kind?: string; unionId?: string } | undefined)?.kind;
+    const data = (e.data as { kind?: string; unionId?: string } | undefined);
+    const kind = data?.kind;
     if (kind !== 'parent') return e;
-    // Find the source sim's spouse
+
+    const srcPos = positioned.get(String(e.source));
+    if (!srcPos) return e;
+
+    // Prefer the exact union partners when available.
+    if (data?.unionId) {
+      const partners = Array.from(unionPartners.get(data.unionId) ?? []);
+      const partnerPositions = partners
+        .map((id) => positioned.get(id))
+        .filter(Boolean) as { x: number; y: number }[];
+      if (partnerPositions.length >= 2) {
+        const leftX = Math.min(...partnerPositions.map((p) => p.x));
+        const rightX = Math.max(...partnerPositions.map((p) => p.x));
+        const midX = (leftX + rightX + NODE_W) / 2;
+        return { ...e, data: { ...e.data, midX } };
+      }
+    }
+
+    // Fallback to the primary spouse pair assumption when no union is known.
     const spouseId = spouseOf.get(String(e.source));
     if (!spouseId) return e;
-    const srcPos = positioned.get(String(e.source));
     const spousePos = positioned.get(spouseId);
-    if (!srcPos || !spousePos) return e;
+    if (!spousePos) return e;
     const midX = (srcPos.x + spousePos.x + NODE_W) / 2;
     return { ...e, data: { ...e.data, midX } };
   });

@@ -240,14 +240,14 @@ export function buildFamilyTree(
           sourceHandle: 'parent-out',
           targetHandle: 'parent-in',
           type: 'trunk',
-          data: { kind: 'parent', birthYear },
+          data: { kind: 'parent', birthYear, unionId },
         });
       } else {
         // If primary parent isn't visible, fall back to connecting from any visible parent.
         if (unionObj?.partnerAId && visibleSimIds.has(unionObj.partnerAId)) {
-          edges.push({ id: `e:union:${unionId}->${childNode}:${idx}:a`, source: `sim:${unionObj.partnerAId}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'trunk', data: { kind: 'parent', birthYear } });
+          edges.push({ id: `e:union:${unionId}->${childNode}:${idx}:a`, source: `sim:${unionObj.partnerAId}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'trunk', data: { kind: 'parent', birthYear, unionId } });
         } else if (unionObj?.partnerBId && visibleSimIds.has(unionObj.partnerBId)) {
-          edges.push({ id: `e:union:${unionId}->${childNode}:${idx}:b`, source: `sim:${unionObj.partnerBId}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'trunk', data: { kind: 'parent', birthYear } });
+          edges.push({ id: `e:union:${unionId}->${childNode}:${idx}:b`, source: `sim:${unionObj.partnerBId}`, target: childNode, sourceHandle: 'parent-out', targetHandle: 'parent-in', type: 'trunk', data: { kind: 'parent', birthYear, unionId } });
         } else {
           // Neither partner visible; nothing to do (children may be connected via fallbackParentEdges)
         }
