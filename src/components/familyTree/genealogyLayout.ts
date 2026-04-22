@@ -124,19 +124,27 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const g of genKeys) {
     const ids = new Set(gens.get(g)!);
 
-    // For each sim, find their parent's birth order (index in previous generation)
-    // Use the sim's own ID hash as tiebreaker for stable sort
-    const parentOrder = (simId: string): number => {
+    // For each sim, find their parent's birth order (index in previous generation).
+    // Must be cycle-safe: founder couples / multi-partner data can otherwise recurse forever.
+    const parentOrder = (simId: string, seen = new Set<string>()): number => {
+      if (seen.has(simId)) {
+        const selfIdx = simNodes.findIndex((n) => n.id === simId);
+        return selfIdx >= 0 ? selfIdx : 999999;
+      }
+      const nextSeen = new Set(seen);
+      nextSeen.add(simId);
+
       const pars = childToParentSims.get(simId);
       if (!pars || pars.size === 0) {
         const spouse = spouseOf.get(simId);
-        if (spouse) return parentOrder(spouse);
-        return 999999;
+        if (spouse && spouse !== simId) return parentOrder(spouse, nextSeen);
+        const selfIdx = simNodes.findIndex((n) => n.id === simId);
+        return selfIdx >= 0 ? selfIdx : 999999;
       }
       // Use lowest parent sim index in simNodes as proxy for left-to-right order
       let minIdx = 999999;
       for (const par of pars) {
-        const idx = simNodes.findIndex(n => n.id === par);
+        const idx = simNodes.findIndex((n) => n.id === par);
         if (idx >= 0 && idx < minIdx) minIdx = idx;
       }
       return minIdx;
@@ -159,8 +167,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     // Sort couples by their leftmost parent order
     couples.sort((a, b) => {
-      const aX = Math.min(...a.map(parentOrder));
-      const bX = Math.min(...b.map(parentOrder));
+      const aX = Math.min(...a.map((id) => parentOrder(id)));
+      const bX = Math.min(...b.map((id) => parentOrder(id)));
       return aX - bX;
     });
 
