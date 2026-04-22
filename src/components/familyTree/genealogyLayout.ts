@@ -10,25 +10,68 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
   // Union nodes no longer exist in the graph; spouses derived from marriage edges below
 
-  // Build spouse sets from marriage edges (union nodes no longer exist in graph)
+  // Build explicit union-aware relationship indices from edge metadata.
+  // Keep spouseOf only as a temporary compatibility helper for the remaining
+  // pair-centric passes that haven't been removed yet.
   const spouseOf = new Map<string, string>();
   const unionPartnersAll = new Map<string, Set<string>>();
+  const unionChildrenAll = new Map<string, Set<string>>();
+  const personToUnionIds = new Map<string, Set<string>>();
+  const primaryUnionByPerson = new Map<string, string>();
+
   for (const e of edges) {
     const data = (e.data as { kind?: string; primary?: boolean; unionId?: string } | undefined);
     const kind = data?.kind;
-    if (kind !== 'spouse') continue;
     const a = String(e.source);
     const b = String(e.target);
-    if (!data || data.primary !== false) {
-      if (!spouseOf.has(a)) spouseOf.set(a, b);
-      if (!spouseOf.has(b)) spouseOf.set(b, a);
+
+    if (kind === 'spouse') {
+      if (!data || data.primary !== false) {
+        if (!spouseOf.has(a)) spouseOf.set(a, b);
+        if (!spouseOf.has(b)) spouseOf.set(b, a);
+      }
+      if (data?.unionId) {
+        const set = unionPartnersAll.get(data.unionId) ?? new Set<string>();
+        set.add(a);
+        set.add(b);
+        unionPartnersAll.set(data.unionId, set);
+
+        const unionsA = personToUnionIds.get(a) ?? new Set<string>();
+        unionsA.add(data.unionId);
+        personToUnionIds.set(a, unionsA);
+        const unionsB = personToUnionIds.get(b) ?? new Set<string>();
+        unionsB.add(data.unionId);
+        personToUnionIds.set(b, unionsB);
+
+        if (data.primary) {
+          primaryUnionByPerson.set(a, data.unionId);
+          primaryUnionByPerson.set(b, data.unionId);
+        }
+      }
+      continue;
     }
-    if (data?.unionId) {
-      const set = unionPartnersAll.get(data.unionId) ?? new Set<string>();
-      set.add(a);
-      set.add(b);
-      unionPartnersAll.set(data.unionId, set);
+
+    if (kind === 'parent' && data?.unionId && b.startsWith('sim:')) {
+      const children = unionChildrenAll.get(data.unionId) ?? new Set<string>();
+      children.add(b);
+      unionChildrenAll.set(data.unionId, children);
     }
+  }
+
+  const unionIdsByPerson = new Map<string, string[]>();
+  for (const [personId, unionIds] of personToUnionIds) {
+    const arr = [...unionIds];
+    arr.sort((a, b) => {
+      const aPrimary = primaryUnionByPerson.get(personId) === a ? 1 : 0;
+      const bPrimary = primaryUnionByPerson.get(personId) === b ? 1 : 0;
+      if (aPrimary !== bPrimary) return bPrimary - aPrimary;
+      const aEdge = edges.find((e) => (e.data as { kind?: string; unionId?: string } | undefined)?.kind === 'spouse' && (e.data as { unionId?: string } | undefined)?.unionId === a);
+      const bEdge = edges.find((e) => (e.data as { kind?: string; unionId?: string } | undefined)?.kind === 'spouse' && (e.data as { unionId?: string } | undefined)?.unionId === b);
+      const aSec = ((aEdge?.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0);
+      const bSec = ((bEdge?.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0);
+      return aSec - bSec;
+    });
+    unionIdsByPerson.set(personId, arr);
   }
 
   // Build child -> parent sims map.
@@ -318,34 +361,19 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const data = (e.data as { kind?: string; unionId?: string; primary?: boolean; secondaryIndex?: number } | undefined);
     if (data?.kind !== 'spouse' || !data.unionId) continue;
     const existing = unionInfos.get(data.unionId);
-    const partners = Array.from(new Set([...(existing?.partners ?? []), String(e.source), String(e.target)]));
+    const partners = Array.from(unionPartnersAll.get(data.unionId) ?? new Set([...(existing?.partners ?? []), String(e.source), String(e.target)]));
     unionInfos.set(data.unionId, {
       id: data.unionId,
       partners,
-      children: childrenByUnion.get(data.unionId) ?? existing?.children ?? [],
+      children: Array.from(unionChildrenAll.get(data.unionId) ?? new Set(existing?.children ?? [])),
       primary: data.primary !== false,
       secondaryIndex: data.secondaryIndex ?? 0,
     });
   }
 
   const simToUnionIds = new Map<string, string[]>();
-  for (const [unionId, info] of unionInfos) {
-    for (const simId of info.partners) {
-      const arr = simToUnionIds.get(simId) ?? [];
-      arr.push(unionId);
-      simToUnionIds.set(simId, arr);
-    }
-  }
-  for (const [simId, unionIds] of simToUnionIds) {
-    unionIds.sort((a, b) => {
-      const ua = unionInfos.get(a);
-      const ub = unionInfos.get(b);
-      const pa = ua?.primary ? 1 : 0;
-      const pb = ub?.primary ? 1 : 0;
-      if (pa !== pb) return pb - pa;
-      return (ua?.secondaryIndex ?? 0) - (ub?.secondaryIndex ?? 0);
-    });
-    simToUnionIds.set(simId, unionIds);
+  for (const [simId, unionIds] of unionIdsByPerson) {
+    simToUnionIds.set(simId, [...unionIds].filter((uid) => unionInfos.has(uid)));
   }
 
   const buildGroupsForGeneration = (ids: string[]): LayoutGroup[] => {
