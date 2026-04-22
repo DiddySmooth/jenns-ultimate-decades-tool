@@ -357,18 +357,28 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const memberships = simToUnionIds.get(id) ?? [];
 
       // Cluster: one visible sim with multiple unions on this generation.
+      // IMPORTANT: only absorb one-union partners whose primary connection is to
+      // this anchor. Otherwise we accidentally swallow unrelated families into
+      // the cluster and distort the whole generation.
       if (memberships.length > 1) {
         const memberIds = new Set<string>([id]);
+        const clusterUnionIds = new Set<string>();
         for (const unionId of memberships) {
           const info = unionInfos.get(unionId);
           if (!info) continue;
+          clusterUnionIds.add(unionId);
           for (const partnerId of info.partners) {
-            if (ids.includes(partnerId)) memberIds.add(partnerId);
+            if (partnerId === id || !ids.includes(partnerId)) continue;
+            const partnerMemberships = simToUnionIds.get(partnerId) ?? [];
+            // Only pull in leaf-ish spouses or sims whose first/primary union is this one.
+            if (partnerMemberships.length <= 1 || partnerMemberships[0] === unionId) {
+              memberIds.add(partnerId);
+            }
           }
         }
         const members = Array.from(memberIds);
         members.forEach((m) => seen.add(m));
-        groups.push({ id: `cluster:${id}`, type: 'cluster', anchorId: id, memberIds: members, unionIds: memberships });
+        groups.push({ id: `cluster:${id}`, type: 'cluster', anchorId: id, memberIds: members, unionIds: Array.from(clusterUnionIds) });
         continue;
       }
 
