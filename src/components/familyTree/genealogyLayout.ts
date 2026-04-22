@@ -13,8 +13,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   // Build spouse sets from marriage edges (union nodes no longer exist in graph)
   const spouseOf = new Map<string, string>();
   for (const e of edges) {
-    const kind = (e.data as { kind?: string } | undefined)?.kind;
+    const data = (e.data as { kind?: string; primary?: boolean } | undefined);
+    const kind = data?.kind;
     if (kind !== 'spouse') continue;
+    if (data?.primary === false) continue; // secondary unions are visual only for now
     const a = String(e.source);
     const b = String(e.target);
     if (!spouseOf.has(a)) spouseOf.set(a, b);

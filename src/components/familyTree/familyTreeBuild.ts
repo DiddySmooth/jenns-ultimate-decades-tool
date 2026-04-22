@@ -77,9 +77,9 @@ export function buildFamilyTree(
   // partners exist. We still keep unions in the data model (unions array)
   // but they won't be rendered as nodes.
 
-  // Render only one primary/current marriage edge per visible sim so the
-  // existing family-tree layout (which assumes one spouse per sim) stays stable.
-  const renderedMarriageSimIds = new Set<string>();
+  // Layout still uses one primary/current marriage per sim, but we can render
+  // additional unions visually as secondary edges without letting them affect
+  // spouse grouping/placement.
   const marriageCandidates = [...unions]
     .filter((u) => u.partnerAId && u.partnerBId && visibleSimIds.has(u.partnerAId) && visibleSimIds.has(u.partnerBId))
     .sort((a, b) => {
@@ -89,14 +89,48 @@ export function buildFamilyTree(
       const aStart = a.startYear ?? -Infinity;
       const bStart = b.startYear ?? -Infinity;
       if (aStart !== bStart) return bStart - aStart;
+      const aStartDay = a.startDayOfYear ?? -Infinity;
+      const bStartDay = b.startDayOfYear ?? -Infinity;
+      if (aStartDay !== bStartDay) return bStartDay - aStartDay;
       return String(a.id).localeCompare(String(b.id));
     });
 
-  marriageCandidates.forEach((u) => {
-    if (!u.partnerAId || !u.partnerBId) return;
-    if (renderedMarriageSimIds.has(u.partnerAId) || renderedMarriageSimIds.has(u.partnerBId)) return;
+  const primaryUnionIds = new Set<string>();
+  const renderedMarriageSimIds = new Set<string>();
+  for (const u of marriageCandidates) {
+    if (!u.partnerAId || !u.partnerBId) continue;
+    if (renderedMarriageSimIds.has(u.partnerAId) || renderedMarriageSimIds.has(u.partnerBId)) continue;
     renderedMarriageSimIds.add(u.partnerAId);
     renderedMarriageSimIds.add(u.partnerBId);
+    primaryUnionIds.add(String(u.id));
+  }
+
+  const unionOrderBySim = new Map<string, number>();
+  for (const u of marriageCandidates) {
+    if (!u.partnerAId || !u.partnerBId) continue;
+    const keyA = `${u.partnerAId}:${u.id}`;
+    const keyB = `${u.partnerBId}:${u.id}`;
+    const idxA = (unionOrderBySim.get(u.partnerAId) ?? 0);
+    const idxB = (unionOrderBySim.get(u.partnerBId) ?? 0);
+    unionOrderBySim.set(keyA, idxA);
+    unionOrderBySim.set(keyB, idxB);
+    unionOrderBySim.set(u.partnerAId, idxA + 1);
+    unionOrderBySim.set(u.partnerBId, idxB + 1);
+  }
+
+  marriageCandidates.forEach((u) => {
+    if (!u.partnerAId || !u.partnerBId) return;
+    const primary = primaryUnionIds.has(String(u.id));
+    const status = u.endReason === 'divorce'
+      ? 'divorce'
+      : u.endReason === 'death'
+      ? 'death'
+      : (u.endYear != null ? 'ended' : 'active');
+    const secondaryIndex = primary ? 0 : Math.max(
+      unionOrderBySim.get(`${u.partnerAId}:${u.id}`) ?? 0,
+      unionOrderBySim.get(`${u.partnerBId}:${u.id}`) ?? 0,
+    );
+
     edges.push({
       id: `e:marriage:${u.id}`,
       source: `sim:${u.partnerAId}`,
@@ -104,8 +138,8 @@ export function buildFamilyTree(
       sourceHandle: 'spouse-out',
       targetHandle: 'spouse-in',
       type: 'marriage',
-      zIndex: 10,
-      data: { kind: 'spouse', unionId: u.id },
+      zIndex: primary ? 10 : 6,
+      data: { kind: 'spouse', unionId: u.id, primary, status, secondaryIndex, startYear: u.startYear, endYear: u.endYear, endReason: u.endReason },
     });
   });
 
