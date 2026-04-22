@@ -797,17 +797,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Inject midX into child edges so FamilyEdge can draw from the correct X between parents
-  const unionLaneOffsetX = new Map<string, number>();
-  for (const e of edges) {
-    const data = (e.data as { kind?: string; unionId?: string; primary?: boolean; secondaryIndex?: number } | undefined);
-    if (data?.kind !== 'spouse' || !data.unionId) continue;
-    const secondaryIndex = data.secondaryIndex ?? 0;
-    const laneX = data.primary === false
-      ? (((secondaryIndex % 2 === 1 ? 1 : -1) * Math.ceil(Math.max(1, secondaryIndex) / 2)) * 14)
-      : 0;
-    unionLaneOffsetX.set(data.unionId, laneX);
-  }
-
   const updatedEdges = edges.map((e) => {
     const data = (e.data as { kind?: string; unionId?: string } | undefined);
     const kind = data?.kind;
@@ -825,7 +814,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (partnerPositions.length >= 2) {
         const leftX = Math.min(...partnerPositions.map((p) => p.x));
         const rightX = Math.max(...partnerPositions.map((p) => p.x));
-        const midX = (leftX + rightX + NODE_W) / 2 + (unionLaneOffsetX.get(data.unionId) ?? 0);
+        const midX = (leftX + rightX + NODE_W) / 2;
         return { ...e, data: { ...e.data, midX } };
       }
     }

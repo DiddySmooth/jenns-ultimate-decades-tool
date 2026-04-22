@@ -13,23 +13,13 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
 
   const primary = data?.primary !== false;
   const status = data?.status ?? 'active';
-  const secondaryIndex = data?.secondaryIndex ?? 0;
 
-  // Secondary unions get their own routing lane so multiple wives / remarriages
-  // don't all collapse into the same visual path around the shared spouse.
-  const laneY = primary ? 0 : (secondaryIndex * 16);
-  const laneX = primary ? 0 : (((secondaryIndex % 2 === 1 ? 1 : -1) * Math.ceil(secondaryIndex / 2)) * 14);
-  const bottomY = Math.max(sourceY, targetY) + 20 + laneY;
-  const iconMidX = midX + laneX;
+  // Multi-union strips read more clearly when they share one horizontal spouse band
+  // instead of each union getting its own lane. Keep all hearts on the same band.
+  const bottomY = Math.max(sourceY, targetY) + 20;
+  const iconMidX = midX;
 
-  const path = primary ? `
-    M ${sourceX} ${sourceY}
-    L ${sourceX} ${bottomY}
-    L ${midX} ${bottomY}
-    M ${targetX} ${targetY}
-    L ${targetX} ${bottomY}
-    L ${midX} ${bottomY}
-  ` : `
+  const path = `
     M ${sourceX} ${sourceY}
     L ${sourceX} ${bottomY}
     L ${iconMidX} ${bottomY}
