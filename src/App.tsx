@@ -410,7 +410,7 @@ export default function App() {
                 if (current2) {
                   const updated = { ...current2, config: { ...current2.config, name: trimmed } };
                   updateSave(updated);
-                  flush(updated).catch(() => undefined);
+                  flush().catch(() => undefined);
                 }
               }}
             >
