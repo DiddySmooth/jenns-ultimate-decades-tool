@@ -1,3 +1,7 @@
+import type { FamilyTreeConfig, SimEntry, TrackerConfig, UnionNode } from '../../types/tracker';
+import { computeLifeStage } from '../../utils/lifeStage';
+import { getDeathYear } from '../../utils/simDates';
+
 export type PersonNode = {
   id: string;
   simId: string;
@@ -26,6 +30,43 @@ export type RelationshipGraph = {
   unionsByParents: Map<string, string[]>; // sorted parent pair key -> [unionId]
   childrenByParent: Map<string, string[]>; // parentSimId -> [childSimId]
 };
+
+export function filterVisibleSimsForFamilyTree(
+  sims: SimEntry[],
+  unionsArr: UnionNode[],
+  treeConfig: FamilyTreeConfig,
+  trackerConfig: TrackerConfig,
+  currentDay: number,
+): SimEntry[] {
+  const hiddenStages = new Set(treeConfig.filters.hiddenLifeStages ?? []);
+  const isDead = (s: SimEntry) => !!getDeathYear(s, trackerConfig);
+
+  const graphAll = buildRelationshipGraph(sims, unionsArr);
+  const memo = new Map<string, boolean>();
+  const hasLivingDesc = (id: string): boolean => {
+    if (memo.has(id)) return memo.get(id)!;
+    const simNode = graphAll.people.get(id);
+    if (!simNode) { memo.set(id, false); return false; }
+    const sim = simNode.raw as SimEntry;
+    if (!isDead(sim)) { memo.set(id, true); return true; }
+    const kids = graphAll.childrenByParent.get(id) ?? [];
+    const res = kids.some((kid) => hasLivingDesc(kid));
+    memo.set(id, res);
+    return res;
+  };
+
+  let simsFiltered = sims;
+  if (treeConfig.filters.hideDeadBranches) {
+    simsFiltered = simsFiltered.filter((s) => hasLivingDesc(s.id));
+  }
+  if (hiddenStages.size > 0) {
+    simsFiltered = simsFiltered.filter((s) => {
+      const stage = computeLifeStage(s, trackerConfig, currentDay);
+      return !stage || !hiddenStages.has(stage);
+    });
+  }
+  return simsFiltered;
+}
 
 export function buildRelationshipGraph(sims: any[], unionsArr: any[]): RelationshipGraph {
   const people = new Map<string, PersonNode>();

@@ -15,9 +15,10 @@ import UnionNodeView from './UnionNode';
 import TrunkEdge from './TrunkEdge';
 import MarriageEdge from './MarriageEdge';
 import FamilyEdge from './FamilyEdge';
-import { buildFamilyTree } from './familyTreeBuild';
 import { deriveUnionsFromSims } from './deriveUnions';
 import { genealogyLayout } from './genealogyLayout';
+import { buildRelationshipGraph, filterVisibleSimsForFamilyTree } from './graphModel';
+import { mapGraphToFlow } from './mapGraphToFlow';
 
 const nodeTypes = {
   sim: SimNode,
@@ -44,9 +45,13 @@ interface Props {
 }
 
 export default function FamilyTree({ sims, unions, saved, config, trackerConfig, currentDay, onSavedChange, onConfigChange, onUnionsChange, onSimsChange }: Props) {
-  // Build graph structure from sims/unions/config.
+  // Build graph structure from sims/unions/config via the new relationship-graph pipeline.
   // Layout is always recomputed from the currently visible graph.
-  const built = useMemo(() => buildFamilyTree(sims, unions, undefined, config, trackerConfig, currentDay), [sims, unions, config, trackerConfig, currentDay]);
+  const built = useMemo(() => {
+    const visibleSims = filterVisibleSimsForFamilyTree(sims, unions, config, trackerConfig, currentDay);
+    const graph = buildRelationshipGraph(visibleSims, unions);
+    return mapGraphToFlow(graph, visibleSims, unions, undefined, config, trackerConfig, currentDay);
+  }, [sims, unions, config, trackerConfig, currentDay]);
 
   const [rf, setRf] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(built.nodes);
