@@ -498,23 +498,24 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }));
 
         const clusterLeft = curX;
+        const compactSpan = NODE_W + Math.max(0, unionLayouts.length) * (NODE_W + GAP_COUPLE + 18);
+        const anchorX = clusterLeft + Math.max(0, Math.min((sw - compactSpan) / 2, 80));
         let slotX = clusterLeft;
 
-        // Anchor sim stays at the left edge of the cluster; each union gets its own slot to the right.
-        positioned.set(anchorId, { x: slotX, y });
-        slotX += NODE_W + 24;
+        // Keep the actual visible cluster compact around the anchor.
+        positioned.set(anchorId, { x: anchorX, y });
 
-        for (const layout of unionLayouts) {
+        for (const [index, layout] of unionLayouts.entries()) {
           const info = layout.info;
           if (!info) continue;
           const partnerId = info.partners.find((id) => id !== anchorId) ?? info.partners[0];
           if (!partnerId) continue;
 
-          // Place the partner inside this union's dedicated slot.
-          const partnerX = slotX + Math.max(0, layout.width - (NODE_W * 2 + GAP_COUPLE));
+          // Reserve this union's slot width in the generation flow, but keep the partner
+          // physically close to the anchor so the marriage lines still read as a family cluster.
+          const partnerX = anchorX + NODE_W + GAP_COUPLE + (index * (NODE_W + 18));
           positioned.set(partnerId, { x: partnerX, y });
 
-          // Place this union's children centered under THIS union slot, not the whole cluster.
           const unionChildren = info.children ?? [];
           if (unionChildren.length > 0) {
             const childrenSorted = [...unionChildren].sort((a, b) => {
