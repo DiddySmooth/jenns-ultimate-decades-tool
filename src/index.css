@@ -759,7 +759,7 @@ body {
 .sim-row-main {
   display: grid;
   grid-template-columns: 32px 28px 180px 110px 70px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 180px 160px;
-  align-items: center;
+  align-items: start;
   padding: 0.45rem 0.6rem;
   column-gap: 0.6rem;
 }
@@ -773,6 +773,19 @@ body {
   white-space: nowrap;
   font-size: 0.86rem;
   color: var(--color-text);
+}
+.sim-cell.traits-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: flex-start;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  min-height: 1.8rem;
+}
+.sim-cell.traits-cell .cell-tag {
+  max-width: 100%;
 }
 .sim-cell.stage, .sim-cell.gen, .sim-cell.sex, .sim-cell.born, .sim-cell.died {
   color: var(--color-text-muted);

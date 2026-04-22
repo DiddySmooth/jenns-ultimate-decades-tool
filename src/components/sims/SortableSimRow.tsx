@@ -92,7 +92,19 @@ export default function SortableSimRow({
 
         <div className="sim-cell died" title={formatYear(deathYear)}>{formatYear(deathYear)}</div>
         {sheetConfig.showCauseOfDeath && <div className="sim-cell cod" title={sim.causeOfDeath ?? ''}>{short(sim.causeOfDeath)}</div>}
-        {sheetConfig.showTraits && <div className="sim-cell traits" title={(sim.traits ?? []).join(', ')}>{sim.traits && sim.traits.length ? sim.traits.join(', ') : '—'}</div>}
+        {sheetConfig.showTraits && (
+          <div className="sim-cell traits-cell" title={(sim.traits ?? []).join(', ')}>
+            {sim.traits && sim.traits.length > 0 ? (
+              sim.traits.map((t) => (
+                <span key={t} className="cell-tag">
+                  <span className="cell-tag-text">{t}</span>
+                </span>
+              ))
+            ) : (
+              <span className="cell-placeholder">—</span>
+            )}
+          </div>
+        )}
 
         <div className="sim-actions">
           <button className="btn-ghost btn-sm" onClick={onEdit}>Edit</button>
