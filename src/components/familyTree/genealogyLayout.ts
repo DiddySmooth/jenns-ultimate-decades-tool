@@ -734,7 +734,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const anchorX = Math.min(...clusterMemberPositions);
     positioned.set(anchorId, { x: anchorX, y: anchorPos.y });
 
-    let nextPartnerX = anchorX + NODE_W + GAP_COUPLE;
+    let nextSlotStart = anchorX + NODE_W + GAP_COUPLE;
     for (const layout of visibleUnionLayouts) {
       const info = layout.info;
       if (!info) continue;
@@ -743,8 +743,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const partnerPos = positioned.get(partnerId);
       if (!partnerPos) continue;
 
-      const unionAdvance = Math.max(NODE_W + GAP_COUPLE + 20, Math.min(getUnionSlotWidth(layout.uid), 320));
-      positioned.set(partnerId, { x: nextPartnerX, y: anchorPos.y });
+      // Each union gets a slot whose width is driven by its child subtree needs.
+      const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
+      const partnerX = nextSlotStart + Math.max(0, unionSlotWidth - NODE_W - 8);
+      positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
 
       const unionChildren = info.children ?? [];
       if (unionChildren.length > 0) {
@@ -760,8 +762,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           totalChildW += subtreeWidth.get(c) ?? NODE_W;
           if (i > 0) totalChildW += GAP_X;
         });
-        const unionMidX = (anchorX + nextPartnerX + NODE_W) / 2;
-        let childX = unionMidX - totalChildW / 2;
+        // Center the children under the UNION SLOT, not just under the midpoint between
+        // Oswin and this wife. This gives each wife room proportional to her children.
+        const slotMidX = nextSlotStart + unionSlotWidth / 2;
+        let childX = slotMidX - totalChildW / 2;
         for (const c of childrenSorted) {
           const csw = subtreeWidth.get(c) ?? NODE_W;
           const childMidX = childX + csw / 2;
@@ -771,7 +775,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }
       }
 
-      nextPartnerX += unionAdvance;
+      nextSlotStart += unionSlotWidth + 18;
     }
   }
 
