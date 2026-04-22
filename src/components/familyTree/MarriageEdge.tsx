@@ -15,18 +15,27 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   const status = data?.status ?? 'active';
   const secondaryIndex = data?.secondaryIndex ?? 0;
 
-  // Secondary unions get a small extra vertical offset so they can coexist visually
-  // without changing the layout engine's primary-couple assumptions.
-  const offsetY = primary ? 0 : (secondaryIndex * 12);
-  const bottomY = Math.max(sourceY, targetY) + 20 + offsetY;
+  // Secondary unions get their own routing lane so multiple wives / remarriages
+  // don't all collapse into the same visual path around the shared spouse.
+  const laneY = primary ? 0 : (secondaryIndex * 16);
+  const laneX = primary ? 0 : (((secondaryIndex % 2 === 1 ? 1 : -1) * Math.ceil(secondaryIndex / 2)) * 14);
+  const bottomY = Math.max(sourceY, targetY) + 20 + laneY;
+  const iconMidX = midX + laneX;
 
-  const path = `
+  const path = primary ? `
     M ${sourceX} ${sourceY}
     L ${sourceX} ${bottomY}
     L ${midX} ${bottomY}
     M ${targetX} ${targetY}
     L ${targetX} ${bottomY}
     L ${midX} ${bottomY}
+  ` : `
+    M ${sourceX} ${sourceY}
+    L ${sourceX} ${bottomY}
+    L ${iconMidX} ${bottomY}
+    M ${targetX} ${targetY}
+    L ${targetX} ${bottomY}
+    L ${iconMidX} ${bottomY}
   `;
 
   const stroke = status === 'divorce'
@@ -54,7 +63,7 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <foreignObject x={midX - 12} y={bottomY - 12} width={24} height={24} style={{ overflow: 'visible' }}>
+      <foreignObject x={iconMidX - 12} y={bottomY - 12} width={24} height={24} style={{ overflow: 'visible' }}>
         <div style={{
           width: 24,
           height: 24,
