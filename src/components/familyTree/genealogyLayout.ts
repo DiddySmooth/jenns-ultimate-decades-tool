@@ -283,6 +283,104 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     return Array.from(new Set([...unionChildIds, ...directA, ...directB]));
   };
 
+  type UnionInfo = {
+    id: string;
+    partners: string[];
+    children: string[];
+    primary: boolean;
+    secondaryIndex: number;
+  };
+
+  type LayoutGroup = {
+    id: string;
+    type: 'single' | 'couple' | 'cluster';
+    anchorId: string;
+    memberIds: string[];
+    unionIds: string[];
+  };
+
+  const unionInfos = new Map<string, UnionInfo>();
+  for (const e of edges) {
+    const data = (e.data as { kind?: string; unionId?: string; primary?: boolean; secondaryIndex?: number } | undefined);
+    if (data?.kind !== 'spouse' || !data.unionId) continue;
+    const existing = unionInfos.get(data.unionId);
+    const partners = Array.from(new Set([...(existing?.partners ?? []), String(e.source), String(e.target)]));
+    unionInfos.set(data.unionId, {
+      id: data.unionId,
+      partners,
+      children: childrenByUnion.get(data.unionId) ?? existing?.children ?? [],
+      primary: data.primary !== false,
+      secondaryIndex: data.secondaryIndex ?? 0,
+    });
+  }
+
+  const simToUnionIds = new Map<string, string[]>();
+  for (const [unionId, info] of unionInfos) {
+    for (const simId of info.partners) {
+      const arr = simToUnionIds.get(simId) ?? [];
+      arr.push(unionId);
+      simToUnionIds.set(simId, arr);
+    }
+  }
+  for (const [simId, unionIds] of simToUnionIds) {
+    unionIds.sort((a, b) => {
+      const ua = unionInfos.get(a);
+      const ub = unionInfos.get(b);
+      const pa = ua?.primary ? 1 : 0;
+      const pb = ub?.primary ? 1 : 0;
+      if (pa !== pb) return pb - pa;
+      return (ua?.secondaryIndex ?? 0) - (ub?.secondaryIndex ?? 0);
+    });
+    simToUnionIds.set(simId, unionIds);
+  }
+
+  const buildGroupsForGeneration = (ids: string[]): LayoutGroup[] => {
+    const groups: LayoutGroup[] = [];
+    const seen = new Set<string>();
+
+    for (const id of ids) {
+      if (seen.has(id)) continue;
+      const memberships = simToUnionIds.get(id) ?? [];
+
+      // Cluster: one visible sim with multiple unions on this generation.
+      if (memberships.length > 1) {
+        const memberIds = new Set<string>([id]);
+        for (const unionId of memberships) {
+          const info = unionInfos.get(unionId);
+          if (!info) continue;
+          for (const partnerId of info.partners) {
+            if (ids.includes(partnerId)) memberIds.add(partnerId);
+          }
+        }
+        const members = Array.from(memberIds);
+        members.forEach((m) => seen.add(m));
+        groups.push({ id: `cluster:${id}`, type: 'cluster', anchorId: id, memberIds: members, unionIds: memberships });
+        continue;
+      }
+
+      const spouse = spouseOf.get(id);
+      if (spouse && ids.includes(spouse) && !seen.has(spouse)) {
+        seen.add(id);
+        seen.add(spouse);
+        const unionIds = (simToUnionIds.get(id) ?? []).filter((uid) => (unionInfos.get(uid)?.partners ?? []).includes(spouse));
+        groups.push({ id: `couple:${id}:${spouse}`, type: 'couple', anchorId: id, memberIds: [id, spouse], unionIds });
+      } else {
+        seen.add(id);
+        groups.push({ id: `single:${id}`, type: 'single', anchorId: id, memberIds: [id], unionIds: simToUnionIds.get(id) ?? [] });
+      }
+    }
+
+    return groups;
+  };
+
+  const getChildrenForLayoutGroup = (group: LayoutGroup): string[] => {
+    if (group.unionIds.length > 0) {
+      return Array.from(new Set(group.unionIds.flatMap((uid) => unionInfos.get(uid)?.children ?? [])));
+    }
+    if (group.memberIds.length === 2) return getChildrenForGroup(group.memberIds[0], group.memberIds[1]);
+    return getChildrenForGroup(group.memberIds[0]);
+  };
+
   // ── Bottom-up subtree width layout ───────────────────────────────────────
   // Calculate how wide each couple's subtree needs to be, then position
   // each generation based on subtree widths rather than fixed gaps.
@@ -291,71 +389,46 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
   // subtreeWidth: minimum width needed for a sim's entire subtree
   const subtreeWidth = new Map<string, number>();
+  const groupWidth = new Map<string, number>();
 
-  // Process deepest generation first, work upward
+  // Process deepest generation first, work upward using union-aware layout groups.
   for (const g of genKeysSorted) {
     const ids = sortedGens.get(g)!;
-    const processedCouples = new Set<string>();
+    const groups = buildGroupsForGeneration(ids);
 
-    for (const simId of ids) {
-      if (processedCouples.has(simId)) continue;
-      processedCouples.add(simId);
-      const spouseId = spouseOf.get(simId);
-      if (spouseId) processedCouples.add(spouseId);
-
-      const allChildren = getChildrenForGroup(simId, spouseId);
+    for (const group of groups) {
+      const allChildren = getChildrenForLayoutGroup(group);
+      const minWidth = group.type === 'cluster'
+        ? Math.max(NODE_W * group.memberIds.length + GAP_COUPLE * Math.max(0, group.memberIds.length - 1), NODE_W * 2 + GAP_COUPLE)
+        : group.type === 'couple'
+        ? NODE_W * 2 + GAP_COUPLE
+        : NODE_W;
 
       if (allChildren.length === 0) {
-        // Leaf couple: width is just the two cards + couple gap
-        const coupleW = spouseId ? NODE_W * 2 + GAP_COUPLE : NODE_W;
-        subtreeWidth.set(simId, coupleW);
-        if (spouseId) subtreeWidth.set(spouseId, coupleW);
+        groupWidth.set(group.id, minWidth);
       } else {
-        // Width = sum of children subtree widths + gaps between them
         let childrenTotalWidth = 0;
         allChildren.forEach((c, i) => {
           childrenTotalWidth += subtreeWidth.get(c) ?? NODE_W;
           if (i > 0) childrenTotalWidth += GAP_X;
         });
-        const coupleMinWidth = spouseId ? NODE_W * 2 + GAP_COUPLE : NODE_W;
-        const totalWidth = Math.max(coupleMinWidth, childrenTotalWidth);
-        subtreeWidth.set(simId, totalWidth);
-        if (spouseId) subtreeWidth.set(spouseId, totalWidth);
+        groupWidth.set(group.id, Math.max(minWidth, childrenTotalWidth));
       }
+
+      const resolvedWidth = groupWidth.get(group.id) ?? minWidth;
+      group.memberIds.forEach((id) => subtreeWidth.set(id, resolvedWidth));
     }
   }
 
-  // Now re-position all generations top-down using subtree widths
-  // Gen 0 starts centered at x=40
+  // Now re-position all generations top-down using union-aware group widths.
   for (const g of genKeys) {
     const ids = sortedGens.get(g)!;
-    // Sort by current X (from initial positioning)
     const sorted = [...ids].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+    const groups = buildGroupsForGeneration(sorted);
 
-    // Group into couples
-    const coupleGroups: string[][] = [];
-    const seen = new Set<string>();
-    for (const id of sorted) {
-      if (seen.has(id)) continue;
-      seen.add(id);
-      const spouse = spouseOf.get(id);
-      if (spouse && ids.includes(spouse) && !seen.has(spouse)) {
-        seen.add(spouse);
-        // Put parent-child first
-        const idHasParents = (childToParentSims.get(id)?.size ?? 0) > 0;
-        const spouseHasParents = (childToParentSims.get(spouse)?.size ?? 0) > 0;
-        coupleGroups.push((!idHasParents && spouseHasParents) ? [spouse, id] : [id, spouse]);
-      } else {
-        coupleGroups.push([id]);
-      }
-    }
-
-    // Place couple groups left to right with inter-couple gap
-    // Total width of generation
     let totalGenWidth = 0;
-    coupleGroups.forEach((grp, i) => {
-      const sw = subtreeWidth.get(grp[0]) ?? NODE_W;
-      totalGenWidth += sw;
+    groups.forEach((group, i) => {
+      totalGenWidth += groupWidth.get(group.id) ?? NODE_W;
       if (i > 0) totalGenWidth += GAP_X;
     });
 
@@ -363,24 +436,36 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     let curX = startX;
     const y = 40 + g * (NODE_H + GAP_Y);
 
-    for (const grp of coupleGroups) {
-      const sw = subtreeWidth.get(grp[0]) ?? NODE_W;
+    for (const group of groups) {
+      const sw = groupWidth.get(group.id) ?? NODE_W;
       const grpMidX = curX + sw / 2;
 
-      if (grp.length === 2) {
-        // Place couple centered within their subtree width
-        positioned.set(grp[0], { x: grpMidX - NODE_W - GAP_COUPLE / 2, y });
-        positioned.set(grp[1], { x: grpMidX + GAP_COUPLE / 2, y });
+      if (group.type === 'single') {
+        positioned.set(group.memberIds[0], { x: grpMidX - NODE_W / 2, y });
+      } else if (group.type === 'couple') {
+        positioned.set(group.memberIds[0], { x: grpMidX - NODE_W - GAP_COUPLE / 2, y });
+        positioned.set(group.memberIds[1], { x: grpMidX + GAP_COUPLE / 2, y });
       } else {
-        positioned.set(grp[0], { x: grpMidX - NODE_W / 2, y });
+        const anchorId = group.anchorId;
+        const secondaries = group.memberIds.filter((id) => id !== anchorId).sort((a, b) => {
+          const aUnion = (simToUnionIds.get(anchorId) ?? []).find((uid) => (unionInfos.get(uid)?.partners ?? []).includes(a));
+          const bUnion = (simToUnionIds.get(anchorId) ?? []).find((uid) => (unionInfos.get(uid)?.partners ?? []).includes(b));
+          return (unionInfos.get(aUnion ?? '')?.secondaryIndex ?? 0) - (unionInfos.get(bUnion ?? '')?.secondaryIndex ?? 0);
+        });
+        positioned.set(anchorId, { x: grpMidX - NODE_W / 2, y });
+        secondaries.forEach((sid, i) => {
+          const side = i % 2 === 0 ? 1 : -1;
+          const slot = Math.ceil((i + 1) / 2);
+          const x = side === 1
+            ? grpMidX - NODE_W / 2 + (NODE_W + GAP_COUPLE) * slot
+            : grpMidX - NODE_W / 2 - (NODE_W + GAP_COUPLE) * slot;
+          positioned.set(sid, { x, y });
+        });
       }
 
-      // Place children evenly within the subtree width
-      const allChildren = getChildrenForGroup(grp[0], grp[1]);
-
+      const allChildren = getChildrenForLayoutGroup(group);
       if (allChildren.length > 0) {
         const childrenSorted = [...allChildren].sort((a, b) => {
-          // Sort by birth year for stable left-to-right ordering
           const aNode = simNodes.find(n => n.id === a);
           const bNode = simNodes.find(n => n.id === b);
           const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
@@ -388,7 +473,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           return ay - by2;
         });
 
-        // Calculate total children width using their subtree widths
         let totalChildW = 0;
         childrenSorted.forEach((c, i) => {
           totalChildW += subtreeWidth.get(c) ?? NODE_W;
