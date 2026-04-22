@@ -175,7 +175,19 @@ export default function App() {
 
       const unique = new Map(ids.map((x) => [x.id, x]));
       if (!unique.has('default')) unique.set('default', { id: 'default', label: 'Default' });
-      setAvailableSaves(Array.from(unique.values()));
+
+      const hydrated = await Promise.all(
+        Array.from(unique.values()).map(async (entry) => {
+          try {
+            const s = await loadSave(userId, entry.id);
+            return { ...entry, label: s?.config?.name?.trim() || entry.label };
+          } catch {
+            return entry;
+          }
+        })
+      );
+
+      setAvailableSaves(hydrated);
     } catch {
       setAvailableSaves([{ id: 'default', label: 'Default' }]);
     }
@@ -398,6 +410,7 @@ export default function App() {
                 if (current2) {
                   const updated = { ...current2, config: { ...current2.config, name: trimmed } };
                   updateSave(updated);
+                  flush(updated).catch(() => undefined);
                 }
               }}
             >
