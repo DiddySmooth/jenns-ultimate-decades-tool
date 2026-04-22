@@ -169,6 +169,7 @@ export function buildFamilyTree(
   marriageCandidates.forEach((u) => {
     if (!u.partnerAId || !u.partnerBId) return;
     const primary = primaryUnionIds.has(String(u.id));
+    const multiUnion = (unionOrderBySim.get(u.partnerAId) ?? 0) > 1 || (unionOrderBySim.get(u.partnerBId) ?? 0) > 1;
     const status = u.endReason === 'divorce'
       ? 'divorce'
       : u.endReason === 'death'
@@ -186,8 +187,8 @@ export function buildFamilyTree(
       sourceHandle: 'spouse-out',
       targetHandle: 'spouse-in',
       type: 'marriage',
-      zIndex: primary ? 10 : 6,
-      data: { kind: 'spouse', unionId: u.id, primary, status, secondaryIndex, startYear: u.startYear, endYear: u.endYear, endReason: u.endReason },
+      zIndex: primary ? 100 : 90,
+      data: { kind: 'spouse', unionId: u.id, primary, multiUnion, status, secondaryIndex, startYear: u.startYear, endYear: u.endYear, endReason: u.endReason },
     });
   });
 

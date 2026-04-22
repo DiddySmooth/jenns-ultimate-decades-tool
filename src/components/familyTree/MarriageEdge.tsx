@@ -4,6 +4,7 @@ type MarriageData = {
   status?: 'active' | 'divorce' | 'death' | 'ended';
   primary?: boolean;
   secondaryIndex?: number;
+  multiUnion?: boolean;
 };
 
 export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps<MarriageData>) {
@@ -13,11 +14,12 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
 
   const primary = data?.primary !== false;
   const status = data?.status ?? 'active';
+  const multiUnion = data?.multiUnion === true;
 
   // Multi-union strips read more clearly when they share one horizontal spouse band
-  // instead of each union getting its own lane. Keep all hearts on the same band.
+  // and each heart sits a bit closer to its specific spouse instead of dead-center.
   const bottomY = Math.max(sourceY, targetY) + 20;
-  const iconMidX = midX;
+  const iconMidX = multiUnion ? leftX + (rightX - leftX) * 0.7 : midX;
 
   const path = `
     M ${sourceX} ${sourceY}
@@ -53,7 +55,7 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <foreignObject x={iconMidX - 12} y={bottomY - 12} width={24} height={24} style={{ overflow: 'visible' }}>
+      <foreignObject x={iconMidX - 12} y={bottomY - 12} width={24} height={24} style={{ overflow: 'visible', zIndex: 1000 }}>
         <div style={{
           width: 24,
           height: 24,

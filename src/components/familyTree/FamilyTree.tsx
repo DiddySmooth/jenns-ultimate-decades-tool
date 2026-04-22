@@ -57,7 +57,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   useEffect(() => {
     const mappedEdges = built.edges.map((e) => {
       const kind = (e.data as { kind?: string } | undefined)?.kind;
-      if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
+      if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 100 };
       if (kind === 'parent') return { ...e, type: 'family' };
       return { ...e, style: { strokeWidth: 2, stroke: 'rgba(0,0,0,0.35)' } };
     });
@@ -67,7 +67,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
     setNodes(laidOut);
     setEdges(laidEdges.map((e) => {
       const kind = (e.data as { kind?: string } | undefined)?.kind;
-      if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
+      if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 100 };
       if (kind === 'parent') return { ...e, type: 'family' };
       return e;
     }));
@@ -176,7 +176,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
               setNodes(laidOut);
               setEdges(laidEdges.map((e) => {
                 const kind = (e.data as { kind?: string } | undefined)?.kind;
-                if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 10 };
+                if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 100 };
                 if (kind === 'parent') return { ...e, type: 'family' };
                 return e;
               }));
