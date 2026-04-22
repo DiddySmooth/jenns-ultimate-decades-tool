@@ -735,6 +735,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     positioned.set(anchorId, { x: anchorX, y: anchorPos.y });
 
     let nextSlotStart = anchorX + NODE_W + GAP_COUPLE;
+    let nextPartnerX = anchorX + NODE_W + GAP_COUPLE;
     for (const layout of visibleUnionLayouts) {
       const info = layout.info;
       if (!info) continue;
@@ -743,9 +744,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const partnerPos = positioned.get(partnerId);
       if (!partnerPos) continue;
 
-      // Each union gets a slot whose width is driven by its child subtree needs.
+      // Decouple the visible spouse strip from the child-space slot width:
+      // wives stay visually close together, while child branches below can use
+      // as much width as they need.
       const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
-      const partnerX = nextSlotStart + Math.max(0, unionSlotWidth - NODE_W - 8);
+      const partnerX = nextPartnerX;
       positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
 
       const unionChildren = info.children ?? [];
@@ -762,8 +765,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           totalChildW += subtreeWidth.get(c) ?? NODE_W;
           if (i > 0) totalChildW += GAP_X;
         });
-        // Center the children under the UNION SLOT, not just under the midpoint between
-        // Oswin and this wife. This gives each wife room proportional to her children.
         const slotMidX = nextSlotStart + unionSlotWidth / 2;
         let childX = slotMidX - totalChildW / 2;
         for (const c of childrenSorted) {
@@ -775,6 +776,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }
       }
 
+      nextPartnerX += NODE_W + 18;
       nextSlotStart += unionSlotWidth + 18;
     }
   }
