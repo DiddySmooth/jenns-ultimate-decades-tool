@@ -498,51 +498,29 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }));
 
         const clusterLeft = curX;
-        const compactSpan = NODE_W + Math.max(0, unionLayouts.length) * (NODE_W + GAP_COUPLE + 18);
-        const anchorX = clusterLeft + Math.max(0, Math.min((sw - compactSpan) / 2, 80));
+        const stripWidth = NODE_W + unionLayouts.reduce((sum, _layout, idx) => sum + NODE_W + GAP_COUPLE + (idx > 0 ? 18 : 0), 0);
+        const anchorX = clusterLeft + Math.max(0, (sw - stripWidth) / 2);
 
-        // Keep the actual visible cluster compact around the anchor.
+        // Sequential strip layout: anchor on the left, all wives/partners to the right.
+        // This matches the visual target much better than radial/anchor-packing.
         positioned.set(anchorId, { x: anchorX, y });
 
         const clusterMembers = [{ id: anchorId, unionId: undefined as string | undefined, anchor: true }];
+        let nextPartnerX = anchorX + NODE_W + GAP_COUPLE;
 
-        for (const [index, layout] of unionLayouts.entries()) {
+        for (const layout of unionLayouts) {
           const info = layout.info;
           if (!info) continue;
           const partnerId = info.partners.find((id) => id !== anchorId) ?? info.partners[0];
           if (!partnerId) continue;
 
-          const partnerX = anchorX + NODE_W + GAP_COUPLE + (index * (NODE_W + 18));
+          const partnerX = nextPartnerX;
           positioned.set(partnerId, { x: partnerX, y });
           clusterMembers.push({ id: partnerId, unionId: layout.unionId, anchor: false });
+          nextPartnerX += NODE_W + 18;
         }
 
-        // Final intra-cluster packing using ACTUAL X positions.
-        const packed = [...clusterMembers].sort((a, b) => (positioned.get(a.id)?.x ?? 0) - (positioned.get(b.id)?.x ?? 0));
-        for (let i = 1; i < packed.length; i++) {
-          const prev = positioned.get(packed[i - 1].id);
-          const cur = positioned.get(packed[i].id);
-          if (!prev || !cur) continue;
-          const minX = prev.x + NODE_W + 18;
-          if (cur.x < minX) {
-            positioned.set(packed[i].id, { x: minX, y: cur.y });
-          }
-        }
-        // Keep the anchor roughly central by allowing left-side spouses to stay left if needed.
-        const anchorIndex = packed.findIndex((m) => m.id === anchorId);
-        if (anchorIndex >= 0) {
-          for (let i = anchorIndex - 1; i >= 0; i--) {
-            const next = positioned.get(packed[i + 1].id);
-            const cur = positioned.get(packed[i].id);
-            if (!next || !cur) continue;
-            const maxX = next.x - NODE_W - 18;
-            if (cur.x > maxX) {
-              positioned.set(packed[i].id, { x: maxX, y: cur.y });
-            }
-          }
-        }
-
-        // After packing, re-center each union's children under the actual final union midpoint.
+        // After strip placement, re-center each union's children under the actual final union midpoint.
         for (const member of clusterMembers) {
           if (member.anchor || !member.unionId) continue;
           const partnerPos = positioned.get(member.id);
