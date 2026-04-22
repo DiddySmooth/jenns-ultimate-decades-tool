@@ -114,13 +114,44 @@ export function buildFamilyTree(
     });
 
   const primaryUnionIds = new Set<string>();
-  const renderedMarriageSimIds = new Set<string>();
+
+  // Choose a primary union PER SIM first, then only mark a union primary when both
+  // partners agree on that same union. This avoids one sim in a harem stealing the
+  // wrong primary just because unions were globally sorted.
+  const unionsBySim = new Map<string, UnionNode[]>();
   for (const u of marriageCandidates) {
     if (!u.partnerAId || !u.partnerBId) continue;
-    if (renderedMarriageSimIds.has(u.partnerAId) || renderedMarriageSimIds.has(u.partnerBId)) continue;
-    renderedMarriageSimIds.add(u.partnerAId);
-    renderedMarriageSimIds.add(u.partnerBId);
-    primaryUnionIds.add(String(u.id));
+    unionsBySim.set(u.partnerAId, [...(unionsBySim.get(u.partnerAId) ?? []), u]);
+    unionsBySim.set(u.partnerBId, [...(unionsBySim.get(u.partnerBId) ?? []), u]);
+  }
+
+  const preferredPrimaryBySim = new Map<string, string>();
+  for (const [simId, simUnions] of unionsBySim) {
+    const sorted = [...simUnions].sort((a, b) => {
+      const aActive = a.endYear == null ? 1 : 0;
+      const bActive = b.endYear == null ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+      const aKids = inferredUnionChildCount(a);
+      const bKids = inferredUnionChildCount(b);
+      if (aKids !== bKids) return bKids - aKids;
+      const aStart = a.startYear ?? Infinity;
+      const bStart = b.startYear ?? Infinity;
+      if (aStart !== bStart) return aStart - bStart;
+      const aStartDay = a.startDayOfYear ?? Infinity;
+      const bStartDay = b.startDayOfYear ?? Infinity;
+      if (aStartDay !== bStartDay) return aStartDay - bStartDay;
+      return String(a.id).localeCompare(String(b.id));
+    });
+    if (sorted[0]) preferredPrimaryBySim.set(simId, String(sorted[0].id));
+  }
+
+  for (const u of marriageCandidates) {
+    if (!u.partnerAId || !u.partnerBId) continue;
+    const preferredA = preferredPrimaryBySim.get(u.partnerAId);
+    const preferredB = preferredPrimaryBySim.get(u.partnerBId);
+    if (preferredA === String(u.id) && preferredB === String(u.id)) {
+      primaryUnionIds.add(String(u.id));
+    }
   }
 
   const unionOrderBySim = new Map<string, number>();
