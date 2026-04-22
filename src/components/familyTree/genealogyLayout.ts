@@ -504,6 +504,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     .filter((e) => (e.data as { primary?: boolean } | undefined)?.primary === false)
     .sort((a, b) => (((a.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0) - ((b.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0)));
 
+  const unionChildrenById = new Map<string, string[]>();
+  const anchorToSatellites = new Map<string, { satelliteId: string; unionId?: string; secondaryIndex: number }[]>();
+
   for (const e of secondaryMarriageEdges) {
     const data = (e.data as { unionId?: string; secondaryIndex?: number } | undefined);
     const a = String(e.source);
@@ -539,27 +542,69 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     positioned.set(satelliteId, { x: nextX, y: anchorPos.y });
 
-    // If the union has children, re-center that child group under the satellite union.
-    const unionId = data?.unionId;
-    const unionChildren = unionId ? (childrenByUnion.get(unionId) ?? []) : [];
-    if (unionChildren.length > 0) {
-      const anchorAfter = positioned.get(anchorId);
-      const satAfter = positioned.get(satelliteId);
-      if (!anchorAfter || !satAfter) continue;
-      const unionMidX = (anchorAfter.x + satAfter.x + NODE_W) / 2;
+    const satellites = anchorToSatellites.get(anchorId) ?? [];
+    satellites.push({ satelliteId, unionId: data?.unionId, secondaryIndex: idx });
+    anchorToSatellites.set(anchorId, satellites);
+    if (data?.unionId) unionChildrenById.set(data.unionId, childrenByUnion.get(data.unionId) ?? []);
+  }
+
+  // Local post-satellite packing: keep the cluster near the anchor, but make sure
+  // the anchor + all satellites have safe gaps and no card overlap.
+  for (const [anchorId, satellites] of anchorToSatellites) {
+    const anchorPos = positioned.get(anchorId);
+    if (!anchorPos) continue;
+
+    const cluster = [
+      { id: anchorId, fixed: true, preferredX: anchorPos.x },
+      ...satellites.map((s) => ({
+        id: s.satelliteId,
+        fixed: false,
+        preferredX: positioned.get(s.satelliteId)?.x ?? anchorPos.x,
+      })),
+    ].sort((a, b) => a.preferredX - b.preferredX);
+
+    // Forward pass
+    for (let i = 1; i < cluster.length; i++) {
+      const prev = positioned.get(cluster[i - 1].id);
+      const cur = positioned.get(cluster[i].id);
+      if (!prev || !cur) continue;
+      const minX = prev.x + NODE_W + GAP_COUPLE;
+      if (cur.x < minX && !cluster[i].fixed) {
+        positioned.set(cluster[i].id, { x: minX, y: cur.y });
+      }
+    }
+    // Backward pass to preserve some symmetry around the anchor
+    for (let i = cluster.length - 2; i >= 0; i--) {
+      const next = positioned.get(cluster[i + 1].id);
+      const cur = positioned.get(cluster[i].id);
+      if (!next || !cur) continue;
+      const maxX = next.x - NODE_W - GAP_COUPLE;
+      if (cur.x > maxX && !cluster[i].fixed) {
+        positioned.set(cluster[i].id, { x: maxX, y: cur.y });
+      }
+    }
+
+    // Re-center each affected union's children after packing.
+    for (const s of satellites) {
+      if (!s.unionId) continue;
+      const satPos = positioned.get(s.satelliteId);
+      const ancPos = positioned.get(anchorId);
+      if (!satPos || !ancPos) continue;
+      const unionChildren = unionChildrenById.get(s.unionId) ?? [];
+      if (unionChildren.length === 0) continue;
+      const unionMidX = (ancPos.x + satPos.x + NODE_W) / 2;
       const childPositions = unionChildren
         .map((childId) => positioned.get(childId))
         .filter(Boolean) as { x: number; y: number }[];
-      if (childPositions.length > 0) {
-        const childLeft = Math.min(...childPositions.map((p) => p.x));
-        const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
-        const childMidX = (childLeft + childRight) / 2;
-        const shift = unionMidX - childMidX;
-        if (Math.abs(shift) > 0.5) {
-          for (const childId of unionChildren) {
-            const pos = positioned.get(childId);
-            if (pos) positioned.set(childId, { x: pos.x + shift, y: pos.y });
-          }
+      if (childPositions.length === 0) continue;
+      const childLeft = Math.min(...childPositions.map((p) => p.x));
+      const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
+      const childMidX = (childLeft + childRight) / 2;
+      const shift = unionMidX - childMidX;
+      if (Math.abs(shift) > 0.5) {
+        for (const childId of unionChildren) {
+          const pos = positioned.get(childId);
+          if (pos) positioned.set(childId, { x: pos.x + shift, y: pos.y });
         }
       }
     }
