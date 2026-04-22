@@ -10,6 +10,7 @@ interface Props {
   sheetConfig: SimsSheetConfig;
   currentDay: number;
   resolveName: (id?: string) => string;
+  relationshipLabels?: string[];
   expanded: boolean;
   onToggleExpanded: () => void;
   onEdit: () => void;
@@ -27,6 +28,7 @@ export default function SortableSimRow({
   sheetConfig,
   currentDay,
   resolveName,
+  relationshipLabels,
   expanded,
   onToggleExpanded,
   onEdit,
@@ -133,6 +135,14 @@ export default function SortableSimRow({
             {sheetConfig.showCauseOfDeath && <div className="detail"><strong>Cause of Death:</strong> {short(sim.causeOfDeath)}</div>}
 
             {sheetConfig.showNotes && <div className="detail detail-full"><strong>Notes:</strong> {short(sim.notes)}</div>}
+
+            {relationshipLabels && relationshipLabels.length > 0 && (
+              <div className="detail detail-full"><strong>Marriage / Partnership History:</strong> <div className="detail-chip-list">{relationshipLabels.map((label) => (
+                <span key={label} className="cell-tag">
+                  <span className="cell-tag-text">{label}</span>
+                </span>
+              ))}</div></div>
+            )}
 
             <div className="detail detail-full"><strong>Traits:</strong> {sim.traits && sim.traits.length > 0 ? (
               sim.traits.map((t) => (

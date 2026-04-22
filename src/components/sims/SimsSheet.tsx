@@ -83,7 +83,20 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
   const simsNormalized = useMemo(() => sims.map(migrateSimEntry), [sims]);
   const simOptions = useMemo(() => simsNormalized.map((s) => ({ id: s.id, label: getFullName(s) })), [simsNormalized]);
 
-  const unionsForSim = (simId?: string) => (unions ?? []).filter((u) => u.partnerAId === simId || u.partnerBId === simId);
+  const sortUnions = (list: UnionNode[]) => [...list].sort((a, b) => {
+    const aActive = a.endYear == null ? 1 : 0;
+    const bActive = b.endYear == null ? 1 : 0;
+    if (aActive !== bActive) return bActive - aActive;
+    const aStart = a.startYear ?? -Infinity;
+    const bStart = b.startYear ?? -Infinity;
+    if (aStart !== bStart) return bStart - aStart;
+    const aStartDay = a.startDayOfYear ?? -Infinity;
+    const bStartDay = b.startDayOfYear ?? -Infinity;
+    if (aStartDay !== bStartDay) return bStartDay - aStartDay;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  const unionsForSim = (simId?: string) => sortUnions((unions ?? []).filter((u) => u.partnerAId === simId || u.partnerBId === simId));
 
   const syncLegacyPartnerFields = (sim: SimEntry, nextUnions: UnionNode[]): SimEntry => {
     const related = nextUnions
@@ -127,6 +140,15 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
     if (!id) return '—';
     const sim = byId.get(id);
     return sim ? getFullName(sim) : '—';
+  };
+
+  const formatUnionLabel = (u: UnionNode, simId?: string) => {
+    const partnerId = u.partnerAId === simId ? u.partnerBId : u.partnerAId;
+    const partnerName = resolveName(partnerId);
+    const start = u.startYear != null ? `Year ${u.startYear}${u.startDayOfYear ? ` Day ${u.startDayOfYear}` : ''}` : 'Unknown start';
+    const end = u.endYear != null ? `Year ${u.endYear}${u.endDayOfYear ? ` Day ${u.endDayOfYear}` : ''}` : 'Present';
+    const state = u.endYear == null ? 'Active' : (u.endReason === 'death' ? 'Ended by death' : u.endReason === 'divorce' ? 'Ended by divorce' : 'Ended');
+    return `${partnerName} · ${start} → ${end} · ${state}`;
   };
 
   const sensors = useSensors(
@@ -200,6 +222,7 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
                 sheetConfig={sheetConfig}
                 currentDay={currentDay}
                 resolveName={resolveName}
+                relationshipLabels={unionsForSim(sim.id).map((u) => formatUnionLabel(u, sim.id))}
                 expanded={!!expandedIds[sim.id]}
                 onToggleExpanded={() => toggleExpanded(sim.id)}
                 onEdit={() => { setEditing({ ...sim }); setIsNew(false); }}
@@ -392,12 +415,16 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
             </div>
 
             <div className="field-group">
-              <label>Relationships</label>
+              <label>Marriage / Partnership History</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {unionsForSim(editing.id).map((u) => {
                   const partnerId = u.partnerAId === editing.id ? u.partnerBId : u.partnerAId;
                   return (
                     <div key={u.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.75rem', display: 'grid', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '0.9rem' }}>{u.endYear == null ? 'Active Marriage / Partnership' : 'Past Marriage / Partnership'}</strong>
+                        <span className="field-hint">{formatUnionLabel(u, editing.id)}</span>
+                      </div>
                       <div className="field-group" style={{ margin: 0 }}>
                         <label>Partner</label>
                         <select
