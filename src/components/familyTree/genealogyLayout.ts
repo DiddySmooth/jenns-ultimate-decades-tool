@@ -500,10 +500,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const clusterLeft = curX;
         const compactSpan = NODE_W + Math.max(0, unionLayouts.length) * (NODE_W + GAP_COUPLE + 18);
         const anchorX = clusterLeft + Math.max(0, Math.min((sw - compactSpan) / 2, 80));
-        let slotX = clusterLeft;
 
         // Keep the actual visible cluster compact around the anchor.
         positioned.set(anchorId, { x: anchorX, y });
+
+        const clusterMembers = [{ id: anchorId, unionId: undefined as string | undefined, anchor: true }];
 
         for (const [index, layout] of unionLayouts.entries()) {
           const info = layout.info;
@@ -511,39 +512,69 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           const partnerId = info.partners.find((id) => id !== anchorId) ?? info.partners[0];
           if (!partnerId) continue;
 
-          // Reserve this union's slot width in the generation flow, but keep the partner
-          // physically close to the anchor so the marriage lines still read as a family cluster.
           const partnerX = anchorX + NODE_W + GAP_COUPLE + (index * (NODE_W + 18));
           positioned.set(partnerId, { x: partnerX, y });
+          clusterMembers.push({ id: partnerId, unionId: layout.unionId, anchor: false });
+        }
 
-          const unionChildren = info.children ?? [];
-          if (unionChildren.length > 0) {
-            const childrenSorted = [...unionChildren].sort((a, b) => {
-              const aNode = simNodes.find(n => n.id === a);
-              const bNode = simNodes.find(n => n.id === b);
-              const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
-              const by2 = (bNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
-              return ay - by2;
-            });
-
-            let totalChildW = 0;
-            childrenSorted.forEach((c, i) => {
-              totalChildW += subtreeWidth.get(c) ?? NODE_W;
-              if (i > 0) totalChildW += GAP_X;
-            });
-
-            const unionMidX = (positioned.get(anchorId)!.x + partnerX + NODE_W) / 2;
-            let childX = unionMidX - totalChildW / 2;
-            for (const c of childrenSorted) {
-              const csw = subtreeWidth.get(c) ?? NODE_W;
-              const childMidX = childX + csw / 2;
-              const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
-              positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
-              childX += csw + GAP_X;
+        // Final intra-cluster packing using ACTUAL X positions.
+        const packed = [...clusterMembers].sort((a, b) => (positioned.get(a.id)?.x ?? 0) - (positioned.get(b.id)?.x ?? 0));
+        for (let i = 1; i < packed.length; i++) {
+          const prev = positioned.get(packed[i - 1].id);
+          const cur = positioned.get(packed[i].id);
+          if (!prev || !cur) continue;
+          const minX = prev.x + NODE_W + 18;
+          if (cur.x < minX) {
+            positioned.set(packed[i].id, { x: minX, y: cur.y });
+          }
+        }
+        // Keep the anchor roughly central by allowing left-side spouses to stay left if needed.
+        const anchorIndex = packed.findIndex((m) => m.id === anchorId);
+        if (anchorIndex >= 0) {
+          for (let i = anchorIndex - 1; i >= 0; i--) {
+            const next = positioned.get(packed[i + 1].id);
+            const cur = positioned.get(packed[i].id);
+            if (!next || !cur) continue;
+            const maxX = next.x - NODE_W - 18;
+            if (cur.x > maxX) {
+              positioned.set(packed[i].id, { x: maxX, y: cur.y });
             }
           }
+        }
 
-          slotX += layout.width + 36;
+        // After packing, re-center each union's children under the actual final union midpoint.
+        for (const member of clusterMembers) {
+          if (member.anchor || !member.unionId) continue;
+          const partnerPos = positioned.get(member.id);
+          const anchorPos2 = positioned.get(anchorId);
+          if (!partnerPos || !anchorPos2) continue;
+          const unionInfo = unionInfos.get(member.unionId);
+          const unionChildren = unionInfo?.children ?? [];
+          if (unionChildren.length === 0) continue;
+
+          const childrenSorted = [...unionChildren].sort((a, b) => {
+            const aNode = simNodes.find(n => n.id === a);
+            const bNode = simNodes.find(n => n.id === b);
+            const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+            const by2 = (bNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+            return ay - by2;
+          });
+
+          let totalChildW = 0;
+          childrenSorted.forEach((c, i) => {
+            totalChildW += subtreeWidth.get(c) ?? NODE_W;
+            if (i > 0) totalChildW += GAP_X;
+          });
+
+          const unionMidX = (anchorPos2.x + partnerPos.x + NODE_W) / 2;
+          let childX = unionMidX - totalChildW / 2;
+          for (const c of childrenSorted) {
+            const csw = subtreeWidth.get(c) ?? NODE_W;
+            const childMidX = childX + csw / 2;
+            const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
+            positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
+            childX += csw + GAP_X;
+          }
         }
       }
 
