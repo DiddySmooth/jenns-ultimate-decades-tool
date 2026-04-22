@@ -182,15 +182,30 @@ export function buildFamilyTree(
 
       const birthYear = child.birthYear ?? undefined;
       const pick = (() => {
-        if (!birthYear || candidates.length === 0) return null;
-        const matching = candidates.filter((u) => {
-          const start = u.startYear ?? -Infinity;
-          const end = u.endYear ?? Infinity;
-          return birthYear >= start && birthYear <= end;
-        });
-        if (matching.length === 0) return null;
-        matching.sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0));
-        return matching[0];
+        if (candidates.length === 0) return null;
+
+        // Best case: exact parent pair maps to exactly one union. Use it even if
+        // birthUnionId is missing and even if birthYear isn't filled in yet.
+        if (candidates.length === 1) return candidates[0];
+
+        // If we have a birth year, try to choose the union whose active window
+        // includes that birth year.
+        if (birthYear) {
+          const matching = candidates.filter((u) => {
+            const start = u.startYear ?? -Infinity;
+            const end = u.endYear ?? Infinity;
+            return birthYear >= start && birthYear <= end;
+          });
+          if (matching.length === 1) return matching[0];
+          if (matching.length > 1) {
+            matching.sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0));
+            return matching[0];
+          }
+        }
+
+        // Final fallback: latest union for this exact parent pair.
+        const latest = [...candidates].sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0));
+        return latest[0] ?? null;
       })();
 
       if (pick) {
