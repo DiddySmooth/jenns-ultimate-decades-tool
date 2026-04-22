@@ -80,18 +80,36 @@ export function buildFamilyTree(
   // Layout still uses one primary/current marriage per sim, but we can render
   // additional unions visually as secondary edges without letting them affect
   // spouse grouping/placement.
+  const inferredUnionChildCount = (union: UnionNode): number => {
+    const a = union.partnerAId;
+    const b = union.partnerBId;
+    if (!a || !b) return 0;
+    return sims.filter((s) => {
+      if (s.birthUnionId === union.id) return true;
+      const parentsMatch = (s.fatherId === a && s.motherId === b) || (s.fatherId === b && s.motherId === a);
+      return parentsMatch;
+    }).length;
+  };
+
   const marriageCandidates = [...unions]
     .filter((u) => u.partnerAId && u.partnerBId && visibleSimIds.has(u.partnerAId) && visibleSimIds.has(u.partnerBId))
     .sort((a, b) => {
       const aActive = a.endYear == null ? 1 : 0;
       const bActive = b.endYear == null ? 1 : 0;
       if (aActive !== bActive) return bActive - aActive;
+
+      // Prefer the union that is actually functioning as the main family branch
+      // (has children) over a newer-but-childless active union.
+      const aKids = inferredUnionChildCount(a);
+      const bKids = inferredUnionChildCount(b);
+      if (aKids !== bKids) return bKids - aKids;
+
       const aStart = a.startYear ?? -Infinity;
       const bStart = b.startYear ?? -Infinity;
-      if (aStart !== bStart) return bStart - aStart;
+      if (aStart !== bStart) return aStart - bStart;
       const aStartDay = a.startDayOfYear ?? -Infinity;
       const bStartDay = b.startDayOfYear ?? -Infinity;
-      if (aStartDay !== bStartDay) return bStartDay - aStartDay;
+      if (aStartDay !== bStartDay) return aStartDay - bStartDay;
       return String(a.id).localeCompare(String(b.id));
     });
 
