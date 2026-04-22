@@ -719,13 +719,18 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const anchorPos = positioned.get(anchorId);
     if (!anchorPos) continue;
 
-    const visibleUnionLayouts = unionIds
+    const unionStripLayouts = unionIds
       .map((uid) => ({ uid, info: unionInfos.get(uid) }))
-      .filter((x) => x.info && x.info.partners.some((p) => p !== anchorId && positioned.has(p)))
-      .sort((a, b) => (a.info?.secondaryIndex ?? 0) - (b.info?.secondaryIndex ?? 0));
-    if (visibleUnionLayouts.length === 0) continue;
+      .filter((x) => x.info)
+      .sort((a, b) => {
+        const aPrimary = a.info?.primary ? 1 : 0;
+        const bPrimary = b.info?.primary ? 1 : 0;
+        if (aPrimary !== bPrimary) return bPrimary - aPrimary;
+        return (a.info?.secondaryIndex ?? 0) - (b.info?.secondaryIndex ?? 0);
+      });
+    if (unionStripLayouts.length === 0) continue;
 
-    const clusterMemberPositions = [anchorId, ...visibleUnionLayouts.flatMap((x) => x.info?.partners ?? [])]
+    const clusterMemberPositions = [anchorId, ...unionStripLayouts.flatMap((x) => x.info?.partners ?? [])]
       .filter((id, idx, arr) => arr.indexOf(id) === idx)
       .map((id) => positioned.get(id)?.x)
       .filter((x): x is number => x != null);
@@ -736,20 +741,19 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     let nextSlotStart = anchorX + NODE_W + GAP_COUPLE;
     let nextPartnerX = anchorX + NODE_W + GAP_COUPLE;
-    for (const layout of visibleUnionLayouts) {
+    for (const layout of unionStripLayouts) {
       const info = layout.info;
       if (!info) continue;
       const partnerId = info.partners.find((id) => id !== anchorId && positioned.has(id));
-      if (!partnerId) continue;
-      const partnerPos = positioned.get(partnerId);
-      if (!partnerPos) continue;
-
-      // Decouple the visible spouse strip from the child-space slot width:
-      // wives stay visually close together, while child branches below can use
-      // as much width as they need.
       const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
+
+      // If the partner is hidden (dead/filtered), the union still needs a slot so
+      // its children don't collapse into the next visible wife's branch.
       const partnerX = nextPartnerX;
-      positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
+      if (partnerId) {
+        const partnerPos = positioned.get(partnerId);
+        if (partnerPos) positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
+      }
 
       const unionChildren = info.children ?? [];
       if (unionChildren.length > 0) {
@@ -776,7 +780,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }
       }
 
-      nextPartnerX += NODE_W + 18;
+      if (partnerId) nextPartnerX += NODE_W + 18;
       nextSlotStart += unionSlotWidth + 18;
     }
   }
