@@ -381,6 +381,19 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     return getChildrenForGroup(group.memberIds[0]);
   };
 
+  const getUnionSlotWidth = (unionId: string): number => {
+    const info = unionInfos.get(unionId);
+    if (!info) return NODE_W * 2 + GAP_COUPLE;
+    const children = info.children ?? [];
+    if (children.length === 0) return NODE_W * 2 + GAP_COUPLE;
+    let totalChildW = 0;
+    children.forEach((c, i) => {
+      totalChildW += subtreeWidth.get(c) ?? NODE_W;
+      if (i > 0) totalChildW += GAP_X;
+    });
+    return Math.max(NODE_W * 2 + GAP_COUPLE, totalChildW);
+  };
+
   // ── Bottom-up subtree width layout ───────────────────────────────────────
   // Calculate how wide each couple's subtree needs to be, then position
   // each generation based on subtree widths rather than fixed gaps.
@@ -400,9 +413,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const allChildren = getChildrenForLayoutGroup(group);
       const minWidth = group.type === 'cluster'
         ? (() => {
-            const unionSlots = group.unionIds.length;
             const clusterCore = NODE_W; // anchor sim
-            const unionsSpan = unionSlots > 0 ? (unionSlots * (NODE_W * 2 + GAP_COUPLE)) + ((unionSlots - 1) * 36) : 0;
+            const unionsSpan = group.unionIds.length > 0
+              ? group.unionIds.reduce((sum, uid, idx) => sum + getUnionSlotWidth(uid) + (idx > 0 ? 36 : 0), 0)
+              : 0;
             return Math.max(clusterCore + unionsSpan, NODE_W * 3 + GAP_X);
           })()
         : group.type === 'couple'
@@ -452,24 +466,63 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         positioned.set(group.memberIds[1], { x: grpMidX + GAP_COUPLE / 2, y });
       } else {
         const anchorId = group.anchorId;
-        const secondaries = group.memberIds.filter((id) => id !== anchorId).sort((a, b) => {
-          const aUnion = (simToUnionIds.get(anchorId) ?? []).find((uid) => (unionInfos.get(uid)?.partners ?? []).includes(a));
-          const bUnion = (simToUnionIds.get(anchorId) ?? []).find((uid) => (unionInfos.get(uid)?.partners ?? []).includes(b));
-          return (unionInfos.get(aUnion ?? '')?.secondaryIndex ?? 0) - (unionInfos.get(bUnion ?? '')?.secondaryIndex ?? 0);
-        });
+        const sortedUnionIds = [...group.unionIds].sort((a, b) => (unionInfos.get(a)?.secondaryIndex ?? 0) - (unionInfos.get(b)?.secondaryIndex ?? 0));
+        const unionLayouts = sortedUnionIds.map((uid) => ({
+          unionId: uid,
+          info: unionInfos.get(uid),
+          width: getUnionSlotWidth(uid),
+        }));
 
         const clusterLeft = curX;
-        const clusterRight = curX + sw;
-        const anchorX = clusterLeft + Math.max(0, (sw - (NODE_W + secondaries.length * (NODE_W + GAP_COUPLE + 24))) / 2);
-        positioned.set(anchorId, { x: anchorX, y });
+        let slotX = clusterLeft;
 
-        secondaries.forEach((sid, i) => {
-          const x = anchorX + NODE_W + GAP_COUPLE + (i * (NODE_W + GAP_COUPLE + 24));
-          positioned.set(sid, { x: Math.min(x, clusterRight - NODE_W), y });
-        });
+        // Anchor sim stays at the left edge of the cluster; each union gets its own slot to the right.
+        positioned.set(anchorId, { x: slotX, y });
+        slotX += NODE_W + 24;
+
+        for (const layout of unionLayouts) {
+          const info = layout.info;
+          if (!info) continue;
+          const partnerId = info.partners.find((id) => id !== anchorId) ?? info.partners[0];
+          if (!partnerId) continue;
+
+          // Place the partner inside this union's dedicated slot.
+          const partnerX = slotX + Math.max(0, layout.width - (NODE_W * 2 + GAP_COUPLE));
+          positioned.set(partnerId, { x: partnerX, y });
+
+          // Place this union's children centered under THIS union slot, not the whole cluster.
+          const unionChildren = info.children ?? [];
+          if (unionChildren.length > 0) {
+            const childrenSorted = [...unionChildren].sort((a, b) => {
+              const aNode = simNodes.find(n => n.id === a);
+              const bNode = simNodes.find(n => n.id === b);
+              const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+              const by2 = (bNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+              return ay - by2;
+            });
+
+            let totalChildW = 0;
+            childrenSorted.forEach((c, i) => {
+              totalChildW += subtreeWidth.get(c) ?? NODE_W;
+              if (i > 0) totalChildW += GAP_X;
+            });
+
+            const unionMidX = (positioned.get(anchorId)!.x + partnerX + NODE_W) / 2;
+            let childX = unionMidX - totalChildW / 2;
+            for (const c of childrenSorted) {
+              const csw = subtreeWidth.get(c) ?? NODE_W;
+              const childMidX = childX + csw / 2;
+              const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
+              positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
+              childX += csw + GAP_X;
+            }
+          }
+
+          slotX += layout.width + 36;
+        }
       }
 
-      const allChildren = getChildrenForLayoutGroup(group);
+      const allChildren = group.type === 'cluster' ? [] : getChildrenForLayoutGroup(group);
       if (allChildren.length > 0) {
         const childrenSorted = [...allChildren].sort((a, b) => {
           const aNode = simNodes.find(n => n.id === a);
@@ -578,128 +631,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Secondary union satellite pass.
-  // Keep the current primary-couple layout intact, but pull additional partners
-  // closer to the shared sim when one sim has many unions and the other sim is
-  // only in that one union. This is a pragmatic step toward union-centric layout.
-  const marriageEdges = edges.filter((e) => (e.data as { kind?: string } | undefined)?.kind === 'spouse');
-  const marriageCountBySim = new Map<string, number>();
-  for (const e of marriageEdges) {
-    const a = String(e.source);
-    const b = String(e.target);
-    marriageCountBySim.set(a, (marriageCountBySim.get(a) ?? 0) + 1);
-    marriageCountBySim.set(b, (marriageCountBySim.get(b) ?? 0) + 1);
-  }
-  const secondaryMarriageEdges = marriageEdges
-    .filter((e) => (e.data as { primary?: boolean } | undefined)?.primary === false)
-    .sort((a, b) => (((a.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0) - ((b.data as { secondaryIndex?: number } | undefined)?.secondaryIndex ?? 0)));
-
-  const unionChildrenById = new Map<string, string[]>();
-  const anchorToSatellites = new Map<string, { satelliteId: string; unionId?: string; secondaryIndex: number }[]>();
-
-  for (const e of secondaryMarriageEdges) {
-    const data = (e.data as { unionId?: string; secondaryIndex?: number } | undefined);
-    const a = String(e.source);
-    const b = String(e.target);
-    const aCount = marriageCountBySim.get(a) ?? 0;
-    const bCount = marriageCountBySim.get(b) ?? 0;
-
-    // Only do the satellite collapse when one endpoint is the obvious shared anchor
-    // and the other endpoint is a one-union partner.
-    let anchorId: string | null = null;
-    let satelliteId: string | null = null;
-    if (aCount > 1 && bCount === 1) {
-      anchorId = a;
-      satelliteId = b;
-    } else if (bCount > 1 && aCount === 1) {
-      anchorId = b;
-      satelliteId = a;
-    } else {
-      continue;
-    }
-
-    const anchorPos = positioned.get(anchorId);
-    const satellitePos = positioned.get(satelliteId);
-    if (!anchorPos || !satellitePos) continue;
-
-    const idx = Math.max(1, data?.secondaryIndex ?? 1);
-    const side = idx % 2 === 1 ? 1 : -1;
-    const slot = Math.ceil(idx / 2);
-    const extraGap = (slot - 1) * (NODE_W + 24);
-    const nextX = side === 1
-      ? anchorPos.x + NODE_W + GAP_COUPLE + extraGap
-      : anchorPos.x - GAP_COUPLE - NODE_W - extraGap;
-
-    positioned.set(satelliteId, { x: nextX, y: anchorPos.y });
-
-    const satellites = anchorToSatellites.get(anchorId) ?? [];
-    satellites.push({ satelliteId, unionId: data?.unionId, secondaryIndex: idx });
-    anchorToSatellites.set(anchorId, satellites);
-    if (data?.unionId) unionChildrenById.set(data.unionId, childrenByUnion.get(data.unionId) ?? []);
-  }
-
-  // Local post-satellite packing: keep the cluster near the anchor, but make sure
-  // the anchor + all satellites have safe gaps and no card overlap.
-  for (const [anchorId, satellites] of anchorToSatellites) {
-    const anchorPos = positioned.get(anchorId);
-    if (!anchorPos) continue;
-
-    const cluster = [
-      { id: anchorId, fixed: true, preferredX: anchorPos.x },
-      ...satellites.map((s) => ({
-        id: s.satelliteId,
-        fixed: false,
-        preferredX: positioned.get(s.satelliteId)?.x ?? anchorPos.x,
-      })),
-    ].sort((a, b) => a.preferredX - b.preferredX);
-
-    // Forward pass
-    for (let i = 1; i < cluster.length; i++) {
-      const prev = positioned.get(cluster[i - 1].id);
-      const cur = positioned.get(cluster[i].id);
-      if (!prev || !cur) continue;
-      const minX = prev.x + NODE_W + GAP_COUPLE;
-      if (cur.x < minX && !cluster[i].fixed) {
-        positioned.set(cluster[i].id, { x: minX, y: cur.y });
-      }
-    }
-    // Backward pass to preserve some symmetry around the anchor
-    for (let i = cluster.length - 2; i >= 0; i--) {
-      const next = positioned.get(cluster[i + 1].id);
-      const cur = positioned.get(cluster[i].id);
-      if (!next || !cur) continue;
-      const maxX = next.x - NODE_W - GAP_COUPLE;
-      if (cur.x > maxX && !cluster[i].fixed) {
-        positioned.set(cluster[i].id, { x: maxX, y: cur.y });
-      }
-    }
-
-    // Re-center each affected union's children after packing.
-    for (const s of satellites) {
-      if (!s.unionId) continue;
-      const satPos = positioned.get(s.satelliteId);
-      const ancPos = positioned.get(anchorId);
-      if (!satPos || !ancPos) continue;
-      const unionChildren = unionChildrenById.get(s.unionId) ?? [];
-      if (unionChildren.length === 0) continue;
-      const unionMidX = (ancPos.x + satPos.x + NODE_W) / 2;
-      const childPositions = unionChildren
-        .map((childId) => positioned.get(childId))
-        .filter(Boolean) as { x: number; y: number }[];
-      if (childPositions.length === 0) continue;
-      const childLeft = Math.min(...childPositions.map((p) => p.x));
-      const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
-      const childMidX = (childLeft + childRight) / 2;
-      const shift = unionMidX - childMidX;
-      if (Math.abs(shift) > 0.5) {
-        for (const childId of unionChildren) {
-          const pos = positioned.get(childId);
-          if (pos) positioned.set(childId, { x: pos.x + shift, y: pos.y });
-        }
-      }
-    }
-  }
-
   // Final family centering pass: after all spacing/overlap nudges are done,
   // shift each visible child group so its rendered center matches the final
   // midpoint of its parent couple. This fixes the slight kinks that can appear
@@ -707,6 +638,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   const recenteredParents = new Set<string>();
   for (const [parentId] of childrenByParent) {
     if (recenteredParents.has(parentId)) continue;
+    if ((simToUnionIds.get(parentId)?.length ?? 0) > 1) continue; // cluster unions already handled above
     const spouseId = spouseOf.get(parentId);
     if (spouseId && recenteredParents.has(spouseId)) continue;
 
