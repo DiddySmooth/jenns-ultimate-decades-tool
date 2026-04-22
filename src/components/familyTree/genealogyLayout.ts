@@ -130,7 +130,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (!genBySim.has(s.id as string)) genBySim.set(s.id as string, 0);
   }
 
-  // Married-in sims: iterate until stable so chained inheritance works
+  // Married-in / union-inherited generation: if a sim has no parents but belongs to a union
+  // with someone whose generation is known, inherit that generation.
   let inheritChanged = true;
   while (inheritChanged) {
     inheritChanged = false;
@@ -139,14 +140,25 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const parents = childToParentSims.get(id);
       const hasParents = parents && parents.size > 0;
       if (hasParents) continue;
-      const spouse = spouseOf.get(id);
-      if (!spouse) continue;
-      const spouseGen = genBySim.get(spouse);
-      if (spouseGen !== undefined && spouseGen >= 0) {
-        if (genBySim.get(id) !== spouseGen) {
-          genBySim.set(id, spouseGen);
-          inheritChanged = true;
+
+      const unionIds = unionIdsByPerson.get(id) ?? [];
+      let inheritedGen: number | undefined;
+      for (const unionId of unionIds) {
+        const partners = Array.from(unionPartnersAll.get(unionId) ?? []);
+        for (const partnerId of partners) {
+          if (partnerId === id) continue;
+          const partnerGen = genBySim.get(partnerId);
+          if (partnerGen !== undefined && partnerGen >= 0) {
+            inheritedGen = partnerGen;
+            break;
+          }
         }
+        if (inheritedGen !== undefined) break;
+      }
+
+      if (inheritedGen !== undefined && genBySim.get(id) !== inheritedGen) {
+        genBySim.set(id, inheritedGen);
+        inheritChanged = true;
       }
     }
   }
@@ -193,8 +205,13 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
       const pars = childToParentSims.get(simId);
       if (!pars || pars.size === 0) {
-        const spouse = spouseOf.get(simId);
-        if (spouse && spouse !== simId) return parentOrder(spouse, nextSeen);
+        const unionIds = unionIdsByPerson.get(simId) ?? [];
+        for (const unionId of unionIds) {
+          const partners = Array.from(unionPartnersAll.get(unionId) ?? []);
+          for (const partnerId of partners) {
+            if (partnerId !== simId) return parentOrder(partnerId, nextSeen);
+          }
+        }
         const selfIdx = simNodes.findIndex((n) => n.id === simId);
         return selfIdx >= 0 ? selfIdx : 999999;
       }
@@ -207,14 +224,16 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       return minIdx;
     };
 
-    // Group into couples first
+    // Group into couples first. Prefer explicit union pairs when present.
     const couples: string[][] = [];
     const visited = new Set<string>();
+
     for (const id of ids) {
       if (visited.has(id)) continue;
       visited.add(id);
-      const spouse = spouseOf.get(id);
-      if (spouse && ids.has(spouse) && !visited.has(spouse)) {
+      // prefer explicit union pair detection; fall back to spouseOf for compatibility
+      const spouse = Array.from(ids).find((other) => (shareExclusivePairUnion(id, other) || spouseOf.get(id) === other));
+      if (spouse && spouse !== id && !visited.has(spouse)) {
         visited.add(spouse);
         couples.push([id, spouse]);
       } else {
@@ -262,7 +281,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const prev = ids[i - 1];
         const cur = ids[i];
         // Use tighter gap if this is a couple
-        const gap = spouseOf.get(prev) === cur ? GAP_COUPLE : GAP_X;
+        const isCouple = shareExclusivePairUnion(prev, cur) || spouseOf.get(prev) === cur;
+        const gap = isCouple ? GAP_COUPLE : GAP_X;
         w += gap;
       }
       w += NODE_W;
@@ -283,7 +303,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (i > 0) {
         const prev = ids[i - 1];
         const cur = ids[i];
-        x += spouseOf.get(prev) === cur ? GAP_COUPLE : GAP_X;
+        const isCouple = shareExclusivePairUnion(prev, cur) || spouseOf.get(prev) === cur;
+        x += isCouple ? GAP_COUPLE : GAP_X;
       }
       positioned.set(ids[i], { x, y });
       x += NODE_W;
@@ -374,6 +395,14 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   const simToUnionIds = new Map<string, string[]>();
   for (const [simId, unionIds] of unionIdsByPerson) {
     simToUnionIds.set(simId, [...unionIds].filter((uid) => unionInfos.has(uid)));
+  }
+
+  // Helper: does a and b share an exclusive 2-partner union?
+  function shareExclusivePairUnion(a: string, b: string) {
+    const aUnionIds = simToUnionIds.get(a) ?? [];
+    const bUnionIds = simToUnionIds.get(b) ?? [];
+    const shared = aUnionIds.filter((uid) => bUnionIds.includes(uid));
+    return shared.some((uid) => (unionInfos.get(uid)?.partners ?? []).length === 2);
   }
 
   const buildGroupsForGeneration = (ids: string[]): LayoutGroup[] => {
@@ -671,15 +700,16 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Snap spouses to identical Y so marriage lines are perfectly horizontal
-  for (const [a, b] of spouseOf) {
-    const posA = positioned.get(a);
-    const posB = positioned.get(b);
-    if (!posA || !posB) continue;
-    if (posA.y !== posB.y) {
-      const sharedY = Math.min(posA.y, posB.y);
-      positioned.set(a, { ...posA, y: sharedY });
-      positioned.set(b, { ...posB, y: sharedY });
+  // Snap visible union partners to identical Y so marriage lines stay horizontal.
+  for (const [, partnersSet] of unionPartnersAll) {
+    const partnerIds = Array.from(partnersSet).filter((id) => positioned.has(id));
+    if (partnerIds.length < 2) continue;
+    const partnerPositions = partnerIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+    if (partnerPositions.length < 2) continue;
+    const sharedY = Math.min(...partnerPositions.map((p) => p.y));
+    for (const id of partnerIds) {
+      const pos = positioned.get(id);
+      if (pos && pos.y !== sharedY) positioned.set(id, { ...pos, y: sharedY });
     }
   }
 
