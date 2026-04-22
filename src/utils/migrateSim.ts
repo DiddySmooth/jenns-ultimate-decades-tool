@@ -27,8 +27,11 @@ export function migrateSimEntry(sim: any): SimEntry {
 
   return {
     id: String(sim.id ?? ''),
+    traits: Array.isArray(sim.traits) ? sim.traits.map((t: unknown) => String(t)).filter(Boolean) : undefined,
     firstName: fn,
     lastName: ln,
+    maidenName: sim.maidenName as string | undefined,
+    showMaidenName: sim.showMaidenName as boolean | undefined,
     name: sim.name,
     sex,
     fatherId: sim.fatherId as string | undefined,
