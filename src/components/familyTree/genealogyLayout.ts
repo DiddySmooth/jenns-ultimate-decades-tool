@@ -437,11 +437,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const allChildren = getChildrenForLayoutGroup(group);
       const minWidth = group.type === 'cluster'
         ? (() => {
-            const clusterCore = NODE_W; // anchor sim
-            const unionsSpan = group.unionIds.length > 0
-              ? group.unionIds.reduce((sum, uid, idx) => sum + getUnionSlotWidth(uid) + (idx > 0 ? 36 : 0), 0)
-              : 0;
-            return Math.max(clusterCore + unionsSpan, NODE_W * 3 + GAP_X);
+            // Reserve enough room for the actual visible union strip plus the widest
+            // child branch underneath, but don't stack every union's full subtree width
+            // side-by-side or we create giant dead gaps around the cluster.
+            const stripWidth = NODE_W + Math.max(0, group.unionIds.length) * (NODE_W + GAP_COUPLE + 18);
+            const widestUnionChildren = group.unionIds.reduce((maxW, uid) => Math.max(maxW, getUnionSlotWidth(uid)), 0);
+            return Math.max(stripWidth + 24, widestUnionChildren, NODE_W * 3);
           })()
         : group.type === 'couple'
         ? NODE_W * 2 + GAP_COUPLE
