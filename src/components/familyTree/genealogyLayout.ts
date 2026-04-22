@@ -12,30 +12,44 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
   // Build spouse sets from marriage edges (union nodes no longer exist in graph)
   const spouseOf = new Map<string, string>();
+  const unionPartnersAll = new Map<string, Set<string>>();
   for (const e of edges) {
-    const data = (e.data as { kind?: string; primary?: boolean } | undefined);
+    const data = (e.data as { kind?: string; primary?: boolean; unionId?: string } | undefined);
     const kind = data?.kind;
     if (kind !== 'spouse') continue;
-    if (data?.primary === false) continue; // secondary unions are visual only for now
     const a = String(e.source);
     const b = String(e.target);
-    if (!spouseOf.has(a)) spouseOf.set(a, b);
-    if (!spouseOf.has(b)) spouseOf.set(b, a);
+    if (!data || data.primary !== false) {
+      if (!spouseOf.has(a)) spouseOf.set(a, b);
+      if (!spouseOf.has(b)) spouseOf.set(b, a);
+    }
+    if (data?.unionId) {
+      const set = unionPartnersAll.get(data.unionId) ?? new Set<string>();
+      set.add(a);
+      set.add(b);
+      unionPartnersAll.set(data.unionId, set);
+    }
   }
 
-  // Build child -> parent sims map (expand union sources to partners)
+  // Build child -> parent sims map.
+  // Important: for union-backed child edges, count BOTH union partners as parents,
+  // not just the visible source node used for rendering.
   const childToParentSims = new Map<string, Set<string>>();
   for (const e of edges) {
     const src = String(e.source);
     const tgt = String(e.target);
     if (!tgt.startsWith('sim:')) continue;
-    // Only use parent edges — spouse edges would make partners appear as each other's parents
-    const kind = (e.data as { kind?: string } | undefined)?.kind;
+    const data = (e.data as { kind?: string; unionId?: string } | undefined);
+    const kind = data?.kind;
     if (kind === 'spouse') continue;
     const parentSims: string[] = [];
-    if (src.startsWith('sim:')) {
+
+    if (data?.unionId && unionPartnersAll.has(data.unionId)) {
+      parentSims.push(...Array.from(unionPartnersAll.get(data.unionId)!));
+    } else if (src.startsWith('sim:')) {
       parentSims.push(src);
     }
+
     const set = childToParentSims.get(tgt) ?? new Set<string>();
     for (const p of parentSims) set.add(p);
     childToParentSims.set(tgt, set);
