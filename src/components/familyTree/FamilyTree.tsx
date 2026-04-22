@@ -317,14 +317,6 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
           <h3>Filters</h3>
           <div className="sidebar-card">
-            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
-              <input
-                type="checkbox"
-                checked={config.filters.hideDeadSims}
-                onChange={(e) => onConfigChange({ ...config, filters: { ...config.filters, hideDeadSims: e.target.checked } })}
-              />
-              Hide dead sims
-            </label>
             <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem', marginTop: '0.35rem' }}>
               <input
                 type="checkbox"

@@ -38,10 +38,9 @@ export function buildFamilyTree(
 
   let simsFiltered = sims;
 
-  // Hide dead sims (simple)
-  if (treeConfig.filters.hideDeadSims) {
-    simsFiltered = simsFiltered.filter((s) => !isDead(s));
-  }
+  // NOTE: we intentionally do NOT hide dead sims in the family tree anymore.
+  // Dead parents/spouses still define unions and child branches, and removing
+  // them makes genealogy ambiguous (especially for remarriage/multi-union cases).
 
   // Hide dead branches: remove sims where they and all descendants are dead
   if (treeConfig.filters.hideDeadBranches) {
