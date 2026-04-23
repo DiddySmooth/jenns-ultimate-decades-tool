@@ -487,6 +487,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     return Math.min(Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(unionId)), 220);
   };
 
+  const getGapBetweenGroups = (leftGroup: LayoutGroup | undefined, rightGroup: LayoutGroup | undefined): number => {
+    if (!leftGroup || !rightGroup) return GAP_X;
+    const leftChildren = getChildrenForLayoutGroup(leftGroup).length;
+    const rightChildren = getChildrenForLayoutGroup(rightGroup).length;
+    // Childless groups can fill dead space on the row more aggressively.
+    if (leftChildren === 0 || rightChildren === 0) return 56;
+    return GAP_X;
+  };
+
   // ── Bottom-up subtree width layout ───────────────────────────────────────
   // Calculate how wide each couple's subtree needs to be, then position
   // each generation based on subtree widths rather than fixed gaps.
@@ -540,7 +549,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     let totalGenWidth = 0;
     groups.forEach((group, i) => {
       totalGenWidth += groupWidth.get(group.id) ?? NODE_W;
-      if (i > 0) totalGenWidth += GAP_X;
+      if (i > 0) totalGenWidth += getGapBetweenGroups(groups[i - 1], group);
     });
 
     const startX = 40;
@@ -650,7 +659,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }
       }
 
-      curX += sw + GAP_X;
+      curX += sw + getGapBetweenGroups(group, groups[groups.indexOf(group) + 1]);
     }
   }
 
@@ -818,7 +827,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const unionChildren = info.children ?? [];
       const heartX = (anchorX + NODE_W / 2) + ((partnerX + NODE_W / 2) - (anchorX + NODE_W / 2)) * 0.82;
       const heartY = anchorPos.y + NODE_H + 20;
-      const childBarY = heartY + 42 + ((info.secondaryIndex ?? 0) % 2) * 10;
+      // Keep union child bars on one cleaner shared level where possible.
+      const childBarY = heartY + 42;
       unionHeartX.set(layout.uid, heartX);
 
       if (unionChildren.length > 0) {
