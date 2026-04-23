@@ -398,6 +398,19 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     return shared.some((uid) => (unionPartnersAll.get(uid)?.size ?? 0) === 2);
   }
 
+  const getPreferredClusterAnchor = (memberIds: string[]): string => {
+    const scored = [...memberIds].map((id) => {
+      const parentCount = childToParentSims.get(id)?.size ?? 0;
+      const childCount = childrenByParent.get(id)?.length ?? 0;
+      const explicitUnionCount = unionIdsByPerson.get(id)?.length ?? 0;
+      return {
+        id,
+        score: (parentCount > 0 ? 100 : 0) + (childCount > 0 ? 20 : 0) + explicitUnionCount,
+      };
+    }).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+    return scored[0]?.id ?? memberIds[0];
+  };
+
   const buildGroupsForGeneration = (ids: string[]): LayoutGroup[] => {
     const groups: LayoutGroup[] = [];
     const seen = new Set<string>();
@@ -427,8 +440,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           }
         }
         const members = Array.from(memberIds);
+        const anchorId = getPreferredClusterAnchor(members);
         members.forEach((m) => seen.add(m));
-        groups.push({ id: `cluster:${id}`, type: 'cluster', anchorId: id, memberIds: members, unionIds: Array.from(clusterUnionIds) });
+        groups.push({ id: `cluster:${anchorId}`, type: 'cluster', anchorId, memberIds: members, unionIds: Array.from(clusterUnionIds) });
         continue;
       }
 
@@ -891,7 +905,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         // Also move the visible non-anchor partner card for this union so the top band
         // reflects the same spacing that the child band requires.
         const visiblePartnerIds = (unionInfo?.partners ?? []).filter((id) => positioned.has(id));
-        const anchorId = visiblePartnerIds.find((id) => (simToUnionIds.get(id)?.length ?? 0) > 1) ?? visiblePartnerIds[0];
+        const anchorId = getPreferredClusterAnchor(visiblePartnerIds);
         for (const pid of visiblePartnerIds) {
           if (pid === anchorId) continue;
           const pos = positioned.get(pid);
