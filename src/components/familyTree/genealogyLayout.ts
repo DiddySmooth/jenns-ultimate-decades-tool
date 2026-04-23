@@ -489,9 +489,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
   const getGapBetweenGroups = (leftGroup: LayoutGroup | undefined, rightGroup: LayoutGroup | undefined): number => {
     if (!leftGroup || !rightGroup) return GAP_X;
+    // Always give a generous gap next to a multi-union cluster so neighboring
+    // families don't get swallowed by it.
+    if (leftGroup.type === 'cluster' || rightGroup.type === 'cluster') return GAP_X + 60;
     const leftChildren = getChildrenForLayoutGroup(leftGroup).length;
     const rightChildren = getChildrenForLayoutGroup(rightGroup).length;
-    // Childless groups can fill dead space on the row more aggressively.
     if (leftChildren === 0 || rightChildren === 0) return 56;
     return GAP_X;
   };
@@ -515,16 +517,23 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const allChildren = getChildrenForLayoutGroup(group);
       const minWidth = group.type === 'cluster'
         ? (() => {
-            // Keep the visible cluster compact. Child bands below may need extra room,
-            // but that should not explode the top-level spouse strip width.
-            const stripWidth = NODE_W + group.unionIds.reduce((sum, uid, idx) => sum + getCompactUnionSlotWidth(uid) + (idx > 0 ? GAP_UNION_GROUP : 0), 0);
-            return Math.max(stripWidth + 24, NODE_W * 3);
+            // Cluster width = compact visible strip ONLY.
+            // Child bands live below and get their own horizontal space —
+            // they must NOT inflate the cluster's top-row footprint or it
+            // will swallow neighboring families.
+            const stripWidth = NODE_W + group.unionIds.reduce((sum, _uid, idx) =>
+              sum + NODE_W + GAP_COUPLE + (idx > 0 ? GAP_UNION_GROUP : 0), 0);
+            return stripWidth + 24;
           })()
         : group.type === 'couple'
         ? NODE_W * 2 + GAP_COUPLE
         : NODE_W;
 
-      if (allChildren.length === 0) {
+      // For clusters: width is fixed at strip width. Children get laid out
+      // below independently — do NOT factor them into groupWidth.
+      if (group.type === 'cluster') {
+        groupWidth.set(group.id, minWidth);
+      } else if (allChildren.length === 0) {
         groupWidth.set(group.id, minWidth);
       } else {
         let childrenTotalWidth = 0;
