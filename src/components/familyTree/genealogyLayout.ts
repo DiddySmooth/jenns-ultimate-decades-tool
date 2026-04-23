@@ -1025,7 +1025,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     for (let i = 1; i < groups.length; i++) {
       const prev = groups[i - 1];
       const cur = groups[i];
-      const minLeft = prev.right + 24;
+      const minGap = getGapBetweenGroups(prev.group, cur.group);
+      const minLeft = prev.right + minGap;
       if (cur.left < minLeft) {
         const dx = minLeft - cur.left;
         shiftGroupWithChildren(cur.group, dx);
