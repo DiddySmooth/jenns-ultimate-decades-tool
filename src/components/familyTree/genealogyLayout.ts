@@ -391,10 +391,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
   // Helper: does a and b share an exclusive 2-partner union?
   function shareExclusivePairUnion(a: string, b: string) {
-    const aUnionIds = simToUnionIds.get(a) ?? [];
-    const bUnionIds = simToUnionIds.get(b) ?? [];
+    const aUnionIds = unionIdsByPerson.get(a) ?? [];
+    const bUnionIds = unionIdsByPerson.get(b) ?? [];
     const shared = aUnionIds.filter((uid) => bUnionIds.includes(uid));
-    return shared.some((uid) => (unionInfos.get(uid)?.partners ?? []).length === 2);
+    return shared.some((uid) => (unionPartnersAll.get(uid)?.size ?? 0) === 2);
   }
 
   const buildGroupsForGeneration = (ids: string[]): LayoutGroup[] => {
