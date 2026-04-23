@@ -5,6 +5,7 @@ const NODE_H = 200; // matches fixed CSS height
 const GAP_X = 120;  // gap between couples/unrelated sims
 const GAP_COUPLE = 40; // gap between spouses
 const GAP_Y = 200;  // extra room for heart + child lines below cards
+const GAP_UNION_GROUP = 42; // visual gutter between adjacent union groups in shared-parent strips
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
@@ -493,7 +494,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         ? (() => {
             // Keep the visible cluster compact. Child bands below may need extra room,
             // but that should not explode the top-level spouse strip width.
-            const stripWidth = NODE_W + group.unionIds.reduce((sum, uid, idx) => sum + getCompactUnionSlotWidth(uid) + (idx > 0 ? 18 : 0), 0);
+            const stripWidth = NODE_W + group.unionIds.reduce((sum, uid, idx) => sum + getCompactUnionSlotWidth(uid) + (idx > 0 ? GAP_UNION_GROUP : 0), 0);
             return Math.max(stripWidth + 24, NODE_W * 3);
           })()
         : group.type === 'couple'
@@ -551,7 +552,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }));
 
         const clusterLeft = curX;
-        const stripWidth = NODE_W + unionLayouts.reduce((sum, _layout, idx) => sum + NODE_W + GAP_COUPLE + (idx > 0 ? 18 : 0), 0);
+        const stripWidth = NODE_W + unionLayouts.reduce((sum, _layout, idx) => sum + NODE_W + GAP_COUPLE + (idx > 0 ? GAP_UNION_GROUP : 0), 0);
         const anchorX = clusterLeft + Math.max(0, (sw - stripWidth) / 2);
 
         // Sequential strip layout: anchor on the left, all wives/partners to the right.
@@ -570,7 +571,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           const partnerX = nextPartnerX;
           positioned.set(partnerId, { x: partnerX, y });
           clusterMembers.push({ id: partnerId, unionId: layout.unionId, anchor: false });
-          nextPartnerX += NODE_W + 18;
+          nextPartnerX += NODE_W + GAP_UNION_GROUP;
         }
 
         // After strip placement, re-center each union's children under the actual final union midpoint.
@@ -852,8 +853,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         });
       }
 
-      if (partnerId) nextPartnerX += NODE_W + 18;
-      nextSlotStart += unionSlotWidth + 18;
+      if (partnerId) nextPartnerX += NODE_W + GAP_UNION_GROUP;
+      nextSlotStart += unionSlotWidth + GAP_UNION_GROUP;
     }
   }
 
