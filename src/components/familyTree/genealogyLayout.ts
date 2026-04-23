@@ -540,6 +540,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  const unionHeartX = new Map<string, number>();
+  const unionSlots = new Map<string, UnionSlot>();
+  const clusterBlockBounds = new Map<string, { left: number; right: number }>();
+
   // Now re-position all generations top-down using union-aware group widths.
   for (const g of genKeys) {
     const ids = sortedGens.get(g)!;
@@ -577,6 +581,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const clusterLeft = curX;
         const stripWidth = NODE_W + unionLayouts.reduce((sum, _layout, idx) => sum + NODE_W + GAP_COUPLE + (idx > 0 ? GAP_UNION_GROUP : 0), 0);
         const anchorX = clusterLeft + Math.max(0, (sw - stripWidth) / 2);
+        clusterBlockBounds.set(group.anchorId, { left: clusterLeft, right: curX + sw });
 
         // Sequential strip layout: anchor on the left, all wives/partners to the right.
         // This matches the visual target much better than radial/anchor-packing.
@@ -775,9 +780,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     childBarY?: number;
   };
 
-  const unionHeartX = new Map<string, number>();
-  const unionSlots = new Map<string, UnionSlot>();
-
   // Final multi-union normalization pass.
   // Hidden/dead spouses and old pair-centering logic can still leave the strip
   // visually backwards or mixed. Force shared-sim clusters into a clean strip:
@@ -805,11 +807,13 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       .filter((x): x is number => x != null);
     if (clusterMemberPositions.length === 0) continue;
 
+    const block = clusterBlockBounds.get(anchorId);
     const anchorX = Math.min(...clusterMemberPositions);
-    positioned.set(anchorId, { x: anchorX, y: anchorPos.y });
+    const clampedAnchorX = block ? Math.max(block.left, Math.min(anchorX, block.right - NODE_W)) : anchorX;
+    positioned.set(anchorId, { x: clampedAnchorX, y: anchorPos.y });
 
-    let nextSlotStart = anchorX + NODE_W + GAP_COUPLE;
-    const anchorCenter = anchorX + NODE_W / 2;
+    let nextSlotStart = clampedAnchorX + NODE_W + GAP_COUPLE;
+    const anchorCenter = clampedAnchorX + NODE_W / 2;
     const HEART_BIAS = 0.82;
     for (const layout of unionStripLayouts) {
       const info = layout.info;
@@ -822,14 +826,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       // actually centered under their own parents/union.
       const slotCenterX = nextSlotStart + unionSlotWidth / 2;
       const partnerCenterX = anchorCenter + ((slotCenterX - anchorCenter) / HEART_BIAS);
-      const partnerX = partnerCenterX - NODE_W / 2;
+      let partnerX = partnerCenterX - NODE_W / 2;
+      if (block) {
+        partnerX = Math.max(clampedAnchorX + NODE_W + GAP_COUPLE, Math.min(partnerX, block.right - NODE_W));
+      }
       if (partnerId) {
         const partnerPos = positioned.get(partnerId);
         if (partnerPos) positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
       }
 
       const unionChildren = info.children ?? [];
-      const heartX = slotCenterX;
+      const heartX = block ? Math.max(block.left + NODE_W / 2, Math.min(slotCenterX, block.right - NODE_W / 2)) : slotCenterX;
       const heartY = anchorPos.y + NODE_H + 20;
       // Keep union child bars on one cleaner shared level where possible.
       const childBarY = heartY + 42;
