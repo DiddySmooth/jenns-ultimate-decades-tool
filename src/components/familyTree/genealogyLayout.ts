@@ -177,6 +177,34 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // Second married-in inheritance pass — runs AFTER children have their final
+  // generations so spouses like Raff (married to Piper who is gen 1) correctly
+  // inherit gen 1 instead of defaulting to gen 0 alongside the harem wives.
+  let inheritChanged2 = true;
+  while (inheritChanged2) {
+    inheritChanged2 = false;
+    for (const s of simNodes) {
+      const id = s.id as string;
+      const hasParents = (childToParentSims.get(id)?.size ?? 0) > 0;
+      if (hasParents) continue;
+      const unionIds = unionIdsByPerson.get(id) ?? [];
+      let inheritedGen: number | undefined;
+      for (const unionId of unionIds) {
+        for (const partnerId of Array.from(unionPartnersAll.get(unionId) ?? [])) {
+          if (partnerId === id) continue;
+          const partnerGen = genBySim.get(partnerId);
+          if (partnerGen !== undefined && partnerGen >= 0) {
+            if (inheritedGen === undefined || partnerGen > inheritedGen) inheritedGen = partnerGen;
+          }
+        }
+      }
+      if (inheritedGen !== undefined && genBySim.get(id) !== inheritedGen) {
+        genBySim.set(id, inheritedGen);
+        inheritChanged2 = true;
+      }
+    }
+  }
+
   // Group by generation
   const gens = new Map<number, string[]>();
   for (const [id, g] of genBySim) gens.set(g, [...(gens.get(g) ?? []), id]);
