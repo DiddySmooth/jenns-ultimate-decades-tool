@@ -809,23 +809,27 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     positioned.set(anchorId, { x: anchorX, y: anchorPos.y });
 
     let nextSlotStart = anchorX + NODE_W + GAP_COUPLE;
-    let nextPartnerX = anchorX + NODE_W + GAP_COUPLE;
+    const anchorCenter = anchorX + NODE_W / 2;
+    const HEART_BIAS = 0.82;
     for (const layout of unionStripLayouts) {
       const info = layout.info;
       if (!info) continue;
       const partnerId = info.partners.find((id) => id !== anchorId && positioned.has(id));
       const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
 
-      // If the partner is hidden (dead/filtered), the union still needs a slot so
-      // its children don't collapse into the next visible wife's branch.
-      const partnerX = nextPartnerX;
+      // Each union owns a child-driven slot. The heart sits at the center of that slot,
+      // and the visible partner is positioned from that heart so the children below are
+      // actually centered under their own parents/union.
+      const slotCenterX = nextSlotStart + unionSlotWidth / 2;
+      const partnerCenterX = anchorCenter + ((slotCenterX - anchorCenter) / HEART_BIAS);
+      const partnerX = partnerCenterX - NODE_W / 2;
       if (partnerId) {
         const partnerPos = positioned.get(partnerId);
         if (partnerPos) positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
       }
 
       const unionChildren = info.children ?? [];
-      const heartX = (anchorX + NODE_W / 2) + ((partnerX + NODE_W / 2) - (anchorX + NODE_W / 2)) * 0.82;
+      const heartX = slotCenterX;
       const heartY = anchorPos.y + NODE_H + 20;
       // Keep union child bars on one cleaner shared level where possible.
       const childBarY = heartY + 42;
@@ -877,7 +881,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         });
       }
 
-      if (partnerId) nextPartnerX += NODE_W + GAP_UNION_GROUP;
       nextSlotStart += unionSlotWidth + GAP_UNION_GROUP;
     }
   }
