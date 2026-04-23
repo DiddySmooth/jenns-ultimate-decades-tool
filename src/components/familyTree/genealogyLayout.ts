@@ -956,14 +956,19 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const g of genKeys) {
     const groups = buildGroupsForGeneration(sortedGens.get(g) ?? []).map((group) => {
       const memberPositions = group.memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      if (memberPositions.length === 0) return { group, left: 0, right: 0 };
       let left = Math.min(...memberPositions.map((p) => p.x));
       let right = Math.max(...memberPositions.map((p) => p.x + NODE_W));
 
       if (group.type === 'cluster') {
-        const relevantSlots = group.unionIds.map((uid) => unionSlots.get(uid)).filter(Boolean) as UnionSlot[];
-        if (relevantSlots.length > 0) {
-          left = Math.min(left, ...relevantSlots.map((s) => Math.min(s.left, s.childLeft ?? s.left)));
-          right = Math.max(right, ...relevantSlots.map((s) => Math.max(s.right, s.childRight ?? s.right)));
+        // For clusters, bound only by the cluster's own member + child positions,
+        // NOT by slot widths which can bleed into neighboring families' space.
+        const clusterChildIds = group.unionIds.flatMap((uid) => Array.from(unionChildrenAll.get(uid) ?? []))
+          .filter((id) => positioned.has(id));
+        for (const cid of clusterChildIds) {
+          const pos = positioned.get(cid)!;
+          left = Math.min(left, pos.x);
+          right = Math.max(right, pos.x + NODE_W);
         }
       }
 
@@ -986,29 +991,34 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   // Build result
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
-  // Add visual cluster boundary nodes so users can tell where a multi-union family ends.
+  // Add visual cluster boundary nodes — sized from ACTUAL node positions only,
+  // never from slot/subtree widths which can include unrelated families' space.
   for (const [anchorId, unionIds] of simToUnionIds) {
     if (unionIds.length <= 1) continue;
-    const relevantSlots = unionIds.map((uid) => unionSlots.get(uid)).filter(Boolean) as UnionSlot[];
-    const memberIds = [anchorId, ...unionIds.flatMap((uid) => Array.from(unionPartnersAll.get(uid) ?? []))]
-      .filter((id, idx, arr) => arr.indexOf(id) === idx)
-      .filter((id) => positioned.has(id));
-    if (relevantSlots.length === 0 || memberIds.length === 0) continue;
 
-    const memberPositions = memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
-    const left = Math.min(
-      ...memberPositions.map((p) => p.x),
-      ...relevantSlots.map((s) => Math.min(s.left, s.childLeft ?? s.left)),
-    ) - 18;
-    const right = Math.max(
-      ...memberPositions.map((p) => p.x + NODE_W),
-      ...relevantSlots.map((s) => Math.max(s.right, s.childRight ?? s.right)),
-    ) + 18;
-    const top = Math.min(...memberPositions.map((p) => p.y)) - 18;
-    const bottom = Math.max(
-      ...memberPositions.map((p) => p.y + NODE_H),
-      ...relevantSlots.map((s) => s.childBarY ?? s.heartY),
-    ) + 90;
+    // Collect only the sims that logically belong to this cluster:
+    // anchor + direct union partners + their union-owned children.
+    const clusterMemberIds = new Set<string>([anchorId]);
+    const clusterChildIds = new Set<string>();
+    for (const uid of unionIds) {
+      for (const pid of unionPartnersAll.get(uid) ?? []) clusterMemberIds.add(pid);
+      for (const cid of unionChildrenAll.get(uid) ?? []) clusterChildIds.add(cid);
+    }
+
+    const allClusterIds = [...clusterMemberIds, ...clusterChildIds].filter((id) => positioned.has(id));
+    if (allClusterIds.length === 0) continue;
+
+    const allPositions = allClusterIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+    const PADDING = 20;
+    const left = Math.min(...allPositions.map((p) => p.x)) - PADDING;
+    const right = Math.max(...allPositions.map((p) => p.x + NODE_W)) + PADDING;
+    const top = Math.min(...allPositions.map((p) => p.y)) - PADDING;
+    // Bottom extends past the child cards
+    const memberBottom = Math.max(...[...clusterMemberIds].filter(id => positioned.has(id)).map(id => (positioned.get(id)!.y + NODE_H)));
+    const childBottom = clusterChildIds.size > 0
+      ? Math.max(...[...clusterChildIds].filter(id => positioned.has(id)).map(id => (positioned.get(id)!.y + NODE_H)))
+      : memberBottom;
+    const bottom = Math.max(memberBottom, childBottom) + PADDING;
 
     result.push({
       id: `cluster:${anchorId}`,
