@@ -850,6 +850,33 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // Add a minimum gutter between neighboring union child bands in shared-parent strips.
+  for (const [, unionIds] of simToUnionIds) {
+    if (unionIds.length <= 1) continue;
+    const laidOutSlots = unionIds
+      .map((uid) => ({ uid, slot: unionSlots.get(uid) }))
+      .filter((x): x is { uid: string; slot: NonNullable<typeof x.slot> } => !!x.slot && x.slot.childLeft != null && x.slot.childRight != null)
+      .sort((a, b) => (a.slot.childLeft! - b.slot.childLeft!));
+
+    const MIN_GUTTER = 24;
+    for (let i = 1; i < laidOutSlots.length; i++) {
+      const prev = laidOutSlots[i - 1].slot;
+      const cur = laidOutSlots[i].slot;
+      const overlap = (prev.childRight ?? 0) + MIN_GUTTER - (cur.childLeft ?? 0);
+      if (overlap > 0) {
+        cur.childLeft = (cur.childLeft ?? 0) + overlap;
+        cur.childRight = (cur.childRight ?? 0) + overlap;
+
+        const unionInfo = unionInfos.get(laidOutSlots[i].uid);
+        const unionChildren = unionInfo?.children ?? [];
+        for (const childId of unionChildren) {
+          const pos = positioned.get(childId);
+          if (pos) positioned.set(childId, { x: pos.x + overlap, y: pos.y });
+        }
+      }
+    }
+  }
+
   // Final collision cleanup per generation after all union-strip normalization.
   for (const g of genKeys) {
     const ids = [...(sortedGens.get(g) ?? [])].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
