@@ -745,6 +745,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     heartY: number;
     childLeft?: number;
     childRight?: number;
+    childBarY?: number;
   };
 
   const unionHeartX = new Map<string, number>();
@@ -799,6 +800,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const unionChildren = info.children ?? [];
       const heartX = (anchorX + NODE_W / 2) + ((partnerX + NODE_W / 2) - (anchorX + NODE_W / 2)) * 0.82;
       const heartY = anchorPos.y + NODE_H + 20;
+      const childBarY = heartY + 42 + ((info.secondaryIndex ?? 0) % 2) * 10;
       unionHeartX.set(layout.uid, heartX);
 
       if (unionChildren.length > 0) {
@@ -825,6 +827,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           heartY,
           childLeft: childBandLeft,
           childRight: childBandRight,
+          childBarY,
         });
         let childX = childBandLeft + Math.max(0, (childBandWidth - totalChildW) / 2);
         for (const c of childrenSorted) {
@@ -842,6 +845,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           heartY,
           childLeft: nextSlotStart,
           childRight: nextSlotStart + unionSlotWidth,
+          childBarY,
         });
       }
 
@@ -928,7 +932,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const explicitHeartX = explicitSlot?.heartX ?? unionHeartX.get(data.unionId);
       if (explicitHeartX != null) {
         const heartY = explicitSlot?.heartY ?? (srcPos.y + NODE_H + 20);
-        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight } };
+        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight, childBarY: explicitSlot?.childBarY } };
       }
 
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
