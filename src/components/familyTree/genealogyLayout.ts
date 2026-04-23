@@ -420,9 +420,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const memberships = simToUnionIds.get(id) ?? [];
 
       // Cluster: one visible sim with multiple unions on this generation.
-      // IMPORTANT: only absorb one-union partners whose primary connection is to
-      // this anchor. Otherwise we accidentally swallow unrelated families into
-      // the cluster and distort the whole generation.
+      // STRICT rule: only pull in sims whose union DIRECTLY involves this anchor.
+      // Never absorb a sim just because they're in the same generation row.
       if (memberships.length > 1) {
         const memberIds = new Set<string>([id]);
         const clusterUnionIds = new Set<string>();
@@ -431,10 +430,20 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           if (!info) continue;
           clusterUnionIds.add(unionId);
           for (const partnerId of info.partners) {
-            if (partnerId === id || !ids.includes(partnerId)) continue;
+            if (partnerId === id) continue;
+            // Partner must be in this generation AND must share this exact union with anchor.
+            // Do NOT absorb sims who have their own separate exclusive union (e.g. Raff/Piper).
+            if (!ids.includes(partnerId)) continue;
             const partnerMemberships = simToUnionIds.get(partnerId) ?? [];
-            // Only pull in leaf-ish spouses or sims whose first/primary union is this one.
-            if (partnerMemberships.length <= 1 || partnerMemberships[0] === unionId) {
+            const sharedUnions = partnerMemberships.filter(uid => uid === unionId);
+            if (sharedUnions.length === 0) continue; // no direct union with anchor
+            // Only absorb as cluster member if this is their ONLY union, or their primary union is this one.
+            // Sims with their own exclusive pair union elsewhere stay as separate groups.
+            const hasOwnExclusivePair = partnerMemberships.some(uid =>
+              uid !== unionId && (unionPartnersAll.get(uid)?.size ?? 0) === 2 &&
+              !Array.from(unionPartnersAll.get(uid) ?? []).includes(id)
+            );
+            if (!hasOwnExclusivePair) {
               memberIds.add(partnerId);
             }
           }
