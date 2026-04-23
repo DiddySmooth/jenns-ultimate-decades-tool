@@ -738,7 +738,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  type UnionSlot = {
+    left: number;
+    right: number;
+    heartX: number;
+    heartY: number;
+    childLeft?: number;
+    childRight?: number;
+  };
+
   const unionHeartX = new Map<string, number>();
+  const unionSlots = new Map<string, UnionSlot>();
 
   // Final multi-union normalization pass.
   // Hidden/dead spouses and old pair-centering logic can still leave the strip
@@ -788,6 +798,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
       const unionChildren = info.children ?? [];
       const heartX = (anchorX + NODE_W / 2) + ((partnerX + NODE_W / 2) - (anchorX + NODE_W / 2)) * 0.82;
+      const heartY = anchorPos.y + NODE_H + 20;
       unionHeartX.set(layout.uid, heartX);
 
       if (unionChildren.length > 0) {
@@ -805,7 +816,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         });
         // Children should visually belong to the specific spouse/union, not the
         // broad strip midpoint, so use the same explicit heartX.
-        let childX = heartX - totalChildW / 2;
+        const childBandLeft = heartX - totalChildW / 2;
+        const childBandRight = heartX + totalChildW / 2;
+        unionSlots.set(layout.uid, {
+          left: Math.min(anchorX, partnerX),
+          right: Math.max(anchorX + NODE_W, partnerX + NODE_W),
+          heartX,
+          heartY,
+          childLeft: childBandLeft,
+          childRight: childBandRight,
+        });
+        let childX = childBandLeft;
         for (const c of childrenSorted) {
           const csw = subtreeWidth.get(c) ?? NODE_W;
           const childMidX = childX + csw / 2;
@@ -813,6 +834,13 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
           childX += csw + GAP_X;
         }
+      } else {
+        unionSlots.set(layout.uid, {
+          left: Math.min(anchorX, partnerX),
+          right: Math.max(anchorX + NODE_W, partnerX + NODE_W),
+          heartX,
+          heartY,
+        });
       }
 
       if (partnerId) nextPartnerX += NODE_W + 18;
@@ -850,9 +878,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (!srcPos || !tgtPos) return e;
       const leftCenter = Math.min(srcPos.x, tgtPos.x) + NODE_W / 2;
       const rightCenter = Math.max(srcPos.x, tgtPos.x) + NODE_W / 2;
-      const heartX = unionHeartX.get(spouseData.unionId ?? '')
+      const slot = unionSlots.get(spouseData.unionId ?? '');
+      const heartX = slot?.heartX
+        ?? unionHeartX.get(spouseData.unionId ?? '')
         ?? (spouseData.multiUnion ? leftCenter + (rightCenter - leftCenter) * 0.82 : (leftCenter + rightCenter) / 2);
-      const heartY = Math.max(srcPos.y + NODE_H, tgtPos.y + NODE_H) + 20;
+      const heartY = slot?.heartY ?? (Math.max(srcPos.y + NODE_H, tgtPos.y + NODE_H) + 20);
       return { ...e, data: { ...e.data, heartX, heartY } };
     }
 
@@ -865,13 +895,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     // Prefer the exact union partners when available.
     if (data?.unionId) {
-      const explicitHeartX = unionHeartX.get(data.unionId);
+      const explicitSlot = unionSlots.get(data.unionId);
+      const explicitHeartX = explicitSlot?.heartX ?? unionHeartX.get(data.unionId);
       if (explicitHeartX != null) {
-        const partnerIds = Array.from(unionPartners.get(data.unionId) ?? []).filter((id) => positioned.has(id));
-        const heartY = partnerIds.length > 0
-          ? Math.max(...partnerIds.map((id) => (positioned.get(id)?.y ?? 0) + NODE_H)) + 20
-          : srcPos.y + NODE_H + 20;
-        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY } };
+        const heartY = explicitSlot?.heartY ?? (srcPos.y + NODE_H + 20);
+        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight } };
       }
 
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
