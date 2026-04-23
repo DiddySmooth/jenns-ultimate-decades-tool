@@ -579,8 +579,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         }));
 
         const clusterLeft = curX;
-        const stripWidth = NODE_W + unionLayouts.reduce((sum, _layout, idx) => sum + NODE_W + GAP_COUPLE + (idx > 0 ? GAP_UNION_GROUP : 0), 0);
-        const anchorX = clusterLeft + Math.max(0, (sw - stripWidth) / 2);
+        // Anchor pinned flush-left inside the cluster block so wives extend rightward.
+        // Never center the anchor — that pushes it into neighboring families on the right.
+        const anchorX = clusterLeft;
         clusterBlockBounds.set(group.anchorId, { left: clusterLeft, right: curX + sw });
 
         // Sequential strip layout: anchor on the left, all wives/partners to the right.
@@ -1029,6 +1030,38 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       data: { width: right - left, height: bottom - top, label: 'Relationship cluster' },
       zIndex: -10,
     } as Node);
+  }
+
+  // Also draw boxes around normal couple/family groups so overlaps are visible.
+  const drawnBoundaryIds = new Set(Array.from(simToUnionIds.entries()).filter(([, uids]) => uids.length > 1).map(([id]) => id));
+  for (const g of genKeys) {
+    const groups = buildGroupsForGeneration(sortedGens.get(g) ?? []);
+    for (const group of groups) {
+      if (group.type === 'single') continue; // skip lone sims
+      if (drawnBoundaryIds.has(group.anchorId)) continue; // already drew a multi-union box
+
+      const memberIds = group.memberIds.filter((id) => positioned.has(id));
+      const childIds = getChildrenForLayoutGroup(group).filter((id) => positioned.has(id));
+      const allIds = [...memberIds, ...childIds];
+      if (allIds.length === 0) continue;
+
+      const allPos = allIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      const PADDING = 16;
+      const left = Math.min(...allPos.map((p) => p.x)) - PADDING;
+      const right = Math.max(...allPos.map((p) => p.x + NODE_W)) + PADDING;
+      const top = Math.min(...allPos.map((p) => p.y)) - PADDING;
+      const bottom = Math.max(...allPos.map((p) => p.y + NODE_H)) + PADDING;
+
+      result.push({
+        id: `family:${group.id}`,
+        type: 'clusterBoundary',
+        position: { x: left, y: top },
+        draggable: false,
+        selectable: false,
+        data: { width: right - left, height: bottom - top, label: undefined, family: true },
+        zIndex: -10,
+      } as Node);
+    }
   }
 
   for (const s of simNodes) {

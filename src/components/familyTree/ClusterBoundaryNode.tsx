@@ -1,40 +1,54 @@
 import type { NodeProps } from 'reactflow';
 
-export default function ClusterBoundaryNode({ data }: NodeProps<{ width: number; height: number; label?: string }>) {
+interface ClusterBoundaryData {
+  width: number;
+  height: number;
+  label?: string;
+  family?: boolean; // true = normal family box, false/undefined = multi-union cluster
+}
+
+export default function ClusterBoundaryNode({ data }: NodeProps<ClusterBoundaryData>) {
   const width = data?.width ?? 300;
   const height = data?.height ?? 220;
-  const label = data?.label ?? 'Relationship cluster';
+  const label = data?.label;
+  const isFamily = data?.family;
 
   return (
     <div
       style={{
         width,
         height,
-        borderRadius: 18,
-        border: '2px dashed rgba(93, 63, 211, 0.35)',
-        background: 'rgba(93, 63, 211, 0.05)',
+        borderRadius: isFamily ? 14 : 18,
+        border: isFamily
+          ? '1.5px dashed rgba(120, 120, 180, 0.28)'
+          : '2px dashed rgba(93, 63, 211, 0.42)',
+        background: isFamily
+          ? 'rgba(120, 120, 180, 0.04)'
+          : 'rgba(93, 63, 211, 0.06)',
         boxSizing: 'border-box',
         pointerEvents: 'none',
         position: 'relative',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: -12,
-          left: 14,
-          padding: '2px 8px',
-          borderRadius: 999,
-          background: 'rgba(93, 63, 211, 0.12)',
-          color: 'rgba(64, 45, 140, 0.9)',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.02em',
-          pointerEvents: 'none',
-        }}
-      >
-        {label}
-      </div>
+      {label && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -12,
+            left: 14,
+            padding: '2px 8px',
+            borderRadius: 999,
+            background: 'rgba(93, 63, 211, 0.13)',
+            color: 'rgba(64, 45, 140, 0.9)',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.02em',
+            pointerEvents: 'none',
+          }}
+        >
+          {label}
+        </div>
+      )}
     </div>
   );
 }
