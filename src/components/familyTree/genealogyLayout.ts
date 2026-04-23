@@ -1027,15 +1027,20 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const allClusterIds = [...clusterMemberIds, ...clusterChildIds].filter((id) => positioned.has(id));
     if (allClusterIds.length === 0) continue;
 
-    const allPositions = allClusterIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+    // Left/right sized from MEMBERS ONLY (the partner strip) so the box stays
+    // tight around the top row and doesn't swallow neighboring families whose
+    // children happen to land in the same horizontal band.
+    const memberPositions = [...clusterMemberIds].filter(id => positioned.has(id)).map(id => positioned.get(id)!);
+    const childPositions = [...clusterChildIds].filter(id => positioned.has(id)).map(id => positioned.get(id)!);
+    if (memberPositions.length === 0) continue;
+
     const PADDING = 20;
-    const left = Math.min(...allPositions.map((p) => p.x)) - PADDING;
-    const right = Math.max(...allPositions.map((p) => p.x + NODE_W)) + PADDING;
-    const top = Math.min(...allPositions.map((p) => p.y)) - PADDING;
-    // Bottom extends past the child cards
-    const memberBottom = Math.max(...[...clusterMemberIds].filter(id => positioned.has(id)).map(id => (positioned.get(id)!.y + NODE_H)));
-    const childBottom = clusterChildIds.size > 0
-      ? Math.max(...[...clusterChildIds].filter(id => positioned.has(id)).map(id => (positioned.get(id)!.y + NODE_H)))
+    const left = Math.min(...memberPositions.map((p) => p.x)) - PADDING;
+    const right = Math.max(...memberPositions.map((p) => p.x + NODE_W)) + PADDING;
+    const top = Math.min(...memberPositions.map((p) => p.y)) - PADDING;
+    const memberBottom = Math.max(...memberPositions.map(p => p.y + NODE_H));
+    const childBottom = childPositions.length > 0
+      ? Math.max(...childPositions.map(id => id.y + NODE_H))
       : memberBottom;
     const bottom = Math.max(memberBottom, childBottom) + PADDING;
 
