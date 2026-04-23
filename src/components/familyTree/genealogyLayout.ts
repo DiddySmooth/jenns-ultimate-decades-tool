@@ -841,8 +841,21 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (idx !== -1) result[idx] = { ...result[idx], position: pos };
   }
 
-  // Inject midX into child edges so FamilyEdge can draw from the correct X between parents
+  // Inject explicit heart/drop coordinates into edges so renderers don't have to guess.
   const updatedEdges = edges.map((e) => {
+    const spouseData = (e.data as { kind?: string; unionId?: string; multiUnion?: boolean } | undefined);
+    if (spouseData?.kind === 'spouse') {
+      const srcPos = positioned.get(String(e.source));
+      const tgtPos = positioned.get(String(e.target));
+      if (!srcPos || !tgtPos) return e;
+      const leftCenter = Math.min(srcPos.x, tgtPos.x) + NODE_W / 2;
+      const rightCenter = Math.max(srcPos.x, tgtPos.x) + NODE_W / 2;
+      const heartX = unionHeartX.get(spouseData.unionId ?? '')
+        ?? (spouseData.multiUnion ? leftCenter + (rightCenter - leftCenter) * 0.82 : (leftCenter + rightCenter) / 2);
+      const heartY = Math.max(srcPos.y + NODE_H, tgtPos.y + NODE_H) + 20;
+      return { ...e, data: { ...e.data, heartX, heartY } };
+    }
+
     const data = (e.data as { kind?: string; unionId?: string } | undefined);
     const kind = data?.kind;
     if (kind !== 'parent') return e;
@@ -854,7 +867,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (data?.unionId) {
       const explicitHeartX = unionHeartX.get(data.unionId);
       if (explicitHeartX != null) {
-        return { ...e, data: { ...e.data, midX: explicitHeartX } };
+        const partnerIds = Array.from(unionPartners.get(data.unionId) ?? []).filter((id) => positioned.has(id));
+        const heartY = partnerIds.length > 0
+          ? Math.max(...partnerIds.map((id) => (positioned.get(id)?.y ?? 0) + NODE_H)) + 20
+          : srcPos.y + NODE_H + 20;
+        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY } };
       }
 
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
@@ -870,7 +887,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const midX = isMultiUnion
           ? partnerCenterA + (partnerCenterB - partnerCenterA) * 0.82
           : (leftX + rightX + NODE_W) / 2;
-        return { ...e, data: { ...e.data, midX } };
+        const heartY = Math.max(...partnerPositions.map((p) => p.y + NODE_H)) + 20;
+        return { ...e, data: { ...e.data, midX, heartY } };
       }
     }
 
@@ -881,11 +899,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const leftX = Math.min(...parentPositions.map((p) => p.x));
       const rightX = Math.max(...parentPositions.map((p) => p.x));
       const midX = (leftX + rightX + NODE_W) / 2;
-      return { ...e, data: { ...e.data, midX } };
+      const heartY = Math.max(...parentPositions.map((p) => p.y + NODE_H)) + 20;
+      return { ...e, data: { ...e.data, midX, heartY } };
     }
 
     // Last resort: single-parent center.
-    return { ...e, data: { ...e.data, midX: srcPos.x + NODE_W / 2 } };
+    return { ...e, data: { ...e.data, midX: srcPos.x + NODE_W / 2, heartY: srcPos.y + NODE_H + 20 } };
   });
 
   return { nodes: result, edges: updatedEdges };

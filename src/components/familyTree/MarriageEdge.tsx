@@ -5,6 +5,8 @@ type MarriageData = {
   primary?: boolean;
   secondaryIndex?: number;
   multiUnion?: boolean;
+  heartX?: number;
+  heartY?: number;
 };
 
 export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps<MarriageData>) {
@@ -18,8 +20,8 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
 
   // Multi-union strips read more clearly when they share one horizontal spouse band
   // and each heart sits a bit closer to its specific spouse instead of dead-center.
-  const bottomY = Math.max(sourceY, targetY) + 20;
-  const iconMidX = multiUnion ? leftX + (rightX - leftX) * 0.7 : midX;
+  const bottomY = data?.heartY ?? (Math.max(sourceY, targetY) + 20);
+  const iconMidX = data?.heartX ?? (multiUnion ? leftX + (rightX - leftX) * 0.7 : midX);
 
   const path = `
     M ${sourceX} ${sourceY}

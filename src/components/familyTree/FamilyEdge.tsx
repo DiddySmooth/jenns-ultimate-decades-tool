@@ -7,10 +7,9 @@ const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(mi
  * down to a child using right-angle routing.
  */
 export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data }: EdgeProps) {
-  // midX is injected by genealogyLayout — the X midpoint between the two parents
+  // Explicit union drop point is injected by genealogyLayout.
   const midX = (data as { midX?: number } | undefined)?.midX ?? sourceX;
-  // startY is below the cards at the heart level (sourceY + 20 matches MarriageEdge bottomY offset)
-  const startY = sourceY + 20;
+  const startY = (data as { heartY?: number } | undefined)?.heartY ?? (sourceY + 20);
 
   const gap = targetY - startY;
   const desiredSplitY = startY + clamp(gap * 0.5, 30, 100);
