@@ -986,6 +986,41 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   // Build result
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
+  // Add visual cluster boundary nodes so users can tell where a multi-union family ends.
+  for (const [anchorId, unionIds] of simToUnionIds) {
+    if (unionIds.length <= 1) continue;
+    const relevantSlots = unionIds.map((uid) => unionSlots.get(uid)).filter(Boolean) as UnionSlot[];
+    const memberIds = [anchorId, ...unionIds.flatMap((uid) => Array.from(unionPartnersAll.get(uid) ?? []))]
+      .filter((id, idx, arr) => arr.indexOf(id) === idx)
+      .filter((id) => positioned.has(id));
+    if (relevantSlots.length === 0 || memberIds.length === 0) continue;
+
+    const memberPositions = memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+    const left = Math.min(
+      ...memberPositions.map((p) => p.x),
+      ...relevantSlots.map((s) => Math.min(s.left, s.childLeft ?? s.left)),
+    ) - 18;
+    const right = Math.max(
+      ...memberPositions.map((p) => p.x + NODE_W),
+      ...relevantSlots.map((s) => Math.max(s.right, s.childRight ?? s.right)),
+    ) + 18;
+    const top = Math.min(...memberPositions.map((p) => p.y)) - 18;
+    const bottom = Math.max(
+      ...memberPositions.map((p) => p.y + NODE_H),
+      ...relevantSlots.map((s) => s.childBarY ?? s.heartY),
+    ) + 90;
+
+    result.push({
+      id: `cluster:${anchorId}`,
+      type: 'clusterBoundary',
+      position: { x: left, y: top },
+      draggable: false,
+      selectable: false,
+      data: { width: right - left, height: bottom - top, label: 'Relationship cluster' },
+      zIndex: -10,
+    } as Node);
+  }
+
   for (const s of simNodes) {
     const pos = positioned.get(s.id as string) ?? { x: 40, y: 40 };
     const idx = result.findIndex((r) => r.id === s.id);

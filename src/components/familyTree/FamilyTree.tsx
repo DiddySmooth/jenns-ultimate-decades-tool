@@ -11,6 +11,7 @@ import 'reactflow/dist/style.css';
 
 import type { FamilyTreeConfig, FamilyTreeState, SimEntry, TrackerConfig, UnionNode } from '../../types/tracker';
 import SimNode from './SimNode';
+import ClusterBoundaryNode from './ClusterBoundaryNode';
 import UnionNodeView from './UnionNode';
 import TrunkEdge from './TrunkEdge';
 import MarriageEdge from './MarriageEdge';
@@ -23,6 +24,7 @@ import { mapGraphToFlow } from './mapGraphToFlow';
 const nodeTypes = {
   sim: SimNode,
   union: UnionNodeView,
+  clusterBoundary: ClusterBoundaryNode,
 };
 
 const edgeTypes = {
