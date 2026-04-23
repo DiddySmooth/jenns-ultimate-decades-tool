@@ -929,14 +929,44 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Final collision cleanup per generation after all union-strip normalization.
+  // Keep multi-union families in their own visible top-row block so unrelated
+  // groups don't drift into their space.
+  const shiftGroupWithChildren = (group: LayoutGroup, dx: number) => {
+    const idsToShift = [...group.memberIds, ...getChildrenForLayoutGroup(group)];
+    for (const id of idsToShift) {
+      const pos = positioned.get(id);
+      if (pos) positioned.set(id, { x: pos.x + dx, y: pos.y });
+    }
+    for (const unionId of group.unionIds) {
+      const slot = unionSlots.get(unionId);
+      if (!slot) continue;
+      slot.left += dx;
+      slot.right += dx;
+      slot.heartX += dx;
+      if (slot.childLeft != null) slot.childLeft += dx;
+      if (slot.childRight != null) slot.childRight += dx;
+      unionHeartX.set(unionId, slot.heartX);
+    }
+  };
+
   for (const g of genKeys) {
-    const ids = [...(sortedGens.get(g) ?? [])].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
-    for (let i = 1; i < ids.length; i++) {
-      const prev = positioned.get(ids[i - 1]);
-      const cur = positioned.get(ids[i]);
-      if (!prev || !cur) continue;
-      const minX = prev.x + NODE_W + 18;
-      if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
+    const groups = buildGroupsForGeneration(sortedGens.get(g) ?? []).map((group) => {
+      const memberPositions = group.memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      const left = Math.min(...memberPositions.map((p) => p.x));
+      const right = Math.max(...memberPositions.map((p) => p.x + NODE_W));
+      return { group, left, right };
+    }).sort((a, b) => a.left - b.left);
+
+    for (let i = 1; i < groups.length; i++) {
+      const prev = groups[i - 1];
+      const cur = groups[i];
+      const minLeft = prev.right + 24;
+      if (cur.left < minLeft) {
+        const dx = minLeft - cur.left;
+        shiftGroupWithChildren(cur.group, dx);
+        cur.left += dx;
+        cur.right += dx;
+      }
     }
   }
 
