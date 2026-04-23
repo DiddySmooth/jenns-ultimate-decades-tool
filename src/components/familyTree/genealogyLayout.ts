@@ -877,15 +877,60 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Final collision cleanup per generation after all union-strip normalization.
+  // Final block-aware collision cleanup per generation.
+  // Instead of flattening every card into one row and nudging them individually,
+  // treat each layout group as a family block and shift the group together with
+  // its descendant subtree when neighboring blocks overlap.
+  const collectDescendants = (rootIds: string[]): string[] => {
+    const seen = new Set<string>();
+    const queue = [...rootIds];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const [childId, parents] of childToParentSims) {
+        if (seen.has(childId)) continue;
+        if (Array.from(parents).some((p) => p === current || seen.has(p) || rootIds.includes(p))) {
+          seen.add(childId);
+          queue.push(childId);
+        }
+      }
+    }
+    return Array.from(seen);
+  };
+
+  const shiftNodeSet = (ids: string[], dx: number) => {
+    for (const id of ids) {
+      const pos = positioned.get(id);
+      if (pos) positioned.set(id, { x: pos.x + dx, y: pos.y });
+    }
+  };
+
   for (const g of genKeys) {
-    const ids = [...(sortedGens.get(g) ?? [])].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
-    for (let i = 1; i < ids.length; i++) {
-      const prev = positioned.get(ids[i - 1]);
-      const cur = positioned.get(ids[i]);
-      if (!prev || !cur) continue;
-      const minX = prev.x + NODE_W + 18;
-      if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
+    const ids = sortedGens.get(g) ?? [];
+    const groups = buildGroupsForGeneration(ids).map((group) => {
+      const memberPositions = group.memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      const descendants = collectDescendants(group.memberIds);
+      const descendantPositions = descendants.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      const left = Math.min(
+        ...(memberPositions.map((p) => p.x)),
+        ...(descendantPositions.map((p) => p.x)),
+      );
+      const right = Math.max(
+        ...(memberPositions.map((p) => p.x + NODE_W)),
+        ...(descendantPositions.map((p) => p.x + NODE_W)),
+      );
+      return { group, descendants, left, right };
+    }).sort((a, b) => a.left - b.left);
+
+    for (let i = 1; i < groups.length; i++) {
+      const prev = groups[i - 1];
+      const cur = groups[i];
+      const minLeft = prev.right + 24;
+      if (cur.left < minLeft) {
+        const dx = minLeft - cur.left;
+        shiftNodeSet([...cur.group.memberIds, ...cur.descendants], dx);
+        cur.left += dx;
+        cur.right += dx;
+      }
     }
   }
 
