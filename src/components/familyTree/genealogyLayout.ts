@@ -814,10 +814,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           totalChildW += subtreeWidth.get(c) ?? NODE_W;
           if (i > 0) totalChildW += GAP_X;
         });
-        // Children should visually belong to the specific spouse/union, not the
-        // broad strip midpoint, so use the same explicit heartX.
-        const childBandLeft = heartX - totalChildW / 2;
-        const childBandRight = heartX + totalChildW / 2;
+
+        const childBandWidth = Math.max(totalChildW, unionSlotWidth);
+        const childBandLeft = nextSlotStart + (unionSlotWidth - childBandWidth) / 2;
+        const childBandRight = childBandLeft + childBandWidth;
         unionSlots.set(layout.uid, {
           left: Math.min(anchorX, partnerX),
           right: Math.max(anchorX + NODE_W, partnerX + NODE_W),
@@ -826,7 +826,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           childLeft: childBandLeft,
           childRight: childBandRight,
         });
-        let childX = childBandLeft;
+        let childX = childBandLeft + Math.max(0, (childBandWidth - totalChildW) / 2);
         for (const c of childrenSorted) {
           const csw = subtreeWidth.get(c) ?? NODE_W;
           const childMidX = childX + csw / 2;
@@ -840,6 +840,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           right: Math.max(anchorX + NODE_W, partnerX + NODE_W),
           heartX,
           heartY,
+          childLeft: nextSlotStart,
+          childRight: nextSlotStart + unionSlotWidth,
         });
       }
 
