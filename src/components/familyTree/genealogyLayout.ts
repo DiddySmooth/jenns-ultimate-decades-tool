@@ -852,6 +852,28 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (partnerId) nextPartnerX += NODE_W + 18;
       nextSlotStart += unionSlotWidth + 18;
     }
+
+    // For shared-parent multi-union strips, use one shared child band across the
+    // whole cluster so it reads like a family block rather than several isolated bars.
+    const clusterUnionSlots = unionStripLayouts
+      .map((layout) => ({ uid: layout.uid, slot: unionSlots.get(layout.uid) }))
+      .filter((x): x is { uid: string; slot: NonNullable<typeof x.slot> } => !!x.slot);
+    const clusterChildren = unionStripLayouts.flatMap((layout) => layout.info?.children ?? []);
+    if (clusterUnionSlots.length > 1 && clusterChildren.length > 0) {
+      const childPositions = clusterChildren
+        .map((id) => positioned.get(id))
+        .filter(Boolean) as { x: number; y: number }[];
+      if (childPositions.length > 0) {
+        const sharedChildLeft = Math.min(...childPositions.map((p) => p.x));
+        const sharedChildRight = Math.max(...childPositions.map((p) => p.x + NODE_W));
+        const sharedChildBarY = Math.max(...clusterUnionSlots.map((x) => x.slot.childBarY ?? x.slot.heartY + 42));
+        for (const { slot } of clusterUnionSlots) {
+          slot.childLeft = sharedChildLeft;
+          slot.childRight = sharedChildRight;
+          slot.childBarY = sharedChildBarY;
+        }
+      }
+    }
   }
 
   // Add a minimum gutter between neighboring union child bands in shared-parent strips.
