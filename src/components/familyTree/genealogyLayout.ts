@@ -952,8 +952,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const g of genKeys) {
     const groups = buildGroupsForGeneration(sortedGens.get(g) ?? []).map((group) => {
       const memberPositions = group.memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
-      const left = Math.min(...memberPositions.map((p) => p.x));
-      const right = Math.max(...memberPositions.map((p) => p.x + NODE_W));
+      let left = Math.min(...memberPositions.map((p) => p.x));
+      let right = Math.max(...memberPositions.map((p) => p.x + NODE_W));
+
+      if (group.type === 'cluster') {
+        const relevantSlots = group.unionIds.map((uid) => unionSlots.get(uid)).filter(Boolean) as UnionSlot[];
+        if (relevantSlots.length > 0) {
+          left = Math.min(left, ...relevantSlots.map((s) => Math.min(s.left, s.childLeft ?? s.left)));
+          right = Math.max(right, ...relevantSlots.map((s) => Math.max(s.right, s.childRight ?? s.right)));
+        }
+      }
+
       return { group, left, right };
     }).sort((a, b) => a.left - b.left);
 
