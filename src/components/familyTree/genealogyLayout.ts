@@ -467,6 +467,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     return Math.max(NODE_W * 2 + GAP_COUPLE, totalChildW);
   };
 
+  const getCompactUnionSlotWidth = (unionId: string): number => {
+    // Visual partner strip width should stay compact even if descendants are wide.
+    return Math.min(Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(unionId)), 220);
+  };
+
   // ── Bottom-up subtree width layout ───────────────────────────────────────
   // Calculate how wide each couple's subtree needs to be, then position
   // each generation based on subtree widths rather than fixed gaps.
@@ -486,12 +491,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const allChildren = getChildrenForLayoutGroup(group);
       const minWidth = group.type === 'cluster'
         ? (() => {
-            // Reserve enough room for the actual visible union strip plus the widest
-            // child branch underneath, but don't stack every union's full subtree width
-            // side-by-side or we create giant dead gaps around the cluster.
-            const stripWidth = NODE_W + Math.max(0, group.unionIds.length) * (NODE_W + GAP_COUPLE + 18);
-            const widestUnionChildren = group.unionIds.reduce((maxW, uid) => Math.max(maxW, getUnionSlotWidth(uid)), 0);
-            return Math.max(stripWidth + 24, widestUnionChildren, NODE_W * 3);
+            // Keep the visible cluster compact. Child bands below may need extra room,
+            // but that should not explode the top-level spouse strip width.
+            const stripWidth = NODE_W + group.unionIds.reduce((sum, uid, idx) => sum + getCompactUnionSlotWidth(uid) + (idx > 0 ? 18 : 0), 0);
+            return Math.max(stripWidth + 24, NODE_W * 3);
           })()
         : group.type === 'couple'
         ? NODE_W * 2 + GAP_COUPLE
@@ -544,7 +547,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const unionLayouts = sortedUnionIds.map((uid) => ({
           unionId: uid,
           info: unionInfos.get(uid),
-          width: getUnionSlotWidth(uid),
+          width: getCompactUnionSlotWidth(uid),
         }));
 
         const clusterLeft = curX;
