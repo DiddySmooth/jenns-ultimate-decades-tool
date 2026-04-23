@@ -869,17 +869,33 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const MIN_GUTTER = 24;
     for (let i = 1; i < laidOutSlots.length; i++) {
       const prev = laidOutSlots[i - 1].slot;
-      const cur = laidOutSlots[i].slot;
+      const curEntry = laidOutSlots[i];
+      const cur = curEntry.slot;
       const overlap = (prev.childRight ?? 0) + MIN_GUTTER - (cur.childLeft ?? 0);
       if (overlap > 0) {
-        cur.childLeft = (cur.childLeft ?? 0) + overlap;
-        cur.childRight = (cur.childRight ?? 0) + overlap;
+        // Shift the entire union group together, not just the children underneath.
+        cur.left += overlap;
+        cur.right += overlap;
+        cur.heartX += overlap;
+        if (cur.childLeft != null) cur.childLeft += overlap;
+        if (cur.childRight != null) cur.childRight += overlap;
+        unionHeartX.set(curEntry.uid, cur.heartX);
 
-        const unionInfo = unionInfos.get(laidOutSlots[i].uid);
+        const unionInfo = unionInfos.get(curEntry.uid);
         const unionChildren = unionInfo?.children ?? [];
         for (const childId of unionChildren) {
           const pos = positioned.get(childId);
           if (pos) positioned.set(childId, { x: pos.x + overlap, y: pos.y });
+        }
+
+        // Also move the visible non-anchor partner card for this union so the top band
+        // reflects the same spacing that the child band requires.
+        const visiblePartnerIds = (unionInfo?.partners ?? []).filter((id) => positioned.has(id));
+        const anchorId = visiblePartnerIds.find((id) => (simToUnionIds.get(id)?.length ?? 0) > 1) ?? visiblePartnerIds[0];
+        for (const pid of visiblePartnerIds) {
+          if (pid === anchorId) continue;
+          const pos = positioned.get(pid);
+          if (pos) positioned.set(pid, { x: pos.x + overlap, y: pos.y });
         }
       }
     }
