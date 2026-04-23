@@ -813,6 +813,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     positioned.set(anchorId, { x: clampedAnchorX, y: anchorPos.y });
 
     let nextSlotStart = clampedAnchorX + NODE_W + GAP_COUPLE;
+    let nextPartnerX = clampedAnchorX + NODE_W + GAP_COUPLE;
     const anchorCenter = clampedAnchorX + NODE_W / 2;
     const HEART_BIAS = 0.82;
     for (const layout of unionStripLayouts) {
@@ -821,15 +822,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const partnerId = info.partners.find((id) => id !== anchorId && positioned.has(id));
       const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
 
-      // Each union owns a child-driven slot. The heart sits at the center of that slot,
-      // and the visible partner is positioned from that heart so the children below are
-      // actually centered under their own parents/union.
-      const slotCenterX = nextSlotStart + unionSlotWidth / 2;
-      const partnerCenterX = anchorCenter + ((slotCenterX - anchorCenter) / HEART_BIAS);
-      let partnerX = partnerCenterX - NODE_W / 2;
-      if (block) {
-        partnerX = Math.max(clampedAnchorX + NODE_W + GAP_COUPLE, Math.min(partnerX, block.right - NODE_W));
-      }
+      // Keep the visible spouse strip compact. Descendant width should influence the
+      // child band below, not blow the spouses apart on the top row.
+      const partnerX = nextPartnerX;
+      const partnerCenterX = partnerX + NODE_W / 2;
+      const slotCenterX = anchorCenter + (partnerCenterX - anchorCenter) * HEART_BIAS;
       if (partnerId) {
         const partnerPos = positioned.get(partnerId);
         if (partnerPos) positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
