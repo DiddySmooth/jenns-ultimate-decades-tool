@@ -748,14 +748,41 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     childBarY?: number;
   };
 
+  type RelationshipCluster = {
+    anchorId: string;
+    memberIds: string[];
+    unionIds: string[];
+    descendantIds: string[];
+    left: number;
+    right: number;
+  };
+
   const unionHeartX = new Map<string, number>();
   const unionSlots = new Map<string, UnionSlot>();
+  const relationshipClusters = new Map<string, RelationshipCluster>();
+  const clusterByMemberId = new Map<string, string>();
 
   // Final multi-union normalization pass.
   // Hidden/dead spouses and old pair-centering logic can still leave the strip
   // visually backwards or mixed. Force shared-sim clusters into a clean strip:
   // anchor sim first, then visible partners to the right, then re-center each
   // union's children under the corrected midpoint.
+  const collectDescendantsForCluster = (rootIds: string[]): string[] => {
+    const seen = new Set<string>();
+    const queue = [...rootIds];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const [childId, parents] of childToParentSims) {
+        if (seen.has(childId)) continue;
+        if (Array.from(parents).some((p) => p === current || seen.has(p) || rootIds.includes(p))) {
+          seen.add(childId);
+          queue.push(childId);
+        }
+      }
+    }
+    return Array.from(seen);
+  };
+
   for (const [anchorId, unionIds] of simToUnionIds) {
     if (unionIds.length <= 1) continue;
     const anchorPos = positioned.get(anchorId);
@@ -852,6 +879,24 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (partnerId) nextPartnerX += NODE_W + 18;
       nextSlotStart += unionSlotWidth + 18;
     }
+
+    const memberIds = [anchorId, ...unionStripLayouts.flatMap((x) => x.info?.partners ?? [])]
+      .filter((id, idx, arr) => arr.indexOf(id) === idx)
+      .filter((id) => positioned.has(id));
+    const descendantIds = collectDescendantsForCluster(memberIds);
+    const memberPositions = memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+    const descendantPositions = descendantIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+    const left = Math.min(
+      ...memberPositions.map((p) => p.x),
+      ...(descendantPositions.length ? descendantPositions.map((p) => p.x) : [Infinity]),
+    );
+    const right = Math.max(
+      ...memberPositions.map((p) => p.x + NODE_W),
+      ...(descendantPositions.length ? descendantPositions.map((p) => p.x + NODE_W) : [-Infinity]),
+    );
+    const cluster: RelationshipCluster = { anchorId, memberIds, unionIds, descendantIds, left, right };
+    relationshipClusters.set(anchorId, cluster);
+    memberIds.forEach((id) => clusterByMemberId.set(id, anchorId));
   }
 
   // Add a minimum gutter between neighboring union child bands in shared-parent strips.
@@ -882,14 +927,48 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Final collision cleanup per generation after all union-strip normalization.
+  // If a sim belongs to a relationship cluster, shift the whole cluster together
+  // instead of nudging isolated cards.
+  const shiftCluster = (cluster: RelationshipCluster, dx: number) => {
+    const ids = [...cluster.memberIds, ...cluster.descendantIds];
+    for (const id of ids) {
+      const pos = positioned.get(id);
+      if (pos) positioned.set(id, { x: pos.x + dx, y: pos.y });
+    }
+    cluster.left += dx;
+    cluster.right += dx;
+    for (const unionId of cluster.unionIds) {
+      const slot = unionSlots.get(unionId);
+      if (!slot) continue;
+      slot.left += dx;
+      slot.right += dx;
+      slot.heartX += dx;
+      if (slot.childLeft != null) slot.childLeft += dx;
+      if (slot.childRight != null) slot.childRight += dx;
+      unionHeartX.set(unionId, slot.heartX);
+    }
+  };
+
   for (const g of genKeys) {
     const ids = [...(sortedGens.get(g) ?? [])].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
     for (let i = 1; i < ids.length; i++) {
-      const prev = positioned.get(ids[i - 1]);
-      const cur = positioned.get(ids[i]);
-      if (!prev || !cur) continue;
-      const minX = prev.x + NODE_W + 18;
-      if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
+      const prevId = ids[i - 1];
+      const curId = ids[i];
+      const prevCluster = clusterByMemberId.get(prevId) ? relationshipClusters.get(clusterByMemberId.get(prevId)!) : null;
+      const curCluster = clusterByMemberId.get(curId) ? relationshipClusters.get(clusterByMemberId.get(curId)!) : null;
+
+      const prevRight = prevCluster ? prevCluster.right : ((positioned.get(prevId)?.x ?? 0) + NODE_W);
+      const curLeft = curCluster ? curCluster.left : (positioned.get(curId)?.x ?? 0);
+      const minLeft = prevRight + 18;
+      if (curLeft < minLeft) {
+        const dx = minLeft - curLeft;
+        if (curCluster) {
+          shiftCluster(curCluster, dx);
+        } else {
+          const cur = positioned.get(curId);
+          if (cur) positioned.set(curId, { x: cur.x + dx, y: cur.y });
+        }
+      }
     }
   }
 
