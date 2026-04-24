@@ -1003,12 +1003,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
       const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
       unionChildInfos.push({ uid: layout.uid, partnerId, childrenSorted, totalChildW, unionSlotWidth, heartY, childBarY });
-      // LOG: verify slot positions
-      if (typeof window !== 'undefined') {
-        const pName = (n: string) => { const nd = simNodes.find(x=>x.id===n); return (nd?.data as any)?.sim?.firstName ?? n; };
-        const wifeName = partnerId ? pName(partnerId) : 'none';
-        console.log(`[norm] uid=${layout.uid.slice(0,8)} wife=${wifeName} slotStart=${slotStartX.toFixed(0)} slotW=${slotW} slotMid=${(slotStartX+slotW/2).toFixed(0)} wifeX=${partnerX.toFixed(0)} kids=[${childrenSorted.map(c=>pName(c)+':x='+positioned.get(c)?.x?.toFixed(0)).join(', ')}]`);
-      }
       slotStartX += slotW + GAP_UNION_GROUP;
     }
 
@@ -1135,12 +1129,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Build result
-  if (typeof window !== 'undefined') {
-    const pName = (n: string) => { const nd = simNodes.find(x=>x.id===n); return (nd?.data as any)?.sim?.firstName ?? n; };
-    [...genBySim.entries()].filter(([,g])=>g>=1&&g<=2).forEach(([id,g])=>{
-      console.log(`[final] gen${g} ${pName(id)} x=${positioned.get(id)?.x?.toFixed(0)}`);
-    });
-  }
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
   // Add visual cluster boundary nodes — sized from ACTUAL node positions only,
