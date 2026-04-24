@@ -895,23 +895,31 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     let nextSlotStart = clampedAnchorX + NODE_W + GAP_COUPLE;
     let nextPartnerX = clampedAnchorX + NODE_W + GAP_COUPLE;
+
+    // Phase 1: place wives in compact strip, place children under each wife,
+    //          collect per-union child info for later re-centering.
+    type UnionChildInfo = {
+      uid: string;
+      partnerId: string | undefined;
+      childrenSorted: string[];
+      totalChildW: number;
+      unionSlotWidth: number;
+      heartY: number;
+      childBarY: number;
+    };
+    const unionChildInfos: UnionChildInfo[] = [];
+
     for (const layout of unionStripLayouts) {
       const info = layout.info;
       if (!info) continue;
       const partnerId = info.partners.find((id) => id !== anchorId && positioned.has(id));
       const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
-
-      // Keep the visible spouse strip compact. Descendant width should influence the
-      // child band below, not blow the spouses apart on the top row.
       const partnerX = nextPartnerX;
-      const partnerCenterX = partnerX + NODE_W / 2;
       if (partnerId) {
-        const partnerPos = positioned.get(partnerId);
-        if (partnerPos) positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
+        positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
         nextPartnerX += NODE_W + GAP_UNION_GROUP;
       }
 
-      // Get all children for this union — both explicit birthUnionId and parentage-based
       const unionChildrenExplicit = info.children ?? [];
       const unionChildrenByParentage = partnerId
         ? (childrenByParent.get(partnerId) ?? []).filter(cid => {
@@ -920,109 +928,103 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           })
         : [];
       const unionChildren = Array.from(new Set([...unionChildrenExplicit, ...unionChildrenByParentage]));
-      // Heart sits directly below the wife card, not between Oswin and wife.
-      // This makes child drop lines perfectly vertical.
-      const wifeCenter = partnerId ? (positioned.get(partnerId)?.x ?? partnerX) + NODE_W / 2 : partnerCenterX;
-      const heartX = wifeCenter;
       const heartY = anchorPos.y + NODE_H + 20;
       const childBarY = heartY + 42;
-      unionHeartX.set(layout.uid, heartX);
 
-      if (unionChildren.length > 0) {
-        const childrenSorted = [...unionChildren].sort((a, b) => {
-          const aNode = simNodes.find(n => n.id === a);
-          const bNode = simNodes.find(n => n.id === b);
-          const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
-          const by2 = (bNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
-          return ay - by2;
-        });
-        let totalChildW = 0;
-        childrenSorted.forEach((c, i) => {
-          // Use NODE_W for leaf children (no descendants) so spacing matches
-          // the rest of the graph. subtreeWidth can be inflated by parent group widths.
-          const childDescendants = childrenByParent.get(c);
-          const csw = (childDescendants && childDescendants.length > 0)
-            ? (subtreeWidth.get(c) ?? NODE_W)
-            : NODE_W;
-          totalChildW += csw;
-          if (i > 0) totalChildW += GAP_SIBLING;
-        });
+      const childrenSorted = [...unionChildren].sort((a, b) => {
+        const aNode = simNodes.find(n => n.id === a);
+        const bNode = simNodes.find(n => n.id === b);
+        const ay = (aNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+        const by2 = (bNode?.data as { sim?: { birthYear?: number } } | undefined)?.sim?.birthYear ?? 999999;
+        return ay - by2;
+      });
+      let totalChildW = 0;
+      childrenSorted.forEach((c, i) => {
+        const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
+        totalChildW += hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
+        if (i > 0) totalChildW += GAP_SIBLING;
+      });
 
-        // Children pack tightly at exactly totalChildW — no spreading to fill slot width.
-        // Center them under the wife's heart (heartX = wife center).
-        const childBandLeft = heartX - totalChildW / 2;
-        const childBandRight = childBandLeft + totalChildW;
-        unionSlots.set(layout.uid, {
-          left: Math.min(clampedAnchorX, partnerX),
-          right: Math.max(clampedAnchorX + NODE_W, partnerX + NODE_W),
-          heartX,
-          heartY,
-          childLeft: childBandLeft,
-          childRight: childBandRight,
-          childBarY,
-        });
-        let childX = childBandLeft;
-        for (const c of childrenSorted) {
-          const childDescendants2 = childrenByParent.get(c);
-          const csw = (childDescendants2 && childDescendants2.length > 0)
-            ? (subtreeWidth.get(c) ?? NODE_W)
-            : NODE_W;
-          const childMidX = childX + csw / 2;
-          const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
-          positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
-          childX += csw + GAP_SIBLING;
-        }
-
-        // Re-center wife above her child group so drop lines run straight down.
-        if (partnerId) {
-          const childPositions = childrenSorted
-            .map(c => positioned.get(c))
-            .filter(Boolean) as { x: number; y: number }[];
-          if (childPositions.length > 0) {
-            const cgLeft = Math.min(...childPositions.map(p => p.x));
-            const cgRight = Math.max(...childPositions.map(p => p.x + NODE_W));
-            const cgMidX = (cgLeft + cgRight) / 2;
-            const wifeX = Math.max(clampedAnchorX + NODE_W + GAP_COUPLE, cgMidX - NODE_W / 2);
-            positioned.set(partnerId, { x: wifeX, y: anchorPos.y });
-            // Heart is directly below wife — update heartX to wife's new center
-            const newHeartX = wifeX + NODE_W / 2;
-            unionHeartX.set(layout.uid, newHeartX);
-            const slot = unionSlots.get(layout.uid);
-            if (slot) {
-              slot.heartX = newHeartX;
-              slot.left = Math.min(clampedAnchorX, wifeX);
-              slot.right = Math.max(clampedAnchorX + NODE_W, wifeX + NODE_W);
-            }
-          }
-        }
-      } else {
-        unionSlots.set(layout.uid, {
-          left: Math.min(anchorX, partnerX),
-          right: Math.max(anchorX + NODE_W, partnerX + NODE_W),
-          heartX,
-          heartY,
-          childLeft: nextSlotStart,
-          childRight: nextSlotStart + unionSlotWidth,
-          childBarY,
-        });
+      // Place children initially under current wife position
+      const initialWifeCenter = partnerX + NODE_W / 2;
+      let childX = initialWifeCenter - totalChildW / 2;
+      for (const c of childrenSorted) {
+        const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
+        const csw = hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
+        const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
+        positioned.set(c, { x: childX, y: childY });
+        childX += csw + GAP_SIBLING;
       }
 
+      unionChildInfos.push({ uid: layout.uid, partnerId, childrenSorted, totalChildW, unionSlotWidth, heartY, childBarY });
       nextSlotStart += unionSlotWidth + GAP_UNION_GROUP;
     }
 
-    // After all wives are re-centered above their children, enforce minimum
-    // spacing between adjacent wives so they don't overlap each other.
-    const wifeIds = unionStripLayouts
-      .map(l => l.info?.partners.find(p => p !== anchorId && positioned.has(p)))
-      .filter((id): id is string => !!id);
-    wifeIds.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
-    // Enforce anchor is to the left of all wives
-    let minX = clampedAnchorX + NODE_W + GAP_COUPLE;
-    for (const wifeId of wifeIds) {
-      const pos = positioned.get(wifeId);
-      if (!pos) continue;
-      if (pos.x < minX) positioned.set(wifeId, { x: minX, y: pos.y });
-      minX = (positioned.get(wifeId)?.x ?? minX) + NODE_W + GAP_UNION_GROUP;
+    // Phase 2: re-center each wife above her children's actual positions,
+    //          then enforce minimum spacing between wives left-to-right.
+    // First pass: compute ideal wife X from child midpoint.
+    const wifeIdealX = new Map<string, number>();
+    for (const uci of unionChildInfos) {
+      if (!uci.partnerId) continue;
+      if (uci.childrenSorted.length === 0) continue;
+      const childPositions = uci.childrenSorted.map(c => positioned.get(c)).filter(Boolean) as {x:number;y:number}[];
+      if (childPositions.length === 0) continue;
+      const cgLeft = Math.min(...childPositions.map(p => p.x));
+      const cgRight = Math.max(...childPositions.map(p => p.x + NODE_W));
+      const cgMidX = (cgLeft + cgRight) / 2;
+      wifeIdealX.set(uci.partnerId, cgMidX - NODE_W / 2);
+    }
+
+    // Second pass: enforce left-to-right minimum spacing.
+    let minWifeX = clampedAnchorX + NODE_W + GAP_COUPLE;
+    for (const uci of unionChildInfos) {
+      if (!uci.partnerId) continue;
+      const idealX = wifeIdealX.get(uci.partnerId) ?? (positioned.get(uci.partnerId)?.x ?? minWifeX);
+      const finalX = Math.max(minWifeX, idealX);
+      positioned.set(uci.partnerId, { x: finalX, y: anchorPos.y });
+      minWifeX = finalX + NODE_W + GAP_UNION_GROUP;
+    }
+
+    // Phase 3: re-center children under each wife's FINAL position,
+    //          update union slots and heartX.
+    for (const uci of unionChildInfos) {
+      const wifePos = uci.partnerId ? positioned.get(uci.partnerId) : undefined;
+      const wifeCenter = wifePos ? wifePos.x + NODE_W / 2 : clampedAnchorX + NODE_W / 2;
+      const heartX = wifeCenter;
+      unionHeartX.set(uci.uid, heartX);
+
+      const childBandLeft = heartX - uci.totalChildW / 2;
+      const childBandRight = childBandLeft + uci.totalChildW;
+      unionSlots.set(uci.uid, {
+        left: Math.min(clampedAnchorX, wifePos?.x ?? clampedAnchorX),
+        right: Math.max(clampedAnchorX + NODE_W, (wifePos?.x ?? clampedAnchorX) + NODE_W),
+        heartX,
+        heartY: uci.heartY,
+        childLeft: childBandLeft,
+        childRight: childBandRight,
+        childBarY: uci.childBarY,
+      });
+
+      if (uci.childrenSorted.length > 0) {
+        let childX = childBandLeft;
+        for (const c of uci.childrenSorted) {
+          const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
+          const csw = hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
+          const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
+          positioned.set(c, { x: childX, y: childY });
+          childX += csw + GAP_SIBLING;
+        }
+      } else {
+        unionSlots.set(uci.uid, {
+          left: Math.min(clampedAnchorX, wifePos?.x ?? clampedAnchorX),
+          right: Math.max(clampedAnchorX + NODE_W, (wifePos?.x ?? clampedAnchorX) + NODE_W),
+          heartX,
+          heartY: uci.heartY,
+          childLeft: heartX - uci.unionSlotWidth / 2,
+          childRight: heartX + uci.unionSlotWidth / 2,
+          childBarY: uci.childBarY,
+        });
+      }
     }
   }
 
