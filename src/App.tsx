@@ -574,6 +574,9 @@ export default function App() {
             config={save.familyTreeConfig}
             trackerConfig={save.config}
             currentDay={save.currentDay}
+            isPremium={isPremium}
+            userId={user.sub}
+            saveId={saveId}
             onSavedChange={(next) => {
               const current = saveRef.current;
               if (!current) return;

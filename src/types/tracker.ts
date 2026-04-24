@@ -105,6 +105,9 @@ export interface SimEntry {
 
   // Future/optional trackers
   married?: boolean;
+  // Photos per life stage (optional)
+  lifeStagePhotos?: Record<string, { url: string; blobKey: string }>;
+
   pregnancyAttempts?: number;
   pregnancyAttemptsUsed?: number;
 }
