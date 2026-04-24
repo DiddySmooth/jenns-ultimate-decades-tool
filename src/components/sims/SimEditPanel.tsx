@@ -31,13 +31,14 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
 
   useEffect(() => { setEditing(sim); setTab('overview'); }, [sim]);
 
+  const byId = useMemo(() => new Map(allSims.map((s) => [s.id, s])), [allSims]);
+
   if (!open || !sim || !editing) return null;
 
   const sexColor = sim.sex === 'Female' ? '#e91e8c' : sim.sex === 'Male' ? '#4a90d9' : '#888';
   const sexBg = sim.sex === 'Female' ? 'rgba(249,168,201,0.13)' : sim.sex === 'Male' ? 'rgba(147,197,253,0.13)' : 'rgba(128,128,128,0.08)';
   const avatarRadius = treeConfig?.avatarShape === 'circle' ? '50%' : treeConfig?.avatarShape === 'rounded' ? '14px' : '6px';
 
-  const byId = useMemo(() => new Map(allSims.map((s) => [s.id, s])), [allSims]);
   const resolveName = (id?: string) => { if (!id) return '—'; const s = byId.get(id); return s ? getFullName(s) : '—'; };
 
   const lifeStages = trackerConfig.humanAging?.lifeStages ?? [];
