@@ -177,6 +177,9 @@ export interface FamilyTreeDisplayConfig {
 
   /** Compact mode: only render avatar + name on the node; other fields show on hover. */
   compactNodes?: boolean;
+
+  /** Show dashed boundary boxes around family groups and relationship clusters. */
+  showFamilyBoxes?: boolean;
 }
 
 export interface FamilyTreeFilterConfig {

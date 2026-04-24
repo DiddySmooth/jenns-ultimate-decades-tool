@@ -70,8 +70,10 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
     });
 
     const { nodes: laidOut, edges: laidEdges } = genealogyLayout(built.nodes, mappedEdges);
+    const showBoxes = config.display.showFamilyBoxes !== false; // default off — only show when explicitly true
+    const visibleNodes = showBoxes ? laidOut : laidOut.filter(n => n.type !== 'clusterBoundary');
 
-    setNodes(laidOut);
+    setNodes(visibleNodes);
     setEdges(laidEdges.map((e) => {
       const kind = (e.data as { kind?: string } | undefined)?.kind;
       if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 100 };
@@ -179,8 +181,8 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             onClick={() => {
               // Run generational layout on sims + edges
               const { nodes: laidOut, edges: laidEdges } = genealogyLayout(nodes, edges);
-              // Update BOTH nodes and edges
-              setNodes(laidOut);
+              const showBoxes2 = config.display.showFamilyBoxes !== false;
+              setNodes(showBoxes2 ? laidOut : laidOut.filter(n => n.type !== 'clusterBoundary'));
               setEdges(laidEdges.map((e) => {
                 const kind = (e.data as { kind?: string } | undefined)?.kind;
                 if (kind === 'spouse') return { ...e, type: 'marriage', zIndex: 100 };
@@ -273,6 +275,15 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
                 onChange={(e) => onConfigChange({ ...config, display: { ...config.display, compactNodes: e.target.checked } })}
               />
               Compact nodes (avatar + name only)
+            </label>
+
+            <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={!!config.display.showFamilyBoxes}
+                onChange={(e) => onConfigChange({ ...config, display: { ...config.display, showFamilyBoxes: e.target.checked } })}
+              />
+              Show family group boxes
             </label>
 
             <label className="checkbox-center" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
