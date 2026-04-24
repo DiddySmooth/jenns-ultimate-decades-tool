@@ -922,11 +922,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const clampedAnchorX = block ? Math.max(block.left, Math.min(anchorX, block.right - NODE_W)) : anchorX;
     positioned.set(anchorId, { x: clampedAnchorX, y: anchorPos.y });
 
-    let nextSlotStart = clampedAnchorX + NODE_W + GAP_COUPLE;
-    let nextPartnerX = clampedAnchorX + NODE_W + GAP_COUPLE;
-
-    // Phase 1: place wives in compact strip, place children under each wife,
-    //          collect per-union child info for later re-centering.
+    // Phase 1: compute each union's slot within the full cluster width,
+    //          place children in those slots, record info for re-centering.
     type UnionChildInfo = {
       uid: string;
       partnerId: string | undefined;
@@ -938,26 +935,51 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     };
     const unionChildInfos: UnionChildInfo[] = [];
 
+    // Compute each union's slot width (max of NODE_W and child-group width)
+    const perUnionSlotWidths = unionStripLayouts.map(layout => {
+      const info = layout.info;
+      if (!info) return NODE_W;
+      const partnerId = info.partners.find(p => p !== anchorId);
+      const unionChildrenByWife2 = partnerId ? (childrenByParent.get(partnerId) ?? []).filter(cid => {
+        const parents = childToParentSims.get(cid) ?? new Set();
+        return parents.has(anchorId);
+      }) : [];
+      const unionChildrenByAnchor2 = partnerId ? (childrenByParent.get(anchorId) ?? []).filter(cid => {
+        const parents = childToParentSims.get(cid) ?? new Set();
+        return parents.has(partnerId ?? '');
+      }) : [];
+      const kids = Array.from(new Set([...(info.children ?? []), ...unionChildrenByWife2, ...unionChildrenByAnchor2]));
+      let childGroupW = 0;
+      kids.forEach((c, i) => {
+        const hasKids2 = (childrenByParent.get(c)?.length ?? 0) > 0;
+        childGroupW += hasKids2 ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
+        if (i > 0) childGroupW += GAP_SIBLING;
+      });
+      return Math.max(NODE_W, childGroupW);
+    });
+
+    // Lay out slots left to right starting after the anchor
+    let slotStartX = clampedAnchorX + NODE_W + GAP_COUPLE;
     for (const layout of unionStripLayouts) {
       const info = layout.info;
       if (!info) continue;
       const partnerId = info.partners.find((id) => id !== anchorId && positioned.has(id));
-      const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
-      const partnerX = nextPartnerX;
+      const slotIdx = unionStripLayouts.indexOf(layout);
+      const slotW = perUnionSlotWidths[slotIdx] ?? NODE_W;
+
+      // Wife card centers within her slot
+      const partnerX = slotStartX + slotW / 2 - NODE_W / 2;
       if (partnerId) {
         positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
-        nextPartnerX += NODE_W + GAP_UNION_GROUP;
       }
 
       const unionChildrenExplicit = info.children ?? [];
-      // Children via wife's parentage (wife is the mother, anchor is the father)
       const unionChildrenByWife = partnerId
         ? (childrenByParent.get(partnerId) ?? []).filter(cid => {
             const parents = childToParentSims.get(cid) ?? new Set();
             return parents.has(anchorId);
           })
         : [];
-      // Children via anchor's parentage (anchor is the father, wife is the mother)
       const unionChildrenByAnchor = partnerId
         ? (childrenByParent.get(anchorId) ?? []).filter(cid => {
             const parents = childToParentSims.get(cid) ?? new Set();
@@ -982,9 +1004,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         if (i > 0) totalChildW += GAP_SIBLING;
       });
 
-      // Place children initially under current wife position
-      const initialWifeCenter = partnerX + NODE_W / 2;
-      let childX = initialWifeCenter - totalChildW / 2;
+      // Place children centered within this union's slot
+      const slotMidX = slotStartX + slotW / 2;
+      let childX = slotMidX - totalChildW / 2;
       for (const c of childrenSorted) {
         const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
         const csw = hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
@@ -993,8 +1015,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         childX += csw + GAP_SIBLING;
       }
 
+      const unionSlotWidth = Math.max(NODE_W + GAP_COUPLE + 20, getUnionSlotWidth(layout.uid));
       unionChildInfos.push({ uid: layout.uid, partnerId, childrenSorted, totalChildW, unionSlotWidth, heartY, childBarY });
-      nextSlotStart += unionSlotWidth + GAP_UNION_GROUP;
+      slotStartX += slotW + GAP_UNION_GROUP;
     }
 
     // Phase 2: re-center each wife above her children's actual positions,
