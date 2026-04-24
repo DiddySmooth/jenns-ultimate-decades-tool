@@ -704,15 +704,27 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // Re-run collision detection after parent widening
+  // Re-run collision detection after parent widening — group-aware.
+  // Must use getGapBetweenGroups between different group types so cluster
+  // neighbors don't get squished back inside the cluster's X range.
   for (const g of genKeys) {
+    const genGroups = buildGroupsForGeneration(sortedGens.get(g) ?? []);
+    // Build a sim→group map for this generation
+    const simToGroup = new Map<string, LayoutGroup>();
+    for (const grp of genGroups) for (const m of grp.memberIds) simToGroup.set(m, grp);
+
     const ids = [...(sortedGens.get(g) ?? [])];
     ids.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
     for (let i = 1; i < ids.length; i++) {
       const prev = positioned.get(ids[i - 1]);
       const cur = positioned.get(ids[i]);
       if (!prev || !cur) continue;
-      const gap = shareExclusivePairUnion(ids[i - 1], ids[i]) ? GAP_COUPLE : GAP_X;
+      const prevGroup = simToGroup.get(ids[i - 1]);
+      const curGroup = simToGroup.get(ids[i]);
+      const sameGroup = prevGroup && curGroup && prevGroup.id === curGroup.id;
+      const gap = sameGroup
+        ? (shareExclusivePairUnion(ids[i - 1], ids[i]) ? GAP_COUPLE : GAP_X)
+        : getGapBetweenGroups(prevGroup, curGroup);
       const minX = prev.x + NODE_W + gap;
       if (cur.x < minX) positioned.set(ids[i], { x: minX, y: cur.y });
     }
