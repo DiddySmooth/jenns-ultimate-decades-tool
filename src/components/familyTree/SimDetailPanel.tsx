@@ -21,7 +21,6 @@ export default function SimDetailPanel({ sim, allSims, open, onClose, onSave, tr
   const [tab, setTab] = useState<'overview' | 'edit' | 'photos'>('overview');
   const [editing, setEditing] = useState<SimEntry | null>(sim);
   const [uploading, setUploading] = useState(false);
-  const [cropTarget, setCropTarget] = useState<string | null>(null);
 
   React.useEffect(() => { setEditing(sim); setTab('overview'); }, [sim]);
 
