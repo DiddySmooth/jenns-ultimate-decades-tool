@@ -1241,6 +1241,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (data?.unionId) {
       const explicitSlot = unionSlots.get(data.unionId);
       const explicitHeartX = explicitSlot?.heartX ?? unionHeartX.get(data.unionId);
+      if (typeof window !== 'undefined' && String(e.target).includes('YzkzMSC')) {
+        const pName = (n: string) => { const nd = simNodes.find(x=>x.id===n); return (nd?.data as any)?.sim?.firstName ?? n; };
+        console.log(`[edge-inject] Sapphira edge: unionId=${data.unionId} slot=${JSON.stringify(explicitSlot)} heartX=${explicitHeartX} srcPos=${JSON.stringify(positioned.get(String(e.source)))}`);
+      }
       if (explicitHeartX != null) {
         const heartY = explicitSlot?.heartY ?? (srcPos.y + NODE_H + 20);
         const isClusterUnion = (simToUnionIds.get(String(e.source))?.length ?? 0) > 1 ||
