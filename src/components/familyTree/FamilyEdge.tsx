@@ -3,7 +3,7 @@ import type { EdgeProps } from 'reactflow';
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data }: EdgeProps) {
-  const edgeData = (data as { midX?: number; heartY?: number; childBarY?: number } | undefined);
+  const edgeData = (data as { midX?: number; heartY?: number; childLeft?: number; childRight?: number; childBarY?: number } | undefined);
   const midX = edgeData?.midX ?? sourceX;
   const startY = edgeData?.heartY ?? (sourceY + 20);
 
@@ -12,8 +12,16 @@ export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, mar
   const maxSplitY = Math.max(startY, targetY - 14);
   const childBarY = edgeData?.childBarY ?? clamp(desiredSplitY, startY + 10, maxSplitY);
 
-  // Simple right-angle drop: parent midpoint down to childBarY, then across to child.
-  const path = `M ${midX} ${startY} L ${midX} ${childBarY} L ${targetX} ${childBarY} L ${targetX} ${targetY}`;
+  const childLeft = edgeData?.childLeft;
+  const childRight = edgeData?.childRight;
+  const hasLocalBand = childLeft != null && childRight != null && childRight > childLeft;
+
+  // With sibling bar: parent drops to midX at childBarY, bar spans childLeft→childRight,
+  // each child drops from their own X on the bar.
+  // Without: simple right-angle from midX to child.
+  const path = hasLocalBand
+    ? `M ${midX} ${startY} L ${midX} ${childBarY} L ${childLeft} ${childBarY} M ${midX} ${childBarY} L ${childRight} ${childBarY} M ${targetX} ${childBarY} L ${targetX} ${targetY}`
+    : `M ${midX} ${startY} L ${midX} ${childBarY} L ${targetX} ${childBarY} L ${targetX} ${targetY}`;
 
   return (
     <path

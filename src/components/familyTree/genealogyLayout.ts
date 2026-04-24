@@ -1245,7 +1245,27 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const heartY = explicitSlot?.heartY ?? (srcPos.y + NODE_H + 20);
         const isClusterUnion = (simToUnionIds.get(String(e.source))?.length ?? 0) > 1 ||
           Array.from(unionPartnersAll.get(data.unionId) ?? []).some(p => (simToUnionIds.get(p)?.length ?? 0) > 1);
-        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight, childBarY: explicitSlot?.childBarY, multiUnion: isClusterUnion } };
+        // Compute childLeft/childRight from ACTUAL final child positions, not slot bounds
+        let childLeft: number | undefined;
+        let childRight: number | undefined;
+        if (isClusterUnion) {
+          const unionInfo = unionInfos.get(data.unionId);
+          const unionChildrenExplicit = unionInfo?.children ?? [];
+          const unionPartnerIds = Array.from(unionPartnersAll.get(data.unionId) ?? []);
+          const allUnionChildren = Array.from(new Set([
+            ...unionChildrenExplicit,
+            ...unionPartnerIds.flatMap(pid => (childrenByParent.get(pid) ?? []).filter(cid => {
+              const parents = childToParentSims.get(cid) ?? new Set();
+              return unionPartnerIds.some(p => p !== pid && parents.has(p));
+            }))
+          ])).filter(cid => positioned.has(cid));
+          if (allUnionChildren.length > 0) {
+            const childXs = allUnionChildren.map(cid => positioned.get(cid)!.x);
+            childLeft = Math.min(...childXs);
+            childRight = Math.max(...childXs) + NODE_W;
+          }
+        }
+        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft, childRight, childBarY: explicitSlot?.childBarY, multiUnion: isClusterUnion } };
       }
 
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
