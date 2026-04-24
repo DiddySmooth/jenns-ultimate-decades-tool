@@ -466,6 +466,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
 
       <SimDetailPanel
         sim={sims.find((s) => s.id === selectedSimId) ?? null}
+        allSims={sims}
         open={!!selectedSimId}
         onClose={() => setSelectedSimId(null)}
         onSave={(next) => onSimsChange(sims.map((x) => (x.id === next.id ? next : x)))}
@@ -474,6 +475,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         isPremium={isPremium}
         userId={userId}
         saveId={saveId}
+        currentDay={currentDay}
       />
     </div>
   );
