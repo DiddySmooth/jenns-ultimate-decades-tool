@@ -995,9 +995,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             const cgMidX = (cgLeft + cgRight) / 2;
             const wifeX = Math.max(clampedAnchorX + NODE_W + GAP_COUPLE, cgMidX - NODE_W / 2);
             positioned.set(partnerId, { x: wifeX, y: anchorPos.y });
-            // Update heartX to sit between anchor and re-centered wife
-            const newPartnerCenterX = wifeX + NODE_W / 2;
-            const newHeartX = clampedAnchorX + NODE_W / 2 + (newPartnerCenterX - (clampedAnchorX + NODE_W / 2)) * HEART_BIAS;
+            // Heart is directly below wife — update heartX to wife's new center
+            const newHeartX = wifeX + NODE_W / 2;
             unionHeartX.set(layout.uid, newHeartX);
             const slot = unionSlots.get(layout.uid);
             if (slot) {
