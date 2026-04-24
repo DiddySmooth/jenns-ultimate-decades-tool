@@ -28,6 +28,7 @@ interface Props {
   currentDay: number;
   userId: string;
   saveId: string;
+  isPremium: boolean;
   sheetConfig: SimsSheetConfig;
   onSheetConfigChange: (next: SimsSheetConfig) => void;
   onAdd: (sim: SimEntry) => void;
@@ -45,7 +46,7 @@ const blankSim = (): SimEntry => ({
   generation: 1,
 });
 
-export default function SimsSheet({ sims, unions, config, currentDay, userId, saveId, sheetConfig, onSheetConfigChange, onAdd, onUpdate, onDelete, onUnionsChange, onReorder }: Props) {
+export default function SimsSheet({ sims, unions, config, currentDay, userId, saveId, isPremium, sheetConfig, onSheetConfigChange, onAdd, onUpdate, onDelete, onUnionsChange, onReorder }: Props) {
   const [editing, setEditing] = useState<SimEntry | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
@@ -228,7 +229,7 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
           treeConfig={undefined}
           sheetConfig={sheetConfig}
           onUnionsChange={onUnionsChange}
-          isPremium={false}
+          isPremium={isPremium}
           userId={userId}
           saveId={saveId}
           currentDay={currentDay}

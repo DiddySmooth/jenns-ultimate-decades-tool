@@ -536,6 +536,7 @@ export default function App() {
             currentDay={save.currentDay}
             userId={user.sub}
             saveId={saveId}
+            isPremium={isPremium}
             sheetConfig={save.simsSheetConfig}
             onSheetConfigChange={(next) => {
               const current = saveRef.current;
