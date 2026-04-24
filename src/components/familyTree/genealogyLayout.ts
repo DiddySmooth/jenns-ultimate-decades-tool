@@ -959,7 +959,13 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         });
         let totalChildW = 0;
         childrenSorted.forEach((c, i) => {
-          totalChildW += subtreeWidth.get(c) ?? NODE_W;
+          // Use NODE_W for leaf children (no descendants) so spacing matches
+          // the rest of the graph. subtreeWidth can be inflated by parent group widths.
+          const childDescendants = childrenByParent.get(c);
+          const csw = (childDescendants && childDescendants.length > 0)
+            ? (subtreeWidth.get(c) ?? NODE_W)
+            : NODE_W;
+          totalChildW += csw;
           if (i > 0) totalChildW += GAP_X;
         });
 
@@ -977,7 +983,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         });
         let childX = childBandLeft + Math.max(0, (childBandWidth - totalChildW) / 2);
         for (const c of childrenSorted) {
-          const csw = subtreeWidth.get(c) ?? NODE_W;
+          const childDescendants2 = childrenByParent.get(c);
+          const csw = (childDescendants2 && childDescendants2.length > 0)
+            ? (subtreeWidth.get(c) ?? NODE_W)
+            : NODE_W;
           const childMidX = childX + csw / 2;
           const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
           positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
