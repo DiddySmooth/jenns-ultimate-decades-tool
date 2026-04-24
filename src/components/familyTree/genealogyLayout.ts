@@ -1014,12 +1014,29 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const heartX = wifeCenter;
       unionHeartX.set(uci.uid, heartX);
 
-      const childBandLeft = heartX - uci.totalChildW / 2;
-      const childBandRight = childBandLeft + uci.totalChildW;
+      // Compute child band from ACTUAL final child positions
+      const actualChildPositions = uci.childrenSorted
+        .map(c => positioned.get(c))
+        .filter(Boolean) as { x: number; y: number }[];
+      const childBandLeft = actualChildPositions.length > 0
+        ? Math.min(...actualChildPositions.map(p => p.x))
+        : heartX - uci.totalChildW / 2;
+      const childBandRight = actualChildPositions.length > 0
+        ? Math.max(...actualChildPositions.map(p => p.x + NODE_W))
+        : heartX + uci.totalChildW / 2;
+      // heartX should equal midpoint of child band — enforce it
+      const actualChildMidX = (childBandLeft + childBandRight) / 2;
+      const correctedHeartX = actualChildPositions.length > 0 ? actualChildMidX : heartX;
+      if (uci.partnerId && actualChildPositions.length > 0) {
+        // Re-center wife above actual children
+        const correctedWifeX = correctedHeartX - NODE_W / 2;
+        positioned.set(uci.partnerId, { x: correctedWifeX, y: anchorPos.y });
+        unionHeartX.set(uci.uid, correctedHeartX);
+      }
       unionSlots.set(uci.uid, {
         left: Math.min(clampedAnchorX, wifePos?.x ?? clampedAnchorX),
         right: Math.max(clampedAnchorX + NODE_W, (wifePos?.x ?? clampedAnchorX) + NODE_W),
-        heartX,
+        heartX: correctedHeartX,
         heartY: uci.heartY,
         childLeft: childBandLeft,
         childRight: childBandRight,
@@ -1245,7 +1262,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const heartY = explicitSlot?.heartY ?? (srcPos.y + NODE_H + 20);
         const isClusterUnion = (simToUnionIds.get(String(e.source))?.length ?? 0) > 1 ||
           Array.from(unionPartnersAll.get(data.unionId) ?? []).some(p => (simToUnionIds.get(p)?.length ?? 0) > 1);
-        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childBarY: explicitSlot?.childBarY, multiUnion: isClusterUnion } };
+        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight, childBarY: explicitSlot?.childBarY, multiUnion: isClusterUnion } };
       }
 
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
