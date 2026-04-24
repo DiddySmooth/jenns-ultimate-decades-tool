@@ -609,7 +609,7 @@ export default function App() {
             sims={save.sims}
             trackerConfig={save.config}
             currentDay={save.currentDay}
-            onSimsChange={(next) => onSaveChange({ ...save, sims: next })}
+            onSimsChange={(next) => updateSave({ ...save, sims: next })}
           />
         )}
         {tab === 'settings' && (
