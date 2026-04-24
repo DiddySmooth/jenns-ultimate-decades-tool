@@ -916,8 +916,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     let nextSlotStart = clampedAnchorX + NODE_W + GAP_COUPLE;
     let nextPartnerX = clampedAnchorX + NODE_W + GAP_COUPLE;
-    const anchorCenter = clampedAnchorX + NODE_W / 2;
-    const HEART_BIAS = 0.82;
     for (const layout of unionStripLayouts) {
       const info = layout.info;
       if (!info) continue;
@@ -928,7 +926,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       // child band below, not blow the spouses apart on the top row.
       const partnerX = nextPartnerX;
       const partnerCenterX = partnerX + NODE_W / 2;
-      const slotCenterX = anchorCenter + (partnerCenterX - anchorCenter) * HEART_BIAS;
       if (partnerId) {
         const partnerPos = positioned.get(partnerId);
         if (partnerPos) positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
@@ -944,9 +941,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           })
         : [];
       const unionChildren = Array.from(new Set([...unionChildrenExplicit, ...unionChildrenByParentage]));
-      const heartX = block ? Math.max(block.left + NODE_W / 2, Math.min(slotCenterX, block.right - NODE_W / 2)) : slotCenterX;
+      // Heart sits directly below the wife card, not between Oswin and wife.
+      // This makes child drop lines perfectly vertical.
+      const wifeCenter = partnerId ? (positioned.get(partnerId)?.x ?? partnerX) + NODE_W / 2 : partnerCenterX;
+      const heartX = wifeCenter;
       const heartY = anchorPos.y + NODE_H + 20;
-      // Keep union child bars on one cleaner shared level where possible.
       const childBarY = heartY + 42;
       unionHeartX.set(layout.uid, heartX);
 
