@@ -719,8 +719,14 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
             childX += csw + GAP_X;
           }
-
-          // Now re-center the wife card above her child group midpoint so the
+          // DEBUG: log positions after top-down cluster placement
+          if (typeof window !== 'undefined') {
+            childrenSorted.forEach(c => {
+              const n = simNodes.find(x => x.id === c);
+              const name = n ? `${(n.data as any)?.sim?.firstName}` : c;
+              console.log(`[topdown-cluster] ${name} x=${positioned.get(c)?.x?.toFixed(0)} csw=${(() => { const hk = (childrenByParent.get(c)?.length ?? 0) > 0; return hk ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W; })()}`);
+            });
+          }
           // drop lines run straight down. Keep her on the same Y row.
           const childPositions = childrenSorted
             .map(c => positioned.get(c))
@@ -1141,6 +1147,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Build result
+  // DEBUG: log final gen-2 positions
+  if (typeof window !== 'undefined') {
+    const gen2 = [...genBySim.entries()].filter(([,g]) => g === 2).map(([id]) => id);
+    gen2.forEach(id => {
+      const n = simNodes.find(x => x.id === id);
+      const name = n ? `${(n.data as any)?.sim?.firstName}` : id;
+      console.log(`[final-pos] gen2 ${name} x=${positioned.get(id)?.x?.toFixed(0)} subtreeW=${subtreeWidth.get(id)}`);
+    });
+  }
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
   // Add visual cluster boundary nodes — sized from ACTUAL node positions only,
