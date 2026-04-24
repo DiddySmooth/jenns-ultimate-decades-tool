@@ -20,6 +20,7 @@ import { deriveUnionsFromSims } from './deriveUnions';
 import { genealogyLayout } from './genealogyLayout';
 import { buildRelationshipGraph, filterVisibleSimsForFamilyTree } from './graphModel';
 import { mapGraphToFlow } from './mapGraphToFlow';
+import SimDetailPanel from './SimDetailPanel';
 
 const nodeTypes = {
   sim: SimNode,
@@ -44,9 +45,12 @@ interface Props {
   onConfigChange: (next: FamilyTreeConfig) => void;
   onUnionsChange: (next: UnionNode[]) => void;
   onSimsChange: (next: SimEntry[]) => void;
+  isPremium: boolean;
+  userId: string;
+  saveId: string;
 }
 
-export default function FamilyTree({ sims, unions, saved, config, trackerConfig, currentDay, onSavedChange, onConfigChange, onUnionsChange, onSimsChange }: Props) {
+export default function FamilyTree({ sims, unions, saved, config, trackerConfig, currentDay, onSavedChange, onConfigChange, onUnionsChange, onSimsChange, isPremium, userId, saveId }: Props) {
   // Build graph structure from sims/unions/config via the new relationship-graph pipeline.
   // Layout is always recomputed from the currently visible graph.
   const built = useMemo(() => {
@@ -460,77 +464,17 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         </aside>
       </div>
 
-      {selectedSimId && (
-        <div className="modal-overlay" onClick={() => setSelectedSimId(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            {(() => {
-              const sim = sims.find((s) => s.id === selectedSimId);
-              if (!sim) return <p>Sim not found.</p>;
-
-              return (
-                <>
-                  <h3>Edit Sim</h3>
-
-                  <div className="field-group">
-                    <label>First Name</label>
-                    <input
-                      value={sim.firstName}
-                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, firstName: e.target.value } : x)))}
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Last Name</label>
-                    <input
-                      value={sim.lastName}
-                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, lastName: e.target.value } : x)))}
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Birth Year</label>
-                    <input
-                      type="number"
-                      value={sim.birthYear ?? ''}
-                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, birthYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Birth Day of Year</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={trackerConfig.daysPerYear}
-                      value={sim.birthDayOfYear ?? ''}
-                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, birthDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Death Year</label>
-                    <input
-                      type="number"
-                      value={sim.deathYear ?? ''}
-                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, deathYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
-                    />
-                  </div>
-                  <div className="field-group">
-                    <label>Death Day of Year</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={trackerConfig.daysPerYear}
-                      value={sim.deathDayOfYear ?? ''}
-                      onChange={(e) => onSimsChange(sims.map((x) => (x.id === sim.id ? { ...x, deathDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x)))}
-                    />
-                  </div>
-
-                  <div className="modal-actions">
-                    <button className="btn-primary" onClick={() => setSelectedSimId(null)}>Done</button>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
+      <SimDetailPanel
+        sim={sims.find((s) => s.id === selectedSimId) ?? null}
+        open={!!selectedSimId}
+        onClose={() => setSelectedSimId(null)}
+        onSave={(next) => onSimsChange(sims.map((x) => (x.id === next.id ? next : x)))}
+        trackerConfig={trackerConfig}
+        treeConfig={config}
+        isPremium={isPremium}
+        userId={userId}
+        saveId={saveId}
+      />
     </div>
   );
 }
