@@ -2,12 +2,8 @@ import type { EdgeProps } from 'reactflow';
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
-/**
- * FamilyEdge: drops from the midpoint between two parents (below their heart)
- * down to a child using right-angle routing.
- */
 export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data }: EdgeProps) {
-  const edgeData = (data as { midX?: number; heartY?: number; childLeft?: number; childRight?: number; childBarY?: number; multiUnion?: boolean } | undefined);
+  const edgeData = (data as { midX?: number; heartY?: number; childBarY?: number } | undefined);
   const midX = edgeData?.midX ?? sourceX;
   const startY = edgeData?.heartY ?? (sourceY + 20);
 
@@ -16,17 +12,8 @@ export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, mar
   const maxSplitY = Math.max(startY, targetY - 14);
   const childBarY = edgeData?.childBarY ?? clamp(desiredSplitY, startY + 10, maxSplitY);
 
-  const childLeft = edgeData?.childLeft;
-  const childRight = edgeData?.childRight;
-
-  // Draw sibling bar whenever we have childLeft/childRight bounds.
-  // For multi-union clusters this makes the centering visually clear —
-  // the parent drops to midX, bar spans the full sibling group, each child drops from bar.
-  const hasLocalBand = childLeft != null && childRight != null && childRight > childLeft;
-
-  const path = hasLocalBand
-    ? `M ${midX} ${startY} L ${midX} ${childBarY} L ${childLeft} ${childBarY} M ${midX} ${childBarY} L ${childRight} ${childBarY} M ${targetX} ${childBarY} L ${targetX} ${targetY}`
-    : `M ${midX} ${startY} L ${midX} ${childBarY} L ${targetX} ${childBarY} L ${targetX} ${targetY}`;
+  // Simple right-angle drop: parent midpoint down to childBarY, then across to child.
+  const path = `M ${midX} ${startY} L ${midX} ${childBarY} L ${targetX} ${childBarY} L ${targetX} ${targetY}`;
 
   return (
     <path
