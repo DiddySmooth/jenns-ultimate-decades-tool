@@ -561,12 +561,41 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     for (const group of groups) {
       const allChildren = getChildrenForLayoutGroup(group);
-      const stripWidth = group.type === 'cluster'
-        ? NODE_W + group.unionIds.reduce((sum, _uid, idx) =>
-            sum + NODE_W + GAP_COUPLE + (idx > 0 ? GAP_UNION_GROUP : 0), 0) + 24
-        : group.type === 'couple'
-        ? NODE_W * 2 + GAP_COUPLE
-        : NODE_W;
+
+      let minWidth: number;
+      if (group.type === 'cluster') {
+        // Cluster width = anchor + sum of per-union slots.
+        // Each union slot = max(NODE_W, child-group-width) + GAP_UNION_GROUP.
+        // Child group width uses GAP_SIBLING between siblings (matches render).
+        const anchorW = NODE_W;
+        const unionsW = group.unionIds.reduce((sum, uid, idx) => {
+          const info = unionInfos.get(uid);
+          const children = [
+            ...(info?.children ?? []),
+            ...(info?.partners.flatMap(pid =>
+              (childrenByParent.get(pid) ?? []).filter(cid => {
+                const parents = childToParentSims.get(cid) ?? new Set();
+                return info.partners.some(p => p !== pid && parents.has(p));
+              })
+            ) ?? []),
+          ].filter((c, i, a) => a.indexOf(c) === i);
+          let childGroupW = 0;
+          children.forEach((c, i) => {
+            const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
+            childGroupW += hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
+            if (i > 0) childGroupW += GAP_SIBLING;
+          });
+          const slotW = Math.max(NODE_W, childGroupW);
+          return sum + slotW + (idx > 0 ? GAP_UNION_GROUP : GAP_COUPLE);
+        }, 0);
+        minWidth = anchorW + unionsW + 24;
+      } else if (group.type === 'couple') {
+        minWidth = NODE_W * 2 + GAP_COUPLE;
+      } else {
+        minWidth = NODE_W;
+      }
+
+      const minWidth2 = minWidth; // alias for closure
 
       // Cluster: groupWidth = max(stripWidth, total children footprint).
       // This reserves the full horizontal space the cluster's children will occupy
@@ -578,10 +607,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         if (i > 0) childrenTotalWidth += GAP_X;
       });
 
-      const minWidth = allChildren.length === 0 ? stripWidth : Math.max(stripWidth, childrenTotalWidth);
-      groupWidth.set(group.id, minWidth);
+      const groupW = allChildren.length === 0 ? minWidth2 : Math.max(minWidth2, childrenTotalWidth);
+      groupWidth.set(group.id, groupW);
 
-      const resolvedWidth = minWidth;
+      const resolvedWidth = groupW;
       group.memberIds.forEach((id) => subtreeWidth.set(id, resolvedWidth));
     }
   }
