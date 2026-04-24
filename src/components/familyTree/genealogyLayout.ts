@@ -488,7 +488,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         seen.add(id);
         seen.add(explicitSpouse);
         const unionIds = (simToUnionIds.get(id) ?? []).filter((uid) => (unionInfos.get(uid)?.partners ?? []).includes(explicitSpouse));
-        groups.push({ id: `couple:${id}:${explicitSpouse}`, type: 'couple', anchorId: id, memberIds: [id, explicitSpouse], unionIds });
+        // Use sorted IDs so group ID is stable regardless of iteration order
+        const [idA, idB] = [id, explicitSpouse].sort();
+        groups.push({ id: `couple:${idA}:${idB}`, type: 'couple', anchorId: id, memberIds: [id, explicitSpouse], unionIds });
       } else {
         seen.add(id);
         groups.push({ id: `single:${id}`, type: 'single', anchorId: id, memberIds: [id], unionIds: simToUnionIds.get(id) ?? [] });
@@ -1043,12 +1045,26 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (unionIds.length <= 1) continue;
 
     // Collect only the sims that logically belong to this cluster:
-    // anchor + direct union partners + their union-owned children.
+    // anchor + direct union partners + ALL their children (by union or by parentage).
     const clusterMemberIds = new Set<string>([anchorId]);
     const clusterChildIds = new Set<string>();
     for (const uid of unionIds) {
       for (const pid of unionPartnersAll.get(uid) ?? []) clusterMemberIds.add(pid);
+      // Children with explicit birthUnionId
       for (const cid of unionChildrenAll.get(uid) ?? []) clusterChildIds.add(cid);
+    }
+    // Also add children via fatherId/motherId for anchor and all partners
+    // (most sims don't have birthUnionId set explicitly)
+    for (const memberId of clusterMemberIds) {
+      // strip sim: prefix for childrenByParent lookup
+      const bareId = memberId.startsWith('sim:') ? memberId : memberId;
+      for (const cid of childrenByParent.get(bareId) ?? []) {
+        // Only include if the OTHER parent is also a cluster member
+        const childParents = childToParentSims.get(cid) ?? new Set();
+        const otherParents = [...childParents].filter(p => p !== bareId);
+        const sharedWithCluster = otherParents.some(p => clusterMemberIds.has(p));
+        if (sharedWithCluster || otherParents.length === 0) clusterChildIds.add(cid);
+      }
     }
 
     const allClusterIds = [...clusterMemberIds, ...clusterChildIds].filter((id) => positioned.has(id));
