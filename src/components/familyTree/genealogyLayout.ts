@@ -1258,7 +1258,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           ? partnerCenterA + (partnerCenterB - partnerCenterA) * 0.82
           : (leftX + rightX + NODE_W) / 2;
         const heartY = Math.max(...partnerPositions.map((p) => p.y + NODE_H)) + 20;
-        return { ...e, data: { ...e.data, midX, heartY } };
+        return { ...e, data: { ...e.data, midX, heartY, multiUnion: isMultiUnion } };
       }
     }
 
@@ -1270,7 +1270,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const rightX = Math.max(...parentPositions.map((p) => p.x));
       const midX = (leftX + rightX + NODE_W) / 2;
       const heartY = Math.max(...parentPositions.map((p) => p.y + NODE_H)) + 20;
-      return { ...e, data: { ...e.data, midX, heartY } };
+      const isMultiUnion = parentIds.some(id => (simToUnionIds.get(id)?.length ?? 0) > 1);
+      return { ...e, data: { ...e.data, midX, heartY, multiUnion: isMultiUnion } };
     }
 
     // Last resort: single-parent center.
