@@ -215,7 +215,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     console.group('[genealogyLayout] Generation assignments');
     for (const [id, g] of genBySim) {
       const node = simNodes.find(n => n.id === id);
-      const name = (node?.data as any)?.sim ? `${(node.data as any).sim.firstName} ${(node.data as any).sim.lastName}` : id;
+      const name = node ? `${(node.data as any)?.sim?.firstName ?? ''} ${(node.data as any)?.sim?.lastName ?? ''}`.trim() : id;
       console.log(`gen ${g}: ${name} (${id})`);
     }
     console.groupEnd();
@@ -600,7 +600,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     if (typeof window !== 'undefined') {
       console.group(`[genealogyLayout] Gen ${g} groups`);
       for (const grp of groups) {
-        const getName = (id: string) => { const n = simNodes.find(x => x.id === id); return (n?.data as any)?.sim ? `${(n.data as any).sim.firstName}` : id; };
+        const getName = (id: string) => { const n = simNodes.find(x => x.id === id); return n ? `${(n.data as any)?.sim?.firstName ?? id}` : id; };
         console.log(`  ${grp.type} [${grp.id}]: members=[${grp.memberIds.map(getName).join(', ')}] width=${groupWidth.get(grp.id) ?? '?'}`);
       }
       console.groupEnd();
