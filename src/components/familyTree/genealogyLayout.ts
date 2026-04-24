@@ -1165,6 +1165,23 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       slot.heartX = childMidX;
       unionHeartX.set(uid, childMidX);
     }
+
+    // De-overlap wives left-to-right after re-centering.
+    // Childless wives or wives with narrow child groups may end up too close.
+    const wifeIds = unionIds
+      .map(uid => {
+        const info = unionInfos.get(uid);
+        return info?.partners.find(p => p !== anchorId && positioned.has(p));
+      })
+      .filter((id): id is string => !!id);
+    wifeIds.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+    let minX = (positioned.get(anchorId)?.x ?? 0) + NODE_W + GAP_COUPLE;
+    for (const wifeId of wifeIds) {
+      const pos = positioned.get(wifeId);
+      if (!pos) continue;
+      if (pos.x < minX) positioned.set(wifeId, { x: minX, y: pos.y });
+      minX = (positioned.get(wifeId)?.x ?? minX) + NODE_W + GAP_UNION_GROUP;
+    }
   }
 
   // Build result
