@@ -78,6 +78,10 @@ export default function SortableSimRow({
           <button className="btn-icon" onClick={onEdit} title="Edit sim" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, flexShrink: 0 }}>
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 1.5l2 2L4 11H2v-2L9.5 1.5z"/></svg>
           </button>
+
+          <button className="btn-icon" onClick={onDelete} title="Remove sim" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, flexShrink: 0 }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,3 11,3"/><path d="M4.5 3V2a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1"/><path d="M3 3l.7 8h6.6L11 3"/></svg>
+          </button>
         </div>
 
         <div className="sim-cell name" title={fullName}>{fullName}</div>
@@ -115,11 +119,6 @@ export default function SortableSimRow({
           </div>
         )}
 
-        <div className="sim-actions">
-          <button className="btn-icon" onClick={onDelete} title="Remove sim" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, flexShrink: 0, color: 'inherit' }}>
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,3 11,3"/><path d="M4.5 3V2a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1"/><path d="M3 3l.7 8h6.6L11 3"/></svg>
-          </button>
-        </div>
       </div>
 
       {expanded && (

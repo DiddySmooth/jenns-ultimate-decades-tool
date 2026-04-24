@@ -727,7 +727,7 @@ body {
 /* Sims list as row-table */
 .sim-table-header {
   display: grid;
-  grid-template-columns: 84px 180px 110px 70px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 180px 160px 28px;
+  grid-template-columns: 112px 180px 110px 70px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 180px 160px;
   gap: 0.6rem;
   padding: 0.4rem 0.6rem;
   font-size: 0.72rem;
@@ -758,7 +758,7 @@ body {
 
 .sim-row-main {
   display: grid;
-  grid-template-columns: 84px 180px 110px 70px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 180px 160px 28px;
+  grid-template-columns: 112px 180px 110px 70px 90px 60px 90px 140px 140px 140px 140px 90px 90px 140px 180px 160px;
   align-items: start;
   padding: 0.45rem 0.6rem;
   column-gap: 0.6rem;

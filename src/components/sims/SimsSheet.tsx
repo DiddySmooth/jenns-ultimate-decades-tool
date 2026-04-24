@@ -190,7 +190,7 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
       </div>
 
       <div className="sim-table-header">
-        <span />
+        <span style={{ textAlign: 'center', letterSpacing: '0.04em' }}>Actions</span>
         <span>Name</span>
         <span>Stage</span>
         {sheetConfig.showAge && <span>Age</span>}
@@ -205,7 +205,6 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
         <span>Died</span>
         {sheetConfig.showCauseOfDeath && <span>COD</span>}
         {sheetConfig.showTraits && <span>Traits</span>}
-        <span style={{ textAlign: 'center' }}></span>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
