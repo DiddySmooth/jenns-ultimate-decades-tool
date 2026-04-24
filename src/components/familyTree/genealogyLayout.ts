@@ -697,7 +697,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
           let totalChildW = 0;
           childrenSorted.forEach((c, i) => {
-            totalChildW += subtreeWidth.get(c) ?? NODE_W;
+            const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
+            totalChildW += hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
             if (i > 0) totalChildW += GAP_X;
           });
 
@@ -705,7 +706,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           const unionMidX = (anchorPos2.x + NODE_W / 2 + partnerPos.x + NODE_W / 2) / 2;
           let childX = unionMidX - totalChildW / 2;
           for (const c of childrenSorted) {
-            const csw = subtreeWidth.get(c) ?? NODE_W;
+            const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
+            const csw = hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
             const childMidX = childX + csw / 2;
             const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
             positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
