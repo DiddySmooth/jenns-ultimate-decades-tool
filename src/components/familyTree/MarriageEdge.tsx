@@ -35,18 +35,14 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
 
   let path: string;
   if (multiUnion) {
-    // For multi-union: only draw from the WIFE (target/non-anchor) down to the heart.
-    // The anchor (Oswin) gets a short vertical stub only. This avoids the long
+    // For multi-union: only draw from the WIFE (target) down to the heart.
+    // The anchor (source) gets a short vertical stub only — avoids a giant
     // horizontal bar spanning the whole cluster.
-    const wifeX = targetX; // wife is always the target in multi-union edges
-    const anchorX = sourceX;
-    // Short stub from anchor down
-    const anchorStubY = bottomY;
     path = `
-      M ${anchorX} ${sourceY}
-      L ${anchorX} ${anchorStubY}
-      M ${wifeX} ${targetY}
-      L ${wifeX} ${bottomY}
+      M ${sourceX} ${sourceY}
+      L ${sourceX} ${bottomY}
+      M ${targetX} ${targetY}
+      L ${targetX} ${bottomY}
       L ${iconMidX} ${bottomY}
     `;
   } else {
