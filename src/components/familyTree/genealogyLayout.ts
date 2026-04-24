@@ -921,13 +921,21 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       }
 
       const unionChildrenExplicit = info.children ?? [];
-      const unionChildrenByParentage = partnerId
+      // Children via wife's parentage (wife is the mother, anchor is the father)
+      const unionChildrenByWife = partnerId
         ? (childrenByParent.get(partnerId) ?? []).filter(cid => {
             const parents = childToParentSims.get(cid) ?? new Set();
             return parents.has(anchorId);
           })
         : [];
-      const unionChildren = Array.from(new Set([...unionChildrenExplicit, ...unionChildrenByParentage]));
+      // Children via anchor's parentage (anchor is the father, wife is the mother)
+      const unionChildrenByAnchor = partnerId
+        ? (childrenByParent.get(anchorId) ?? []).filter(cid => {
+            const parents = childToParentSims.get(cid) ?? new Set();
+            return parents.has(partnerId);
+          })
+        : [];
+      const unionChildren = Array.from(new Set([...unionChildrenExplicit, ...unionChildrenByWife, ...unionChildrenByAnchor]));
       const heartY = anchorPos.y + NODE_H + 20;
       const childBarY = heartY + 42;
 
