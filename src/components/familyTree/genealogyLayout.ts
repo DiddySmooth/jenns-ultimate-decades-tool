@@ -1037,10 +1037,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         childRight: childPositions.length > 0 ? Math.max(...childPositions.map(p => p.x + NODE_W)) : heartX + NODE_W / 2,
         childBarY: uci.childBarY,
       });
-      if (typeof window !== 'undefined' && uci.childrenSorted.length > 0) {
-        const n = (id: string) => { const nd = simNodes.find(x=>x.id===id); return (nd?.data as any)?.sim?.firstName ?? id; };
-        console.log(`[phase2] ${n(uci.partnerId)} x=${positioned.get(uci.partnerId)?.x?.toFixed(1)} heartX=${heartX.toFixed(1)} children=[${uci.childrenSorted.map(c=>n(c)+':'+positioned.get(c)?.x?.toFixed(1)).join(',')}]`);
-      }
     }
   }
 
@@ -1172,12 +1168,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Build result
-  if (typeof window !== 'undefined') {
-    const n = (id: string) => { const nd = simNodes.find(x=>x.id===id); return (nd?.data as any)?.sim?.firstName ?? id; };
-    ['sim:G5942XTRv5LjnIsxVpHqR','sim:YzkzMSCEwZie3_DvOeMDJ','sim:xsOk1SAuzOsQRH2SDKEYM','sim:dearzfcWSgKgOYe7M19ZC'].forEach(id => {
-      console.log(`[final] ${n(id)} x=${positioned.get(id)?.x?.toFixed(1)}`);
-    });
-  }
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
   // Add visual cluster boundary nodes — sized from ACTUAL node positions only,
