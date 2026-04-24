@@ -18,11 +18,8 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   const multiUnion = data?.multiUnion === true;
 
   const bottomY = data?.heartY ?? (Math.max(sourceY, targetY) + 20);
-  // For multi-union: heart sits directly below wife (target center).
-  // For normal couples: heart sits between both partners.
-  const iconMidX = multiUnion
-    ? (data?.heartX ?? (targetX + 55)) // heartX is set to wife center by layout
-    : (data?.heartX ?? ((leftX + rightX) / 2));
+  // Heart at wife's center (targetX + half card width) for multi-union.
+  const iconMidX = data?.heartX ?? (multiUnion ? targetX + 55 : (leftX + rightX) / 2);
 
   const stroke = status === 'divorce'
     ? 'rgba(176, 62, 94, 0.7)'
@@ -39,9 +36,9 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
 
   let path: string;
   if (multiUnion) {
-    // Heart sits directly below the wife (target).
-    // Oswin (source) runs horizontally at heartY to wife's X, wife drops straight down.
-    // iconMidX = wife's center X so heart renders directly below her card.
+    // Mockup layout: one horizontal spine from anchor to wife at heartY.
+    // Wife drops straight down to heartY. Heart sits at wife's center (targetX).
+    // Children drop from directly below the heart (wife center).
     path = `
       M ${sourceX} ${sourceY}
       L ${sourceX} ${bottomY}
