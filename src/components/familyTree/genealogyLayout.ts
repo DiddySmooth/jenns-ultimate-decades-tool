@@ -492,12 +492,20 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             );
             if (!hasOwnExclusivePair) {
               memberIds.add(partnerId);
+            } else if (typeof window !== 'undefined') {
+              const getName = (i: string) => { const n = simNodes.find(x => x.id === i); return n ? `${(n.data as any)?.sim?.firstName ?? i}` : i; };
+              console.log(`[cluster] rejected ${getName(partnerId)} from cluster: hasOwnExclusivePair=true, their unions=${JSON.stringify(partnerMemberships)}`);
             }
           }
         }
         const members = Array.from(memberIds);
         const anchorId = getPreferredClusterAnchor(members);
         members.forEach((m) => seen.add(m));
+        // DEBUG
+        if (typeof window !== 'undefined') {
+          const getName = (i: string) => { const n = simNodes.find(x => x.id === i); return n ? `${(n.data as any)?.sim?.firstName ?? i}` : i; };
+          console.log(`[cluster] anchor=${getName(anchorId)} members=[${members.map(getName).join(', ')}] unions=[${Array.from(clusterUnionIds).join(', ')}]`);
+        }
         groups.push({ id: `cluster:${anchorId}`, type: 'cluster', anchorId, memberIds: members, unionIds: Array.from(clusterUnionIds) });
         continue;
       }
