@@ -1020,33 +1020,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       slotStartX += slotW + GAP_UNION_GROUP;
     }
 
-    // Phase 2: re-center each wife above her children's actual positions,
-    //          then enforce minimum spacing between wives left-to-right.
-    // First pass: compute ideal wife X from child midpoint.
-    const wifeIdealX = new Map<string, number>();
-    for (const uci of unionChildInfos) {
-      if (!uci.partnerId) continue;
-      if (uci.childrenSorted.length === 0) continue;
-      const childPositions = uci.childrenSorted.map(c => positioned.get(c)).filter(Boolean) as {x:number;y:number}[];
-      if (childPositions.length === 0) continue;
-      const cgLeft = Math.min(...childPositions.map(p => p.x));
-      const cgRight = Math.max(...childPositions.map(p => p.x + NODE_W));
-      const cgMidX = (cgLeft + cgRight) / 2;
-      wifeIdealX.set(uci.partnerId, cgMidX - NODE_W / 2);
-    }
-
-    // Second pass: enforce left-to-right minimum spacing.
-    let minWifeX = clampedAnchorX + NODE_W + GAP_COUPLE;
-    for (const uci of unionChildInfos) {
-      if (!uci.partnerId) continue;
-      const idealX = wifeIdealX.get(uci.partnerId) ?? (positioned.get(uci.partnerId)?.x ?? minWifeX);
-      const finalX = Math.max(minWifeX, idealX);
-      positioned.set(uci.partnerId, { x: finalX, y: anchorPos.y });
-      minWifeX = finalX + NODE_W + GAP_UNION_GROUP;
-    }
-
-    // Phase 3: re-center children under each wife's FINAL position,
-    //          update union slots and heartX.
+    // Phase 2: update union slots and heartX from the slot-based positions set in Phase 1.
+    // No re-centering needed — Phase 1 already placed wife and children correctly.
     for (const uci of unionChildInfos) {
       const wifePos = uci.partnerId ? positioned.get(uci.partnerId) : undefined;
       const wifeCenter = wifePos ? wifePos.x + NODE_W / 2 : clampedAnchorX + NODE_W / 2;
@@ -1064,27 +1039,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         childRight: childBandRight,
         childBarY: uci.childBarY,
       });
-
-      if (uci.childrenSorted.length > 0) {
-        let childX = childBandLeft;
-        for (const c of uci.childrenSorted) {
-          const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
-          const csw = hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
-          const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
-          positioned.set(c, { x: childX, y: childY });
-          childX += csw + GAP_SIBLING;
-        }
-      } else {
-        unionSlots.set(uci.uid, {
-          left: Math.min(clampedAnchorX, wifePos?.x ?? clampedAnchorX),
-          right: Math.max(clampedAnchorX + NODE_W, (wifePos?.x ?? clampedAnchorX) + NODE_W),
-          heartX,
-          heartY: uci.heartY,
-          childLeft: heartX - uci.unionSlotWidth / 2,
-          childRight: heartX + uci.unionSlotWidth / 2,
-          childBarY: uci.childBarY,
-        });
-      }
     }
   }
 
