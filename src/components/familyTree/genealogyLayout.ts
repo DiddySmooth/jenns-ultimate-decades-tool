@@ -1144,6 +1144,33 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // Final wife re-centering pass — runs after ALL collision detection so wives
+  // end up above the FINAL child positions, not pre-collision ones.
+  for (const [anchorId, unionIds] of simToUnionIds) {
+    if (unionIds.length <= 1) continue;
+    const anchorPos2 = positioned.get(anchorId);
+    if (!anchorPos2) continue;
+    for (const uid of unionIds) {
+      const slot = unionSlots.get(uid);
+      if (!slot) continue;
+      const info = unionInfos.get(uid);
+      if (!info) continue;
+      const partnerId = info.partners.find(p => p !== anchorId && positioned.has(p));
+      if (!partnerId) continue;
+      // Find all children of this union from actual positions
+      const unionChildrenExplicit = info.children ?? [];
+      const byWife = (childrenByParent.get(partnerId) ?? []).filter(c => (childToParentSims.get(c) ?? new Set()).has(anchorId));
+      const byAnchor = (childrenByParent.get(anchorId) ?? []).filter(c => (childToParentSims.get(c) ?? new Set()).has(partnerId));
+      const kids = Array.from(new Set([...unionChildrenExplicit, ...byWife, ...byAnchor])).filter(c => positioned.has(c));
+      if (kids.length === 0) continue;
+      const xs = kids.map(c => positioned.get(c)!.x);
+      const childMidX = (Math.min(...xs) + Math.max(...xs) + NODE_W) / 2;
+      positioned.set(partnerId, { x: childMidX - NODE_W / 2, y: anchorPos2.y });
+      slot.heartX = childMidX;
+      unionHeartX.set(uid, childMidX);
+    }
+  }
+
   // Build result
   if (typeof window !== 'undefined') {
     const n = (id: string) => { const nd = simNodes.find(x=>x.id===id); return (nd?.data as any)?.sim?.firstName ?? id; };
