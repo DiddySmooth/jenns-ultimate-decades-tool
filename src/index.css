@@ -717,7 +717,7 @@ body {
 
 /* ── Sims sheet ── */
 .sims-sheet { }
-.sheet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.sheet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; position: sticky; top: 0; z-index: 10; background: var(--color-surface); padding: 0.75rem 0; margin-top: -0.75rem; }
 .sheet-header h2 { margin: 0; }
 .gen-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin: 1.5rem 0 0.6rem; }
 .sims-list { display: flex; flex-direction: column; gap: 0.5rem; }
