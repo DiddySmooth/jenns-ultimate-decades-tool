@@ -976,6 +976,30 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
           childX += csw + GAP_X;
         }
+
+        // Re-center wife above her child group so drop lines run straight down.
+        if (partnerId) {
+          const childPositions = childrenSorted
+            .map(c => positioned.get(c))
+            .filter(Boolean) as { x: number; y: number }[];
+          if (childPositions.length > 0) {
+            const cgLeft = Math.min(...childPositions.map(p => p.x));
+            const cgRight = Math.max(...childPositions.map(p => p.x + NODE_W));
+            const cgMidX = (cgLeft + cgRight) / 2;
+            const wifeX = Math.max(clampedAnchorX + NODE_W + GAP_COUPLE, cgMidX - NODE_W / 2);
+            positioned.set(partnerId, { x: wifeX, y: anchorPos.y });
+            // Update heartX to sit between anchor and re-centered wife
+            const newPartnerCenterX = wifeX + NODE_W / 2;
+            const newHeartX = clampedAnchorX + NODE_W / 2 + (newPartnerCenterX - (clampedAnchorX + NODE_W / 2)) * HEART_BIAS;
+            unionHeartX.set(layout.uid, newHeartX);
+            const slot = unionSlots.get(layout.uid);
+            if (slot) {
+              slot.heartX = newHeartX;
+              slot.left = Math.min(clampedAnchorX, wifeX);
+              slot.right = Math.max(clampedAnchorX + NODE_W, wifeX + NODE_W);
+            }
+          }
+        }
       } else {
         unionSlots.set(layout.uid, {
           left: Math.min(anchorX, partnerX),
