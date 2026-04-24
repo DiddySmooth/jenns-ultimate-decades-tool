@@ -18,35 +18,7 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   const multiUnion = data?.multiUnion === true;
 
   const bottomY = data?.heartY ?? (Math.max(sourceY, targetY) + 20);
-
-  // For multi-union clusters: draw a clean bracket between anchor and wife.
-  // Each union gets its own individual line — no shared horizontal bar.
-  // Heart sits at the explicit heartX provided by the layout.
   const iconMidX = data?.heartX ?? ((leftX + rightX) / 2);
-
-  let path: string;
-  if (multiUnion) {
-    // Simple bracket: each partner drops down to bottomY, meets at heart midpoint.
-    // This keeps each union visually independent instead of merging into one long bar.
-    path = `
-      M ${sourceX} ${sourceY}
-      L ${sourceX} ${bottomY}
-      M ${targetX} ${targetY}
-      L ${targetX} ${bottomY}
-      M ${Math.min(sourceX, targetX)} ${bottomY}
-      L ${Math.max(sourceX, targetX)} ${bottomY}
-    `;
-  } else {
-    // Standard couple: symmetric bracket meeting at heart center.
-    path = `
-      M ${sourceX} ${sourceY}
-      L ${sourceX} ${bottomY}
-      L ${iconMidX} ${bottomY}
-      M ${targetX} ${targetY}
-      L ${targetX} ${bottomY}
-      L ${iconMidX} ${bottomY}
-    `;
-  }
 
   const stroke = status === 'divorce'
     ? 'rgba(176, 62, 94, 0.7)'
@@ -60,6 +32,34 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   const icon = status === 'divorce' ? '💔' : '❤';
   const iconColor = status === 'divorce' ? '#b03e5e' : status === 'death' ? '#8f8f8f' : '#e05c7a';
   const iconOpacity = primary ? 1 : 0.92;
+
+  let path: string;
+  if (multiUnion) {
+    // For multi-union: only draw from the WIFE (target/non-anchor) down to the heart.
+    // The anchor (Oswin) gets a short vertical stub only. This avoids the long
+    // horizontal bar spanning the whole cluster.
+    const wifeX = targetX; // wife is always the target in multi-union edges
+    const anchorX = sourceX;
+    // Short stub from anchor down
+    const anchorStubY = bottomY;
+    path = `
+      M ${anchorX} ${sourceY}
+      L ${anchorX} ${anchorStubY}
+      M ${wifeX} ${targetY}
+      L ${wifeX} ${bottomY}
+      L ${iconMidX} ${bottomY}
+    `;
+  } else {
+    // Standard couple: symmetric bracket meeting at heart center.
+    path = `
+      M ${sourceX} ${sourceY}
+      L ${sourceX} ${bottomY}
+      L ${iconMidX} ${bottomY}
+      M ${targetX} ${targetY}
+      L ${targetX} ${bottomY}
+      L ${iconMidX} ${bottomY}
+    `;
+  }
 
   return (
     <g>
