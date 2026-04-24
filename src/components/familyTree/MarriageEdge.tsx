@@ -35,12 +35,12 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
 
   let path: string;
   if (multiUnion) {
-    // For multi-union: only draw from the WIFE (target) down to the heart.
-    // The anchor (source) gets a short vertical stub only — avoids a giant
-    // horizontal bar spanning the whole cluster.
+    // Multi-union: both partners drop to heartY and connect at iconMidX.
+    // This draws a short bracket through the heart without spanning the full cluster width.
     path = `
       M ${sourceX} ${sourceY}
       L ${sourceX} ${bottomY}
+      L ${iconMidX} ${bottomY}
       M ${targetX} ${targetY}
       L ${targetX} ${bottomY}
       L ${iconMidX} ${bottomY}

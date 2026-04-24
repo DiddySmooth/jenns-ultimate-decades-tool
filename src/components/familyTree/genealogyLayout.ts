@@ -935,7 +935,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         nextPartnerX += NODE_W + GAP_UNION_GROUP;
       }
 
-      const unionChildren = info.children ?? [];
+      // Get all children for this union — both explicit birthUnionId and parentage-based
+      const unionChildrenExplicit = info.children ?? [];
+      const unionChildrenByParentage = partnerId
+        ? (childrenByParent.get(partnerId) ?? []).filter(cid => {
+            const parents = childToParentSims.get(cid) ?? new Set();
+            return parents.has(anchorId);
+          })
+        : [];
+      const unionChildren = Array.from(new Set([...unionChildrenExplicit, ...unionChildrenByParentage]));
       const heartX = block ? Math.max(block.left + NODE_W / 2, Math.min(slotCenterX, block.right - NODE_W / 2)) : slotCenterX;
       const heartY = anchorPos.y + NODE_H + 20;
       // Keep union child bars on one cleaner shared level where possible.
