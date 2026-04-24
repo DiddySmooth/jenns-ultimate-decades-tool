@@ -1180,6 +1180,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const pos = positioned.get(wifeId);
       if (!pos) continue;
       if (pos.x < minX) {
+        const dx = minX - pos.x;
         positioned.set(wifeId, { x: minX, y: pos.y });
         // Update heartX for this wife's union to match new position
         const wifeUid = unionIds.find(uid => unionInfos.get(uid)?.partners.includes(wifeId));
@@ -1188,6 +1189,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           unionHeartX.set(wifeUid, newHeartX);
           const slot = unionSlots.get(wifeUid);
           if (slot) slot.heartX = newHeartX;
+          // Shift this wife's children by the same dx
+          const unionInfo = unionInfos.get(wifeUid);
+          const byWife2 = (childrenByParent.get(wifeId) ?? []).filter(c => (childToParentSims.get(c) ?? new Set()).has(anchorId));
+          const byAnchor2 = (childrenByParent.get(anchorId) ?? []).filter(c => (childToParentSims.get(c) ?? new Set()).has(wifeId));
+          const kidsToShift = Array.from(new Set([...(unionInfo?.children ?? []), ...byWife2, ...byAnchor2]));
+          for (const kid of kidsToShift) {
+            const kpos = positioned.get(kid);
+            if (kpos) positioned.set(kid, { x: kpos.x + dx, y: kpos.y });
+          }
         }
       }
       minX = (positioned.get(wifeId)?.x ?? minX) + NODE_W + GAP_UNION_GROUP;
