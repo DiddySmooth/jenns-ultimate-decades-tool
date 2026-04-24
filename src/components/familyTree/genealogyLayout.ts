@@ -454,7 +454,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const groups: LayoutGroup[] = [];
     const seen = new Set<string>();
 
-    for (const id of ids) {
+    // Process multi-union sims FIRST so they become cluster anchors before
+    // single-union spouses grab them as a plain couple.
+    const sortedIds = [...ids].sort((a, b) => {
+      const aUnions = simToUnionIds.get(a)?.length ?? 0;
+      const bUnions = simToUnionIds.get(b)?.length ?? 0;
+      return bUnions - aUnions; // descending: most unions first
+    });
+
+    for (const id of sortedIds) {
       if (seen.has(id)) continue;
       const memberships = simToUnionIds.get(id) ?? [];
 
