@@ -191,7 +191,6 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
 
       <div className="sim-table-header">
         <span />
-        <span />
         <span>Name</span>
         <span>Stage</span>
         {sheetConfig.showAge && <span>Age</span>}

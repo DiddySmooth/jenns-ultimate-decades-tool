@@ -59,24 +59,26 @@ export default function SortableSimRow({
   return (
     <div ref={setNodeRef} style={style} className={`sim-row${expanded ? ' expanded' : ''}${deathYear ? ' deceased' : ''}`}>
       <div className="sim-row-main">
-        <button
-          ref={setActivatorNodeRef}
-          className="btn-icon drag-handle"
-          {...attributes}
-          {...listeners}
-          title="Drag to reorder"
-          style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.45, flexShrink: 0 }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect y="1" width="14" height="2" rx="1"/><rect y="6" width="14" height="2" rx="1"/><rect y="11" width="14" height="2" rx="1"/></svg>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+          <button
+            ref={setActivatorNodeRef}
+            className="btn-icon drag-handle"
+            {...attributes}
+            {...listeners}
+            title="Drag to reorder"
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.45, flexShrink: 0 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect y="1" width="14" height="2" rx="1"/><rect y="6" width="14" height="2" rx="1"/><rect y="11" width="14" height="2" rx="1"/></svg>
+          </button>
 
-        <button className="btn-icon expand-toggle" onClick={onToggleExpanded} title={expanded ? 'Collapse' : 'Expand'} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, flexShrink: 0 }}>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">{expanded ? <path d="M1 7l4-4 4 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/> : <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>}</svg>
-        </button>
+          <button className="btn-icon expand-toggle" onClick={onToggleExpanded} title={expanded ? 'Collapse' : 'Expand'} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, flexShrink: 0 }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">{expanded ? <path d="M1 7l4-4 4 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/> : <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>}</svg>
+          </button>
 
-        <button className="btn-icon" onClick={onEdit} title="Edit sim" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, flexShrink: 0 }}>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 1.5l2 2L4 11H2v-2L9.5 1.5z"/></svg>
-        </button>
+          <button className="btn-icon" onClick={onEdit} title="Edit sim" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, flexShrink: 0 }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 1.5l2 2L4 11H2v-2L9.5 1.5z"/></svg>
+          </button>
+        </div>
 
         <div className="sim-cell name" title={fullName}>{fullName}</div>
         <div className="sim-cell stage" title={stage}>{stage || '—'}</div>
