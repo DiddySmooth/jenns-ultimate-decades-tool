@@ -1006,40 +1006,35 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       slotStartX += slotW + GAP_UNION_GROUP;
     }
 
-    // Phase 2: update union slots and heartX from the slot-based positions set in Phase 1.
-    // No re-centering needed — Phase 1 already placed wife and children correctly.
+    // Phase 2: center each wife above her actual children (same logic as normal families).
+    // Find child midpoint, move wife to it. Simple.
     for (const uci of unionChildInfos) {
-      const wifePos = uci.partnerId ? positioned.get(uci.partnerId) : undefined;
-      const wifeCenter = wifePos ? wifePos.x + NODE_W / 2 : clampedAnchorX + NODE_W / 2;
-      const heartX = wifeCenter;
-      unionHeartX.set(uci.uid, heartX);
+      if (!uci.partnerId) continue;
 
-      // Compute child band from ACTUAL final child positions
-      const actualChildPositions = uci.childrenSorted
+      const childPositions = uci.childrenSorted
         .map(c => positioned.get(c))
         .filter(Boolean) as { x: number; y: number }[];
-      const childBandLeft = actualChildPositions.length > 0
-        ? Math.min(...actualChildPositions.map(p => p.x))
-        : heartX - uci.totalChildW / 2;
-      const childBandRight = actualChildPositions.length > 0
-        ? Math.max(...actualChildPositions.map(p => p.x + NODE_W))
-        : heartX + uci.totalChildW / 2;
-      // heartX should equal midpoint of child band — enforce it
-      const actualChildMidX = (childBandLeft + childBandRight) / 2;
-      const correctedHeartX = actualChildPositions.length > 0 ? actualChildMidX : heartX;
-      if (uci.partnerId && actualChildPositions.length > 0) {
-        // Re-center wife above actual children
-        const correctedWifeX = correctedHeartX - NODE_W / 2;
-        positioned.set(uci.partnerId, { x: correctedWifeX, y: anchorPos.y });
-        unionHeartX.set(uci.uid, correctedHeartX);
+
+      let heartX: number;
+      if (childPositions.length > 0) {
+        const childLeft = Math.min(...childPositions.map(p => p.x));
+        const childRight = Math.max(...childPositions.map(p => p.x + NODE_W));
+        const childMidX = (childLeft + childRight) / 2;
+        // Move wife so her center is above the child group midpoint
+        positioned.set(uci.partnerId, { x: childMidX - NODE_W / 2, y: anchorPos.y });
+        heartX = childMidX;
+      } else {
+        heartX = (positioned.get(uci.partnerId)?.x ?? clampedAnchorX) + NODE_W / 2;
       }
+
+      unionHeartX.set(uci.uid, heartX);
       unionSlots.set(uci.uid, {
-        left: Math.min(clampedAnchorX, wifePos?.x ?? clampedAnchorX),
-        right: Math.max(clampedAnchorX + NODE_W, (wifePos?.x ?? clampedAnchorX) + NODE_W),
-        heartX: correctedHeartX,
+        left: Math.min(clampedAnchorX, (positioned.get(uci.partnerId)?.x ?? clampedAnchorX)),
+        right: Math.max(clampedAnchorX + NODE_W, (positioned.get(uci.partnerId)?.x ?? clampedAnchorX) + NODE_W),
+        heartX,
         heartY: uci.heartY,
-        childLeft: childBandLeft,
-        childRight: childBandRight,
+        childLeft: childPositions.length > 0 ? Math.min(...childPositions.map(p => p.x)) : heartX - NODE_W / 2,
+        childRight: childPositions.length > 0 ? Math.max(...childPositions.map(p => p.x + NODE_W)) : heartX + NODE_W / 2,
         childBarY: uci.childBarY,
       });
     }
