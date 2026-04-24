@@ -3,6 +3,7 @@ import type { Edge, Node } from 'reactflow';
 const NODE_W = 110; // matches CSS width
 const NODE_H = 200; // matches fixed CSS height
 const GAP_X = 120;  // gap between couples/unrelated sims
+const GAP_SIBLING = 20; // gap between siblings within same family
 const GAP_COUPLE = 40; // gap between spouses
 const GAP_Y = 200;  // extra room for heart + child lines below cards
 const GAP_UNION_GROUP = 42; // visual gutter between adjacent union groups in shared-parent strips
@@ -676,7 +677,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           childrenSorted.forEach((c, i) => {
             const hasKids = (childrenByParent.get(c)?.length ?? 0) > 0;
             totalChildW += hasKids ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W;
-            if (i > 0) totalChildW += GAP_X;
+            if (i > 0) totalChildW += GAP_SIBLING;
           });
 
           // Place children centered under the union midpoint (anchor + wife).
@@ -688,7 +689,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             const childMidX = childX + csw / 2;
             const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
             positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
-            childX += csw + GAP_X;
+            childX += csw + GAP_SIBLING;
           }
           // Now re-center the wife card above her child group midpoint so the
           // drop lines run straight down. Keep her on the same Y row.
@@ -719,7 +720,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         let totalChildW = 0;
         childrenSorted.forEach((c, i) => {
           totalChildW += subtreeWidth.get(c) ?? NODE_W;
-          if (i > 0) totalChildW += GAP_X;
+          if (i > 0) totalChildW += GAP_SIBLING;
         });
 
         let childX = curX + (sw - totalChildW) / 2;
@@ -728,7 +729,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           const childMidX = childX + csw / 2;
           const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
           positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
-          childX += csw + GAP_X;
+          childX += csw + GAP_SIBLING;
         }
       }
 
@@ -944,7 +945,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             ? (subtreeWidth.get(c) ?? NODE_W)
             : NODE_W;
           totalChildW += csw;
-          if (i > 0) totalChildW += GAP_X;
+          if (i > 0) totalChildW += GAP_SIBLING;
         });
 
         // Children pack tightly at exactly totalChildW — no spreading to fill slot width.
@@ -969,7 +970,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           const childMidX = childX + csw / 2;
           const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
           positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
-          childX += csw + GAP_X;
+          childX += csw + GAP_SIBLING;
         }
 
         // Re-center wife above her child group so drop lines run straight down.
