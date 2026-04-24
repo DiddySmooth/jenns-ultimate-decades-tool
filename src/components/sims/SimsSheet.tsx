@@ -205,7 +205,7 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
         <span>Died</span>
         {sheetConfig.showCauseOfDeath && <span>COD</span>}
         {sheetConfig.showTraits && <span>Traits</span>}
-        <span />
+        <span style={{ textAlign: 'center' }}></span>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

@@ -791,7 +791,7 @@ body {
   color: var(--color-text-muted);
   font-size: 0.82rem;
 }
-.sim-actions { display: flex; justify-content: flex-end; gap: 0.35rem; }
+.sim-actions { display: flex; justify-content: center; align-items: center; gap: 0.35rem; }
 .expand-toggle { color: var(--color-text-muted); }
 
 .sim-row-details { padding: 0.6rem 0.85rem 0.85rem; color: var(--color-text-muted); font-size: 0.86rem; border-top: 1px dashed var(--color-border); }
