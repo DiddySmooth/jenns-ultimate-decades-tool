@@ -684,7 +684,13 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           const anchorPos2 = positioned.get(anchorId);
           if (!partnerPos || !anchorPos2) continue;
           const unionInfo = unionInfos.get(member.unionId);
-          const unionChildren = unionInfo?.children ?? [];
+          // Use both explicit birthUnionId children AND parentage-based children
+          const explicitKids = unionInfo?.children ?? [];
+          const parentageKids = (childrenByParent.get(member.id) ?? []).filter(cid => {
+            const parents = childToParentSims.get(cid) ?? new Set();
+            return parents.has(anchorId);
+          });
+          const unionChildren = Array.from(new Set([...explicitKids, ...parentageKids]));
           if (unionChildren.length === 0) continue;
 
           const childrenSorted = [...unionChildren].sort((a, b) => {
