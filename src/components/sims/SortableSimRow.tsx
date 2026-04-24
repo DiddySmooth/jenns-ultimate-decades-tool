@@ -73,6 +73,8 @@ export default function SortableSimRow({
           {expanded ? '▾' : '▸'}
         </button>
 
+        <button className="btn-icon" onClick={onEdit} title="Edit sim" style={{ fontSize: '0.85rem', opacity: 0.7 }}>✏️</button>
+
         <div className="sim-cell name" title={fullName}>{fullName}</div>
         <div className="sim-cell stage" title={stage}>{stage || '—'}</div>
         {sheetConfig.showAge && <div className="sim-cell age" title={ageYears != null ? `${ageYears}` : ''}>{ageYears != null ? `${ageYears}y` : '—'}</div>}
@@ -109,7 +111,7 @@ export default function SortableSimRow({
         )}
 
         <div className="sim-actions">
-          <button className="btn-ghost btn-sm" onClick={onEdit}>Edit</button>
+          <button className="btn-ghost btn-sm" onClick={onEdit} style={{display:'none'}}>Edit</button>
           <button className="btn-ghost btn-sm btn-danger" onClick={onDelete}>Remove</button>
         </div>
       </div>
