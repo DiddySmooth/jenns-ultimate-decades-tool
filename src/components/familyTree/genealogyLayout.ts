@@ -210,17 +210,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const [id, g] of genBySim) gens.set(g, [...(gens.get(g) ?? []), id]);
   const genKeys = Array.from(gens.keys()).sort((a, b) => a - b);
 
-  // DEBUG: log gen assignments and groups
-  if (typeof window !== 'undefined') {
-    console.group('[genealogyLayout] Generation assignments');
-    for (const [id, g] of genBySim) {
-      const node = simNodes.find(n => n.id === id);
-      const name = node ? `${(node.data as any)?.sim?.firstName ?? ''} ${(node.data as any)?.sim?.lastName ?? ''}`.trim() : id;
-      console.log(`gen ${g}: ${name} (${id})`);
-    }
-    console.groupEnd();
-  }
-
   // Sort each generation: group spouses together, ordered by parent position
   const sortedGens = new Map<number, string[]>();
   for (const g of genKeys) {
@@ -492,20 +481,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             );
             if (!hasOwnExclusivePair) {
               memberIds.add(partnerId);
-            } else if (typeof window !== 'undefined') {
-              const getName = (i: string) => { const n = simNodes.find(x => x.id === i); return n ? `${(n.data as any)?.sim?.firstName ?? i}` : i; };
-              console.log(`[cluster] rejected ${getName(partnerId)} from cluster: hasOwnExclusivePair=true, their unions=${JSON.stringify(partnerMemberships)}`);
             }
           }
         }
         const members = Array.from(memberIds);
         const anchorId = getPreferredClusterAnchor(members);
         members.forEach((m) => seen.add(m));
-        // DEBUG
-        if (typeof window !== 'undefined') {
-          const getName = (i: string) => { const n = simNodes.find(x => x.id === i); return n ? `${(n.data as any)?.sim?.firstName ?? i}` : i; };
-          console.log(`[cluster] anchor=${getName(anchorId)} members=[${members.map(getName).join(', ')}] unions=[${Array.from(clusterUnionIds).join(', ')}]`);
-        }
         groups.push({ id: `cluster:${anchorId}`, type: 'cluster', anchorId, memberIds: members, unionIds: Array.from(clusterUnionIds) });
         continue;
       }
@@ -612,16 +593,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const g of genKeys) {
     const groups = buildGroupsForGeneration(sortedGens.get(g)!);
 
-    // DEBUG
-    if (typeof window !== 'undefined') {
-      console.group(`[genealogyLayout] Gen ${g} groups`);
-      for (const grp of groups) {
-        const getName = (id: string) => { const n = simNodes.find(x => x.id === id); return n ? `${(n.data as any)?.sim?.firstName ?? id}` : id; };
-        console.log(`  ${grp.type} [${grp.id}]: members=[${grp.memberIds.map(getName).join(', ')}] width=${groupWidth.get(grp.id) ?? '?'}`);
-      }
-      console.groupEnd();
-    }
-
     let totalGenWidth = 0;
     groups.forEach((group, i) => {
       totalGenWidth += groupWidth.get(group.id) ?? NODE_W;
@@ -719,14 +690,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
             childX += csw + GAP_X;
           }
-          // DEBUG: log positions after top-down cluster placement
-          if (typeof window !== 'undefined') {
-            childrenSorted.forEach(c => {
-              const n = simNodes.find(x => x.id === c);
-              const name = n ? `${(n.data as any)?.sim?.firstName}` : c;
-              console.log(`[topdown-cluster] ${name} x=${positioned.get(c)?.x?.toFixed(0)} csw=${(() => { const hk = (childrenByParent.get(c)?.length ?? 0) > 0; return hk ? (subtreeWidth.get(c) ?? NODE_W) : NODE_W; })()}`);
-            });
-          }
+          // Now re-center the wife card above her child group midpoint so the
           // drop lines run straight down. Keep her on the same Y row.
           const childPositions = childrenSorted
             .map(c => positioned.get(c))
@@ -1147,15 +1111,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Build result
-  // DEBUG: log final gen-2 positions
-  if (typeof window !== 'undefined') {
-    const gen2 = [...genBySim.entries()].filter(([,g]) => g === 2).map(([id]) => id);
-    gen2.forEach(id => {
-      const n = simNodes.find(x => x.id === id);
-      const name = n ? `${(n.data as any)?.sim?.firstName}` : id;
-      console.log(`[final-pos] gen2 ${name} x=${positioned.get(id)?.x?.toFixed(0)} subtreeW=${subtreeWidth.get(id)}`);
-    });
-  }
   const result: Node[] = nodes.map((n) => ({ ...n }));
 
   // Add visual cluster boundary nodes — sized from ACTUAL node positions only,
