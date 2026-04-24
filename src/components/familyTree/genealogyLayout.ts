@@ -1179,7 +1179,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     for (const wifeId of wifeIds) {
       const pos = positioned.get(wifeId);
       if (!pos) continue;
-      if (pos.x < minX) positioned.set(wifeId, { x: minX, y: pos.y });
+      if (pos.x < minX) {
+        positioned.set(wifeId, { x: minX, y: pos.y });
+        // Update heartX for this wife's union to match new position
+        const wifeUid = unionIds.find(uid => unionInfos.get(uid)?.partners.includes(wifeId));
+        if (wifeUid) {
+          const newHeartX = minX + NODE_W / 2;
+          unionHeartX.set(wifeUid, newHeartX);
+          const slot = unionSlots.get(wifeUid);
+          if (slot) slot.heartX = newHeartX;
+        }
+      }
       minX = (positioned.get(wifeId)?.x ?? minX) + NODE_W + GAP_UNION_GROUP;
     }
   }
