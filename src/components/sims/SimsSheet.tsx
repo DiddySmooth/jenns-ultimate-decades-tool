@@ -326,27 +326,20 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
               {/* Avatar */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Avatar</div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', border: `3px solid ${editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888'}`, background: 'var(--color-border)' }}>
-                    {editing.avatarUrl ? <img src={editing.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888', fontWeight: 700 }}>{(editing.firstName?.[0] ?? '?').toUpperCase()}</div>}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'inline-block', padding: '0.5rem 1rem', borderRadius: 8, background: avatarUploading ? 'var(--color-border)' : (editing.sex === 'Female' ? '#e91e8c22' : editing.sex === 'Male' ? '#4a90d922' : '#888122'), color: editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888', border: `1px solid ${editing.sex === 'Female' ? '#e91e8c44' : editing.sex === 'Male' ? '#4a90d944' : '#888244'}`, cursor: avatarUploading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>
-                      {avatarUploading ? 'Uploading…' : '📷 Change Photo'}
-                      <input type="file" accept="image/*" disabled={avatarUploading} style={{ display: 'none' }} onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (!editing.id) return;
-                        try { setAvatarUploading(true); const res = await uploadAvatar(file, editing.id); setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey, avatarCrop: undefined }); } finally { setAvatarUploading(false); }
-                      }} />
-                    </label>
-                    {editing.avatarUrl && (
-                      <div style={{ marginTop: '0.75rem' }}>
-                        <AvatarCropEditor imageUrl={editing.avatarUrl} value={editing.avatarCrop as AvatarCrop | undefined} onChange={(next) => setEditing({ ...editing, avatarCrop: next as AvatarCrop | undefined })} />
-                      </div>
-                    )}
-                    <div className="field-hint" style={{ marginTop: '0.5rem' }}>Crop is saved as metadata (no re-upload).</div>
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <label style={{ display: 'inline-block', padding: '0.5rem 1rem', borderRadius: 8, background: avatarUploading ? 'var(--color-border)' : (editing.sex === 'Female' ? '#e91e8c22' : editing.sex === 'Male' ? '#4a90d922' : '#888122'), color: editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888', border: `1px solid ${editing.sex === 'Female' ? '#e91e8c44' : editing.sex === 'Male' ? '#4a90d944' : '#888244'}`, cursor: avatarUploading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600, alignSelf: 'flex-start' }}>
+                    {avatarUploading ? 'Uploading…' : '📷 Change Photo'}
+                    <input type="file" accept="image/*" disabled={avatarUploading} style={{ display: 'none' }} onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (!editing.id) return;
+                      try { setAvatarUploading(true); const res = await uploadAvatar(file, editing.id); setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey, avatarCrop: undefined }); } finally { setAvatarUploading(false); }
+                    }} />
+                  </label>
+                  {editing.avatarUrl && (
+                    <AvatarCropEditor imageUrl={editing.avatarUrl} value={editing.avatarCrop as AvatarCrop | undefined} onChange={(next) => setEditing({ ...editing, avatarCrop: next as AvatarCrop | undefined })} />
+                  )}
+                  <div className="field-hint">Crop is saved as metadata (no re-upload).</div>
                 </div>
               </div>
 
