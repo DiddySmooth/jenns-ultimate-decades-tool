@@ -1,0 +1,39 @@
+name: Azure Static Web Apps — Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  build_and_deploy_staging:
+    runs-on: ubuntu-latest
+    name: Build and Deploy (Staging)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build frontend
+        run: npm ci && npm run build
+
+      - name: Deploy to Azure Static Web Apps (staging)
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "dist"
+          api_location: "api"
+          output_location: ""
+          skip_app_build: true
+          deployment_environment: staging
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
