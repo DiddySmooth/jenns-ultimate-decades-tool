@@ -35,15 +35,15 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
 
   let path: string;
   if (multiUnion) {
-    // For multi-union: only draw from the WIFE (target) down to the heart.
-    // The anchor (source) gets a short vertical stub only — avoids a giant
-    // horizontal bar spanning the whole cluster.
+    // Multi-union cluster: NO horizontal bar between partners.
+    // Each partner just drops straight down to heartY.
+    // Heart icon at iconMidX (between anchor and wife) indicates the pairing.
+    // This avoids the single long horizontal bar spanning the whole cluster.
     path = `
       M ${sourceX} ${sourceY}
       L ${sourceX} ${bottomY}
       M ${targetX} ${targetY}
       L ${targetX} ${bottomY}
-      L ${iconMidX} ${bottomY}
     `;
   } else {
     // Standard couple: symmetric bracket meeting at heart center.
