@@ -969,19 +969,20 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           if (i > 0) totalChildW += GAP_X;
         });
 
-        const childBandWidth = Math.max(totalChildW, unionSlotWidth);
-        const childBandLeft = nextSlotStart + (unionSlotWidth - childBandWidth) / 2;
-        const childBandRight = childBandLeft + childBandWidth;
+        // Children pack tightly at exactly totalChildW — no spreading to fill slot width.
+        // Center them under the wife's heart (heartX = wife center).
+        const childBandLeft = heartX - totalChildW / 2;
+        const childBandRight = childBandLeft + totalChildW;
         unionSlots.set(layout.uid, {
-          left: Math.min(anchorX, partnerX),
-          right: Math.max(anchorX + NODE_W, partnerX + NODE_W),
+          left: Math.min(clampedAnchorX, partnerX),
+          right: Math.max(clampedAnchorX + NODE_W, partnerX + NODE_W),
           heartX,
           heartY,
           childLeft: childBandLeft,
           childRight: childBandRight,
           childBarY,
         });
-        let childX = childBandLeft + Math.max(0, (childBandWidth - totalChildW) / 2);
+        let childX = childBandLeft;
         for (const c of childrenSorted) {
           const childDescendants2 = childrenByParent.get(c);
           const csw = (childDescendants2 && childDescendants2.length > 0)
