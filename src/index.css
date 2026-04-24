@@ -742,7 +742,7 @@ body {
   z-index: 5;
 }
 
-.sims-list.rows { display: flex; flex-direction: column; }
+.sims-list.rows { display: flex; flex-direction: column; min-width: max-content; }
 .sim-row {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);

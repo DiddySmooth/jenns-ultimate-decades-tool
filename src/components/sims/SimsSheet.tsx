@@ -189,6 +189,7 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
         </div>
       </div>
 
+      <div style={{ overflowX: 'auto' }}>
       <div className="sim-table-header">
         <span style={{ textAlign: 'center', letterSpacing: '0.04em' }}>Actions</span>
         <span>Name</span>
@@ -230,6 +231,7 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
           </div>
         </SortableContext>
       </DndContext>
+      </div>
 
       {sims.length === 0 && (
         <p className="empty-state">No sims yet. Add your founder to get started.</p>
