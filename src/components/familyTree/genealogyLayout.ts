@@ -1009,6 +1009,21 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
       nextSlotStart += unionSlotWidth + GAP_UNION_GROUP;
     }
+
+    // After all wives are re-centered above their children, enforce minimum
+    // spacing between adjacent wives so they don't overlap each other.
+    const wifeIds = unionStripLayouts
+      .map(l => l.info?.partners.find(p => p !== anchorId && positioned.has(p)))
+      .filter((id): id is string => !!id);
+    wifeIds.sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+    // Enforce anchor is to the left of all wives
+    let minX = clampedAnchorX + NODE_W + GAP_COUPLE;
+    for (const wifeId of wifeIds) {
+      const pos = positioned.get(wifeId);
+      if (!pos) continue;
+      if (pos.x < minX) positioned.set(wifeId, { x: minX, y: pos.y });
+      minX = (positioned.get(wifeId)?.x ?? minX) + NODE_W + GAP_UNION_GROUP;
+    }
   }
 
   // Add a minimum gutter between neighboring union child bands in shared-parent strips.
