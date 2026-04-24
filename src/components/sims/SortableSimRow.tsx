@@ -65,15 +65,16 @@ export default function SortableSimRow({
           {...attributes}
           {...listeners}
           title="Drag to reorder"
+          style={{ fontSize: '1rem', opacity: 0.5 }}
         >
           ≡
         </button>
 
-        <button className="btn-icon expand-toggle" onClick={onToggleExpanded} title={expanded ? 'Collapse' : 'Expand'}>
+        <button className="btn-icon expand-toggle" onClick={onToggleExpanded} title={expanded ? 'Collapse' : 'Expand'} style={{ fontSize: '0.7rem', opacity: 0.6 }}>
           {expanded ? '▾' : '▸'}
         </button>
 
-        <button className="btn-icon" onClick={onEdit} title="Edit sim" style={{ fontSize: '0.85rem', opacity: 0.7 }}>✏️</button>
+        <button className="btn-icon" onClick={onEdit} title="Edit sim" style={{ fontSize: '0.9rem', opacity: 0.65 }}>✏️</button>
 
         <div className="sim-cell name" title={fullName}>{fullName}</div>
         <div className="sim-cell stage" title={stage}>{stage || '—'}</div>
@@ -111,8 +112,7 @@ export default function SortableSimRow({
         )}
 
         <div className="sim-actions">
-          <button className="btn-ghost btn-sm" onClick={onEdit} style={{display:'none'}}>Edit</button>
-          <button className="btn-ghost btn-sm btn-danger" onClick={onDelete}>Remove</button>
+          <button className="btn-icon" onClick={onDelete} title="Remove sim" style={{ fontSize: '0.9rem', opacity: 0.65, color: 'var(--color-danger, #c0392b)' }}>🗑️</button>
         </div>
       </div>
 
