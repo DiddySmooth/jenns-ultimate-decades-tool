@@ -12,25 +12,41 @@ type MarriageData = {
 export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps<MarriageData>) {
   const leftX = Math.min(sourceX, targetX);
   const rightX = Math.max(sourceX, targetX);
-  const midX = (leftX + rightX) / 2;
 
   const primary = data?.primary !== false;
   const status = data?.status ?? 'active';
   const multiUnion = data?.multiUnion === true;
 
-  // Multi-union strips read more clearly when they share one horizontal spouse band
-  // and each heart sits a bit closer to its specific spouse instead of dead-center.
   const bottomY = data?.heartY ?? (Math.max(sourceY, targetY) + 20);
-  const iconMidX = data?.heartX ?? (multiUnion ? leftX + (rightX - leftX) * 0.7 : midX);
 
-  const path = `
-    M ${sourceX} ${sourceY}
-    L ${sourceX} ${bottomY}
-    L ${iconMidX} ${bottomY}
-    M ${targetX} ${targetY}
-    L ${targetX} ${bottomY}
-    L ${iconMidX} ${bottomY}
-  `;
+  // For multi-union clusters: draw a clean bracket between anchor and wife.
+  // Each union gets its own individual line — no shared horizontal bar.
+  // Heart sits at the explicit heartX provided by the layout.
+  const iconMidX = data?.heartX ?? ((leftX + rightX) / 2);
+
+  let path: string;
+  if (multiUnion) {
+    // Simple bracket: each partner drops down to bottomY, meets at heart midpoint.
+    // This keeps each union visually independent instead of merging into one long bar.
+    path = `
+      M ${sourceX} ${sourceY}
+      L ${sourceX} ${bottomY}
+      M ${targetX} ${targetY}
+      L ${targetX} ${bottomY}
+      M ${Math.min(sourceX, targetX)} ${bottomY}
+      L ${Math.max(sourceX, targetX)} ${bottomY}
+    `;
+  } else {
+    // Standard couple: symmetric bracket meeting at heart center.
+    path = `
+      M ${sourceX} ${sourceY}
+      L ${sourceX} ${bottomY}
+      L ${iconMidX} ${bottomY}
+      M ${targetX} ${targetY}
+      L ${targetX} ${bottomY}
+      L ${iconMidX} ${bottomY}
+    `;
+  }
 
   const stroke = status === 'divorce'
     ? 'rgba(176, 62, 94, 0.7)'
