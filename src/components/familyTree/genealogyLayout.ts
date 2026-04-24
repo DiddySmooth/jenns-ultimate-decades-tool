@@ -915,6 +915,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (partnerId) {
         const partnerPos = positioned.get(partnerId);
         if (partnerPos) positioned.set(partnerId, { x: partnerX, y: anchorPos.y });
+        nextPartnerX += NODE_W + GAP_UNION_GROUP;
       }
 
       const unionChildren = info.children ?? [];
