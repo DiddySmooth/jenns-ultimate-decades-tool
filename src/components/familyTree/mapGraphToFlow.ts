@@ -100,10 +100,18 @@ export function mapGraphToFlow(
     unionOrderBySim.set(u.partnerBId, idxB + 1);
   }
 
+  // multiUnion = true if EITHER partner is in more than 1 union total
+  const multiUnionSims = new Set<string>();
+  for (const [simId, count] of unionOrderBySim) {
+    // unionOrderBySim stores both per-union keys (simId:unionId) and total counts (simId)
+    // Total count key is just the simId without colon-union suffix
+    if (!simId.includes(':') && count > 1) multiUnionSims.add(simId);
+  }
+
   for (const u of marriageCandidates) {
     if (!u.partnerAId || !u.partnerBId) continue;
     const primary = primaryUnionIds.has(String(u.id));
-    const multiUnion = (unionOrderBySim.get(u.partnerAId) ?? 0) > 1 || (unionOrderBySim.get(u.partnerBId) ?? 0) > 1;
+    const multiUnion = multiUnionSims.has(u.partnerAId) || multiUnionSims.has(u.partnerBId);
     const status = u.endReason === 'divorce' ? 'divorce' : u.endReason === 'death' ? 'death' : (u.endYear != null ? 'ended' : 'active');
     const secondaryIndex = primary ? 0 : Math.max(
       unionOrderBySim.get(`${u.partnerAId}:${u.id}`) ?? 0,

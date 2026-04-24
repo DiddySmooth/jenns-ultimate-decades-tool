@@ -36,14 +36,13 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   let path: string;
   if (multiUnion) {
     // Multi-union: both partners drop to heartY and connect at iconMidX.
-    // This draws a short bracket through the heart without spanning the full cluster width.
+    // Short bracket through each heart — no full-width horizontal bar.
     path = `
       M ${sourceX} ${sourceY}
       L ${sourceX} ${bottomY}
       L ${iconMidX} ${bottomY}
       M ${targetX} ${targetY}
       L ${targetX} ${bottomY}
-      L ${iconMidX} ${bottomY}
     `;
   } else {
     // Standard couple: symmetric bracket meeting at heart center.
