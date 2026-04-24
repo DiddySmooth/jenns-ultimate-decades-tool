@@ -261,306 +261,226 @@ export default function SimsSheet({ sims, unions, config, currentDay, userId, sa
       )}
 
       {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{isNew ? 'Add Sim' : 'Edit Sim'}</h3>
+        <>
+          {/* Backdrop */}
+          <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.18)', zIndex: 199, backdropFilter: 'blur(2px)' }} />
 
-            <div className="field-group">
-              <label>First Name</label>
-              <input type="text" value={editing.firstName} onChange={(e) => setEditing({ ...editing, firstName: e.target.value })} />
-            </div>
-            <div className="field-group">
-              <label>Last Name</label>
-              <input type="text" value={editing.lastName} onChange={(e) => setEditing({ ...editing, lastName: e.target.value })} />
-            </div>
-            <div className="field-group">
-              <label>Maiden Name <span style={{ fontWeight: 400, textTransform: 'none', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>(optional)</span></label>
-              <input type="text" value={editing.maidenName ?? ''} placeholder="Birth surname" onChange={(e) => setEditing({ ...editing, maidenName: e.target.value || undefined })} />
-              {editing.maidenName && (
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontWeight: 400, textTransform: 'none', fontSize: '0.85rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={editing.showMaidenName ?? false} onChange={(e) => setEditing({ ...editing, showMaidenName: e.target.checked })} />
-                  Show on family tree as "{editing.firstName || 'First'} ({editing.maidenName}) {editing.lastName || 'Last'}"
-                </label>
-              )}
-            </div>
-            <div className="field-group">
-              <label>Sex</label>
-              <select value={editing.sex ?? 'Unknown'} onChange={(e) => setEditing({ ...editing, sex: e.target.value as SimSex })}>
-                {(['Female','Male','Intersex','Non-binary','Unknown'] as SimSex[]).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-            <div className="field-group">
-              <label>Avatar</label>
-              <div className="avatar-upload-row">
-                <div className="avatar-preview">
-                  {editing.avatarUrl ? <img src={editing.avatarUrl} alt="Avatar" /> : <div className="avatar-preview-fallback">—</div>}
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={avatarUploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (!editing.id) return;
-                    try {
-                      setAvatarUploading(true);
-                      const res = await uploadAvatar(file, editing.id);
-                      // New image: clear crop so it starts centered
-                      setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey, avatarCrop: undefined });
-                    } finally {
-                      setAvatarUploading(false);
-                    }
-                  }}
-                />
-              </div>
+          {/* Slide-in panel */}
+          <div style={{
+            position: 'fixed', right: 0, top: 0, height: '100vh', width: 520,
+            background: 'var(--color-surface)', borderLeft: '1px solid var(--color-border)',
+            zIndex: 200, boxShadow: '-16px 0 48px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }} onClick={(e) => e.stopPropagation()}>
 
-              <div style={{ marginTop: '0.5rem' }}>
-                <AvatarCropEditor
-                  imageUrl={editing.avatarUrl}
-                  value={editing.avatarCrop as AvatarCrop | undefined}
-                  onChange={(next) => setEditing({ ...editing, avatarCrop: next as AvatarCrop | undefined })}
-                />
-              </div>
-
-              <span className="field-hint">Crop is saved as metadata (no re-upload).</span>
-            </div>
-
-            <div className="field-group">
-              <label>Generation</label>
-              <input type="number" min={1} value={editing.generation} onChange={(e) => setEditing({ ...editing, generation: Number(e.target.value) })} />
-            </div>
-            <div className="field-group">
-              <label>Birth Year</label>
-              <input
-                type="number"
-                placeholder="e.g. 1890"
-                value={editing.birthYear ?? ''}
-                onChange={(e) => setEditing({ ...editing, birthYear: e.target.value ? Number(e.target.value) : undefined })}
-              />
-            </div>
-            <div className="field-group">
-              <label>Birth Day of Year</label>
-              <input
-                type="number"
-                min={1}
-                max={config.daysPerYear}
-                placeholder={`1-${config.daysPerYear}`}
-                value={editing.birthDayOfYear ?? ''}
-                onChange={(e) => setEditing({ ...editing, birthDayOfYear: e.target.value ? Number(e.target.value) : undefined })}
-              />
-              <span className="field-hint">Used for accurate life stage aging. Only the birth year is shown in the main sheet.</span>
-            </div>
-
-            <div className="field-group">
-              <label>Place of Birth</label>
-              <input
-                type="text"
-                value={editing.placeOfBirth ?? ''}
-                onChange={(e) => setEditing({ ...editing, placeOfBirth: e.target.value || undefined })}
-              />
-            </div>
-
-            <div className="field-group">
-              <label>Life Stage (auto)</label>
-              <input
-                type="text"
-                readOnly
-                value={computeLifeStage(editing, config, currentDay) || ''}
-              />
-              <span className="field-hint">Computed from total sim days lived, not just the year number.</span>
-            </div>
-            <div className="field-group">
-              <label>Death Year</label>
-              <input
-                type="number"
-                placeholder="Leave blank if alive"
-                value={editing.deathYear ?? ''}
-                onChange={(e) => setEditing({ ...editing, deathYear: e.target.value ? Number(e.target.value) : undefined })}
-              />
-            </div>
-            <div className="field-group">
-              <label>Death Day of Year</label>
-              <input
-                type="number"
-                min={1}
-                max={config.daysPerYear}
-                placeholder={`1-${config.daysPerYear}`}
-                value={editing.deathDayOfYear ?? ''}
-                onChange={(e) => setEditing({ ...editing, deathDayOfYear: e.target.value ? Number(e.target.value) : undefined })}
-              />
-              <span className="field-hint">For dead sims, life stage is based on the exact sim day they died.</span>
-            </div>
-            <div className="field-group">
-              <label>Cause of Death</label>
-              <input type="text" value={editing.causeOfDeath ?? ''} onChange={(e) => setEditing({ ...editing, causeOfDeath: e.target.value || undefined })} />
-            </div>
-
-            <div className="field-group">
-              <label>Father</label>
-              <select value={editing.fatherId ?? ''} onChange={(e) => setEditing({ ...editing, fatherId: e.target.value || undefined })}>
-                <option value="">—</option>
-                {simOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-              </select>
-            </div>
-
-            <div className="field-group">
-              <label>Mother</label>
-              <select value={editing.motherId ?? ''} onChange={(e) => setEditing({ ...editing, motherId: e.target.value || undefined })}>
-                <option value="">—</option>
-                {simOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-              </select>
-            </div>
-
-            <div className="field-group">
-              <label>Marriage / Partnership History</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {unionsForSim(editing.id).map((u) => {
-                  const partnerId = u.partnerAId === editing.id ? u.partnerBId : u.partnerAId;
-                  return (
-                    <div key={u.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.75rem', display: 'grid', gap: '0.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <strong style={{ fontSize: '0.9rem' }}>{u.endYear == null ? 'Active Marriage / Partnership' : 'Past Marriage / Partnership'}</strong>
-                        <span className="field-hint">{formatUnionLabel(u, editing.id)}</span>
-                      </div>
-                      <div className="field-group" style={{ margin: 0 }}>
-                        <label>Partner</label>
-                        <select
-                          value={partnerId ?? ''}
-                          onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? {
-                            ...x,
-                            partnerAId: editing.id,
-                            partnerBId: e.target.value || undefined,
-                          } : x))}
-                        >
-                          <option value="">—</option>
-                          {simOptions.filter((o) => o.id !== editing.id).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-                        </select>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem' }}>
-                        <div className="field-group" style={{ margin: 0 }}>
-                          <label>Start Year</label>
-                          <input type="number" value={u.startYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, startYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
-                        </div>
-                        <div className="field-group" style={{ margin: 0 }}>
-                          <label>Start Day</label>
-                          <input type="number" min={1} max={config.daysPerYear} value={u.startDayOfYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, startDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
-                        </div>
-                        <div className="field-group" style={{ margin: 0 }}>
-                          <label>End Year</label>
-                          <input type="number" value={u.endYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
-                        </div>
-                        <div className="field-group" style={{ margin: 0 }}>
-                          <label>End Day</label>
-                          <input type="number" min={1} max={config.daysPerYear} value={u.endDayOfYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x))} />
-                        </div>
-                      </div>
-                      <div className="field-group" style={{ margin: 0 }}>
-                        <label>End Reason</label>
-                        <select value={u.endReason ?? 'unknown'} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endReason: e.target.value as UnionNode['endReason'] } : x))}>
-                          <option value="unknown">Unknown</option>
-                          <option value="divorce">Divorce</option>
-                          <option value="death">Death</option>
-                        </select>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <button className="btn-ghost btn-sm btn-danger" onClick={() => onUnionsChange(unions.filter((x) => x.id !== u.id))}>Remove relationship</button>
-                      </div>
+            {/* Header */}
+            {(() => {
+              const sexColor = editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888';
+              const sexBg = editing.sex === 'Female' ? 'rgba(249,168,201,0.13)' : editing.sex === 'Male' ? 'rgba(147,197,253,0.13)' : 'rgba(128,128,128,0.08)';
+              const avatarRadius = '50%';
+              return (
+                <div style={{ background: sexBg, padding: '1rem 1rem 0.75rem', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ width: 60, height: 60, borderRadius: avatarRadius, overflow: 'hidden', border: `3px solid ${sexColor}`, flexShrink: 0, background: 'var(--color-border)' }}>
+                      {editing.avatarUrl ? <img src={editing.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: sexColor, fontWeight: 700 }}>{(editing.firstName?.[0] ?? '?').toUpperCase()}</div>}
                     </div>
-                  );
-                })}
-                <button
-                  className="btn-secondary btn-sm"
-                  onClick={() => onUnionsChange([
-                    ...unions,
-                    { id: nanoid(), partnerAId: editing.id, partnerBId: undefined, startYear: undefined, startDayOfYear: undefined, endYear: undefined, endDayOfYear: undefined, endReason: 'unknown' },
-                  ])}
-                >
-                  + Add Relationship
-                </button>
-                <span className="field-hint">Supports remarriage, widowhood, and multiple partners. Family tree rendering still uses one primary/current relationship for layout stability.</span>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text)' }}>{isNew ? 'Add Sim' : getFullName(editing)}</h3>
+                      <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{editing.birthYear}{editing.deathYear ? ` – ${editing.deathYear}` : ''}</div>
+                    </div>
+
+                    <button onClick={() => setEditing(null)} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--color-text-muted)', padding: '0 0.25rem', lineHeight: 1, flexShrink: 0 }}>×</button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1rem' }}>
+
+              {/* Identity */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Identity</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="field-group"><label>First Name</label><input value={editing.firstName} onChange={(e) => setEditing({ ...editing, firstName: e.target.value })} /></div>
+                  <div className="field-group"><label>Last Name</label><input value={editing.lastName} onChange={(e) => setEditing({ ...editing, lastName: e.target.value })} /></div>
+                </div>
+                <div className="field-group"><label>Maiden Name <span style={{ fontWeight: 400, textTransform: 'none', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>(optional)</span></label>
+                  <input type="text" value={editing.maidenName ?? ''} placeholder="Birth surname" onChange={(e) => setEditing({ ...editing, maidenName: e.target.value || undefined })} />
+                  {editing.maidenName && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontWeight: 400, textTransform: 'none', fontSize: '0.85rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={editing.showMaidenName ?? false} onChange={(e) => setEditing({ ...editing, showMaidenName: e.target.checked })} />
+                      Show on family tree as "{editing.firstName || 'First'} ({editing.maidenName}) {editing.lastName || 'Last'}"
+                    </label>
+                  )}
+                </div>
+                <div className="field-group"><label>Sex</label>
+                  <select value={editing.sex ?? 'Unknown'} onChange={(e) => setEditing({ ...editing, sex: e.target.value as SimSex })}>
+                    {(['Female','Male','Intersex','Non-binary','Unknown'] as SimSex[]).map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-            <div className="field-group">
-              <label>Notes</label>
-              <textarea value={editing.notes ?? ''} onChange={(e) => setEditing({ ...editing, notes: e.target.value || undefined })} rows={3} />
+
+              {/* Avatar */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Avatar</div>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', border: `3px solid ${editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888'}`, background: 'var(--color-border)' }}>
+                    {editing.avatarUrl ? <img src={editing.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888', fontWeight: 700 }}>{(editing.firstName?.[0] ?? '?').toUpperCase()}</div>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'inline-block', padding: '0.5rem 1rem', borderRadius: 8, background: avatarUploading ? 'var(--color-border)' : (editing.sex === 'Female' ? '#e91e8c22' : editing.sex === 'Male' ? '#4a90d922' : '#888122'), color: editing.sex === 'Female' ? '#e91e8c' : editing.sex === 'Male' ? '#4a90d9' : '#888', border: `1px solid ${editing.sex === 'Female' ? '#e91e8c44' : editing.sex === 'Male' ? '#4a90d944' : '#888244'}`, cursor: avatarUploading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>
+                      {avatarUploading ? 'Uploading…' : '📷 Change Photo'}
+                      <input type="file" accept="image/*" disabled={avatarUploading} style={{ display: 'none' }} onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (!editing.id) return;
+                        try { setAvatarUploading(true); const res = await uploadAvatar(file, editing.id); setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey, avatarCrop: undefined }); } finally { setAvatarUploading(false); }
+                      }} />
+                    </label>
+                    {editing.avatarUrl && (
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <AvatarCropEditor imageUrl={editing.avatarUrl} value={editing.avatarCrop as AvatarCrop | undefined} onChange={(next) => setEditing({ ...editing, avatarCrop: next as AvatarCrop | undefined })} />
+                      </div>
+                    )}
+                    <div className="field-hint" style={{ marginTop: '0.5rem' }}>Crop is saved as metadata (no re-upload).</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Birth & Life */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Birth & Life</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="field-group"><label>Birth Year</label><input type="number" placeholder="e.g. 1890" value={editing.birthYear ?? ''} onChange={(e) => setEditing({ ...editing, birthYear: e.target.value ? Number(e.target.value) : undefined })} /></div>
+                  <div className="field-group"><label>Birth Day of Year</label><input type="number" min={1} max={config.daysPerYear} placeholder={`1-${config.daysPerYear}`} value={editing.birthDayOfYear ?? ''} onChange={(e) => setEditing({ ...editing, birthDayOfYear: e.target.value ? Number(e.target.value) : undefined })} /></div>
+                </div>
+                <div className="field-group"><label>Place of Birth</label><input type="text" value={editing.placeOfBirth ?? ''} onChange={(e) => setEditing({ ...editing, placeOfBirth: e.target.value || undefined })} /></div>
+                <div className="field-group"><label>Generation</label><input type="number" min={1} value={editing.generation} onChange={(e) => setEditing({ ...editing, generation: Number(e.target.value) })} /></div>
+                <div className="field-group"><label>Life Stage (auto)</label><input type="text" readOnly value={computeLifeStage(editing, config, currentDay) || ''} /><span className="field-hint">Computed from total sim days lived, not just the year number.</span></div>
+              </div>
+
+              {/* Death */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Death</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="field-group"><label>Death Year</label><input type="number" placeholder="Leave blank if alive" value={editing.deathYear ?? ''} onChange={(e) => setEditing({ ...editing, deathYear: e.target.value ? Number(e.target.value) : undefined })} /></div>
+                  <div className="field-group"><label>Death Day of Year</label><input type="number" min={1} max={config.daysPerYear} placeholder={`1-${config.daysPerYear}`} value={editing.deathDayOfYear ?? ''} onChange={(e) => setEditing({ ...editing, deathDayOfYear: e.target.value ? Number(e.target.value) : undefined })} /></div>
+                </div>
+                <div className="field-group"><label>Cause of Death</label><input type="text" value={editing.causeOfDeath ?? ''} onChange={(e) => setEditing({ ...editing, causeOfDeath: e.target.value || undefined })} /></div>
+              </div>
+
+              {/* Traits */}
+              {sheetConfig.showTraits && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Traits</div>
+                  <div className="field-group">
+                    <div className="traits-row">
+                      <select value="" onChange={(e) => {
+                        const val = e.target.value;
+                        if (!val) return;
+                        if (val === '__custom__') { setTimeout(() => document.getElementById('customTraitInput')?.focus(), 50); (e.target as HTMLSelectElement).value = ''; return; }
+                        const next = Array.from(new Set([...(editing.traits || []), val])); setEditing({ ...editing, traits: next }); (e.target as HTMLSelectElement).value = '';
+                      }}>
+                        <option value="">Add a trait...</option>
+                        <optgroup label="General (Child+)">{GENERAL_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}</optgroup>
+                        <optgroup label="Toddler Only">{TODDLER_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}</optgroup>
+                        <optgroup label="Infant Only">{INFANT_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}</optgroup>
+                        <optgroup label="Other"><option value="__custom__">✏️ Custom trait...</option></optgroup>
+                      </select>
+                    </div>
+                    <div className="traits-custom-row" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                      <input id="customTraitInput" type="text" placeholder="Type a custom trait and press Add" value={customTraitInput} onChange={(e) => setCustomTraitInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const v = customTraitInput.trim(); if (!v) return; setEditing({ ...editing, traits: Array.from(new Set([...(editing.traits || []), v])) }); setCustomTraitInput(''); } }} style={{ flex: 1, padding: '0.4rem 0.6rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.875rem' }} />
+                      <button className="btn-secondary btn-sm" onClick={() => { const v = customTraitInput.trim(); if (!v) return; setEditing({ ...editing, traits: Array.from(new Set([...(editing.traits || []), v])) }); setCustomTraitInput(''); }}>Add</button>
+                    </div>
+                    <div className="traits-list">{(editing.traits || []).map((t) => (
+                      <span key={t} className="cell-tag"><span className="cell-tag-text">{t}</span><button className="cell-tag-remove" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditing({ ...editing, traits: (editing.traits || []).filter(x => x !== t) }); }} aria-label={`Remove trait ${t}`}>×</button></span>
+                    ))}
+                      <div className="field-hint" style={{ marginTop: '0.4rem' }}>Toddler-only and Infant-only traits are automatically lost when aging up</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {sheetConfig.showNotes && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Notes</div>
+                  <div className="field-group"><textarea value={editing.notes ?? ''} onChange={(e) => setEditing({ ...editing, notes: e.target.value || undefined })} style={{ minHeight: 120 }} /></div>
+                </div>
+              )}
+
+              {/* Relationships */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Relationships</div>
+                <div className="field-group"><label>Father</label><select value={editing.fatherId ?? ''} onChange={(e) => setEditing({ ...editing, fatherId: e.target.value || undefined })}><option value="">—</option>{simOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></div>
+                <div className="field-group"><label>Mother</label><select value={editing.motherId ?? ''} onChange={(e) => setEditing({ ...editing, motherId: e.target.value || undefined })}><option value="">—</option>{simOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></div>
+                <div className="field-group"><label>Spouse</label><select value={editing.spouseId ?? ''} onChange={(e) => setEditing({ ...editing, spouseId: e.target.value || undefined })}><option value="">—</option>{simOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></div>
+                <div className="field-group"><label>Married Year</label><input type="number" value={editing.marriageYear ?? ''} onChange={(e) => setEditing({ ...editing, marriageYear: e.target.value ? Number(e.target.value) : undefined })} /></div>
+
+                <div className="field-hint">Marriage history is managed below; this field mirrors the primary/current marriage year.</div>
+
+                <div style={{ marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {unionsForSim(editing.id).map((u) => {
+                      const partnerId = u.partnerAId === editing.id ? u.partnerBId : u.partnerAId;
+                      return (
+                        <div key={u.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.75rem', display: 'grid', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <strong style={{ fontSize: '0.9rem' }}>{u.endYear == null ? 'Active Marriage / Partnership' : 'Past Marriage / Partnership'}</strong>
+                            <span className="field-hint">{formatUnionLabel(u, editing.id)}</span>
+                          </div>
+                          <div className="field-group" style={{ margin: 0 }}>
+                            <label>Partner</label>
+                            <select value={partnerId ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? {
+                              ...x,
+                              partnerAId: editing.id,
+                              partnerBId: e.target.value || undefined,
+                            } : x))}>
+                              <option value="">—</option>
+                              {simOptions.filter((o) => o.id !== editing.id).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                            </select>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem' }}>
+                            <div className="field-group" style={{ margin: 0 }}><label>Start Year</label><input type="number" value={u.startYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, startYear: e.target.value ? Number(e.target.value) : undefined } : x))} /></div>
+                            <div className="field-group" style={{ margin: 0 }}><label>Start Day</label><input type="number" min={1} max={config.daysPerYear} value={u.startDayOfYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, startDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x))} /></div>
+                            <div className="field-group" style={{ margin: 0 }}><label>End Year</label><input type="number" value={u.endYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endYear: e.target.value ? Number(e.target.value) : undefined } : x))} /></div>
+                            <div className="field-group" style={{ margin: 0 }}><label>End Day</label><input type="number" min={1} max={config.daysPerYear} value={u.endDayOfYear ?? ''} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endDayOfYear: e.target.value ? Number(e.target.value) : undefined } : x))} /></div>
+                          </div>
+                          <div className="field-group" style={{ margin: 0 }}>
+                            <label>End Reason</label>
+                            <select value={u.endReason ?? 'unknown'} onChange={(e) => onUnionsChange(unions.map((x) => x.id === u.id ? { ...x, endReason: e.target.value as UnionNode['endReason'] } : x))}>
+                              <option value="unknown">Unknown</option>
+                              <option value="divorce">Divorce</option>
+                              <option value="death">Death</option>
+                            </select>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button className="btn-ghost btn-sm btn-danger" onClick={() => onUnionsChange(unions.filter((x) => x.id !== u.id))}>Remove relationship</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <button className="btn-secondary btn-sm" onClick={() => onUnionsChange([...unions, { id: nanoid(), partnerAId: editing.id, partnerBId: undefined, startYear: undefined, startDayOfYear: undefined, endYear: undefined, endDayOfYear: undefined, endReason: 'unknown' }])}>+ Add Relationship</button>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            <div className="field-group">
-              <label>Traits</label>
-              <div className="traits-row">
-                <select value="" onChange={(e) => {
-                  const val = e.target.value;
-                  if (!val) return;
-                  if (val === '__custom__') {
-                    // Focus the custom input
-                    setTimeout(() => document.getElementById('customTraitInput')?.focus(), 50);
-                    (e.target as HTMLSelectElement).value = '';
-                    return;
-                  }
-                  const next = Array.from(new Set([...(editing.traits || []), val]));
-                  setEditing({ ...editing, traits: next });
-                  (e.target as HTMLSelectElement).value = '';
-                }}>
-                  <option value="">Add a trait...</option>
-                  <optgroup label="General (Child+)">
-                    {GENERAL_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </optgroup>
-                  <optgroup label="Toddler Only">
-                    {TODDLER_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </optgroup>
-                  <optgroup label="Infant Only">
-                    {INFANT_TRAITS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </optgroup>
-                  <optgroup label="Other">
-                    <option value="__custom__">✏️ Custom trait...</option>
-                  </optgroup>
-                </select>
-              </div>
-              <div className="traits-custom-row" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
-                <input
-                  id="customTraitInput"
-                  type="text"
-                  placeholder="Type a custom trait and press Add"
-                  value={customTraitInput}
-                  onChange={(e) => setCustomTraitInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const v = customTraitInput.trim();
-                      if (!v) return;
-                      setEditing({ ...editing, traits: Array.from(new Set([...(editing.traits || []), v])) });
-                      setCustomTraitInput('');
-                    }
-                  }}
-                  style={{ flex: 1, padding: '0.4rem 0.6rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.875rem' }}
-                />
-                <button className="btn-secondary btn-sm" onClick={() => {
-                  const v = customTraitInput.trim();
-                  if (!v) return;
-                  setEditing({ ...editing, traits: Array.from(new Set([...(editing.traits || []), v])) });
-                  setCustomTraitInput('');
-                }}>Add</button>
-              </div>
-              <div className="traits-list">
-                {(editing.traits || []).map((t) => (
-                  <span key={t} className="cell-tag">
-                    <span className="cell-tag-text">{t}</span>
-                    <button className="cell-tag-remove" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditing({ ...editing, traits: (editing.traits || []).filter(x => x !== t) }); }} aria-label={`Remove trait ${t}`}>×</button>
-                  </span>
-                ))}
-                <div className="field-hint" style={{ marginTop: '0.4rem' }}>Toddler-only and Infant-only traits are automatically lost when aging up</div>
-              </div>
-            </div>
-
-            <div className="modal-actions">
+            {/* Footer */}
+            <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexShrink: 0 }}>
               <button className="btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn-primary" onClick={save}>Save</button>
+              <div style={{ marginLeft: 'auto' }}>
+                <button className="btn-primary" onClick={save}>Save</button>
+              </div>
             </div>
+
           </div>
-        </div>
+        </>
       )}
     </div>
   );
