@@ -552,36 +552,27 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
     for (const group of groups) {
       const allChildren = getChildrenForLayoutGroup(group);
-      const minWidth = group.type === 'cluster'
-        ? (() => {
-            // Cluster width = compact visible strip ONLY.
-            // Child bands live below and get their own horizontal space —
-            // they must NOT inflate the cluster's top-row footprint or it
-            // will swallow neighboring families.
-            const stripWidth = NODE_W + group.unionIds.reduce((sum, _uid, idx) =>
-              sum + NODE_W + GAP_COUPLE + (idx > 0 ? GAP_UNION_GROUP : 0), 0);
-            return stripWidth + 24;
-          })()
+      const stripWidth = group.type === 'cluster'
+        ? NODE_W + group.unionIds.reduce((sum, _uid, idx) =>
+            sum + NODE_W + GAP_COUPLE + (idx > 0 ? GAP_UNION_GROUP : 0), 0) + 24
         : group.type === 'couple'
         ? NODE_W * 2 + GAP_COUPLE
         : NODE_W;
 
-      // For clusters: width is fixed at strip width. Children get laid out
-      // below independently — do NOT factor them into groupWidth.
-      if (group.type === 'cluster') {
-        groupWidth.set(group.id, minWidth);
-      } else if (allChildren.length === 0) {
-        groupWidth.set(group.id, minWidth);
-      } else {
-        let childrenTotalWidth = 0;
-        allChildren.forEach((c, i) => {
-          childrenTotalWidth += subtreeWidth.get(c) ?? NODE_W;
-          if (i > 0) childrenTotalWidth += GAP_X;
-        });
-        groupWidth.set(group.id, Math.max(minWidth, childrenTotalWidth));
-      }
+      // Cluster: groupWidth = max(stripWidth, total children footprint).
+      // This reserves the full horizontal space the cluster's children will occupy
+      // so neighboring groups get placed PAST the children, not through them.
+      // The spouse strip itself stays compact — only the reserved row space is wider.
+      let childrenTotalWidth = 0;
+      allChildren.forEach((c, i) => {
+        childrenTotalWidth += subtreeWidth.get(c) ?? NODE_W;
+        if (i > 0) childrenTotalWidth += GAP_X;
+      });
 
-      const resolvedWidth = groupWidth.get(group.id) ?? minWidth;
+      const minWidth = allChildren.length === 0 ? stripWidth : Math.max(stripWidth, childrenTotalWidth);
+      groupWidth.set(group.id, minWidth);
+
+      const resolvedWidth = minWidth;
       group.memberIds.forEach((id) => subtreeWidth.set(id, resolvedWidth));
     }
   }
