@@ -1231,7 +1231,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const explicitHeartX = explicitSlot?.heartX ?? unionHeartX.get(data.unionId);
       if (explicitHeartX != null) {
         const heartY = explicitSlot?.heartY ?? (srcPos.y + NODE_H + 20);
-        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight, childBarY: explicitSlot?.childBarY } };
+        const isClusterUnion = (simToUnionIds.get(String(e.source))?.length ?? 0) > 1 ||
+          Array.from(unionPartnersAll.get(data.unionId) ?? []).some(p => (simToUnionIds.get(p)?.length ?? 0) > 1);
+        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight, childBarY: explicitSlot?.childBarY, multiUnion: isClusterUnion } };
       }
 
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
