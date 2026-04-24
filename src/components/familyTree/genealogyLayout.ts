@@ -675,7 +675,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           nextPartnerX += NODE_W + GAP_UNION_GROUP;
         }
 
-        // After strip placement, re-center each union's children under the actual final union midpoint.
+        // After strip placement, re-center each wife above her own children
+        // so the drop lines run straight down instead of diagonally.
+        // Also re-center Oswin above his Kateryn-union children.
         for (const member of clusterMembers) {
           if (member.anchor || !member.unionId) continue;
           const partnerPos = positioned.get(member.id);
@@ -699,7 +701,8 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             if (i > 0) totalChildW += GAP_X;
           });
 
-          const unionMidX = (anchorPos2.x + partnerPos.x + NODE_W) / 2;
+          // Place children centered under the union midpoint (anchor + wife).
+          const unionMidX = (anchorPos2.x + NODE_W / 2 + partnerPos.x + NODE_W / 2) / 2;
           let childX = unionMidX - totalChildW / 2;
           for (const c of childrenSorted) {
             const csw = subtreeWidth.get(c) ?? NODE_W;
@@ -707,6 +710,20 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
             const childY = 40 + ((genBySim.get(c) ?? 0)) * (NODE_H + GAP_Y);
             positioned.set(c, { x: childMidX - NODE_W / 2, y: childY });
             childX += csw + GAP_X;
+          }
+
+          // Now re-center the wife card above her child group midpoint so the
+          // drop lines run straight down. Keep her on the same Y row.
+          const childPositions = childrenSorted
+            .map(c => positioned.get(c))
+            .filter(Boolean) as { x: number; y: number }[];
+          if (childPositions.length > 0) {
+            const childGroupLeft = Math.min(...childPositions.map(p => p.x));
+            const childGroupRight = Math.max(...childPositions.map(p => p.x + NODE_W));
+            const childGroupMidX = (childGroupLeft + childGroupRight) / 2;
+            // Clamp wife position: she must stay to the right of Oswin
+            const wifeX = Math.max(anchorPos2.x + NODE_W + GAP_COUPLE, childGroupMidX - NODE_W / 2);
+            positioned.set(member.id, { x: wifeX, y: partnerPos.y });
           }
         }
       }
