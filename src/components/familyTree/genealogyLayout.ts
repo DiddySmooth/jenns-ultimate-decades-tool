@@ -210,6 +210,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const [id, g] of genBySim) gens.set(g, [...(gens.get(g) ?? []), id]);
   const genKeys = Array.from(gens.keys()).sort((a, b) => a - b);
 
+  // DEBUG: log gen assignments and groups
+  if (typeof window !== 'undefined') {
+    console.group('[genealogyLayout] Generation assignments');
+    for (const [id, g] of genBySim) {
+      const node = simNodes.find(n => n.id === id);
+      const name = node ? `${(node.data as any)?.sim?.firstName ?? ''} ${(node.data as any)?.sim?.lastName ?? ''}`.trim() : id;
+      console.log(`gen ${g}: ${name} (${id})`);
+    }
+    console.groupEnd();
+  }
+
   // Sort each generation: group spouses together, ordered by parent position
   const sortedGens = new Map<number, string[]>();
   for (const g of genKeys) {
@@ -584,6 +595,16 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   // Now re-position all generations top-down using union-aware group widths.
   for (const g of genKeys) {
     const groups = buildGroupsForGeneration(sortedGens.get(g)!);
+
+    // DEBUG
+    if (typeof window !== 'undefined') {
+      console.group(`[genealogyLayout] Gen ${g} groups`);
+      for (const grp of groups) {
+        const getName = (id: string) => { const n = simNodes.find(x => x.id === id); return n ? `${(n.data as any)?.sim?.firstName ?? id}` : id; };
+        console.log(`  ${grp.type} [${grp.id}]: members=[${grp.memberIds.map(getName).join(', ')}] width=${groupWidth.get(grp.id) ?? '?'}`);
+      }
+      console.groupEnd();
+    }
 
     let totalGenWidth = 0;
     groups.forEach((group, i) => {
