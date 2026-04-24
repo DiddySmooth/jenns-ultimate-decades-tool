@@ -10,18 +10,19 @@ export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, mar
   const edgeData = (data as { midX?: number; heartY?: number; childLeft?: number; childRight?: number; childBarY?: number; multiUnion?: boolean } | undefined);
   const midX = edgeData?.midX ?? sourceX;
   const startY = edgeData?.heartY ?? (sourceY + 20);
-  const multiUnion = edgeData?.multiUnion === true;
 
   const gap = targetY - startY;
   const desiredSplitY = startY + clamp(gap * 0.5, 30, 100);
   const maxSplitY = Math.max(startY, targetY - 14);
   const childBarY = edgeData?.childBarY ?? clamp(desiredSplitY, startY + 10, maxSplitY);
 
-  // For multi-union clusters, skip the sibling bar entirely — each child gets
-  // a clean straight drop from the union heart. No shared horizontal bar.
   const childLeft = edgeData?.childLeft;
   const childRight = edgeData?.childRight;
-  const hasLocalBand = !multiUnion && childLeft != null && childRight != null && childRight > childLeft;
+
+  // Draw sibling bar whenever we have childLeft/childRight bounds.
+  // For multi-union clusters this makes the centering visually clear —
+  // the parent drops to midX, bar spans the full sibling group, each child drops from bar.
+  const hasLocalBand = childLeft != null && childRight != null && childRight > childLeft;
 
   const path = hasLocalBand
     ? `M ${midX} ${startY} L ${midX} ${childBarY} L ${childLeft} ${childBarY} M ${midX} ${childBarY} L ${childRight} ${childBarY} M ${targetX} ${childBarY} L ${targetX} ${targetY}`
