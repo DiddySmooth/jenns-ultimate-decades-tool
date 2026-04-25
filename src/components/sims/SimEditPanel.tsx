@@ -256,7 +256,7 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'inline-block', padding: '0.5rem 1rem', borderRadius: 8, background: uploading ? 'var(--color-border)' : sexColor + '22', color: sexColor, border: `1px solid ${sexColor}44`, cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
                       {uploading ? 'Uploading…' : '📷 Change Photo'}
-                      <input type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={async e => { const file = e.target.files?.[0]; if (!file || !editing.id) return; try { setUploading(true); const res = await uploadPhoto(file, editing.id); setEditing({ ...editing, avatarUrl: res.url ?? undefined, avatarBlobKey: res.blobKey, avatarCrop: undefined }); } finally { setUploading(false); e.target.value = ''; } }} />
+                      <input type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={async e => { const file = e.target.files?.[0]; if (!file || !editing.id) return; try { setUploading(true); const res = await uploadPhoto(file, editing.id); const cacheBustedUrl = res.url ? `${res.url}?t=${Date.now()}` : undefined; setEditing({ ...editing, avatarUrl: cacheBustedUrl, avatarBlobKey: res.blobKey, avatarCrop: undefined }); } finally { setUploading(false); e.target.value = ''; } }} />
                     </label>
                     {editing.avatarUrl && <div style={{ marginTop: '0.75rem' }}><AvatarCropEditor imageUrl={editing.avatarUrl} value={editing.avatarCrop as any} onChange={next => setEditing({ ...editing, avatarCrop: next as any })} /></div>}
                   </div>
@@ -290,7 +290,7 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
                           <div style={{ padding: '0.5rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
                             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-text)' }}>{ls.name}</span>
                             <label style={{ cursor: 'pointer', fontSize: '0.75rem', color: sexColor, fontWeight: 600 }}>{uploading ? '…' : 'Upload'}
-                              <input type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={async e => { const file = e.target.files?.[0]; if (!file || !editing.id) return; try { setUploading(true); const res = await uploadPhoto(file, editing.id, `${editing.id}_ls_${ls.id}`); setEditing({ ...editing, lifeStagePhotos: { ...(editing.lifeStagePhotos ?? {}), [ls.id]: { url: res.url ?? '', blobKey: res.blobKey } } }); } finally { setUploading(false); e.target.value = ''; } }} />
+                              <input type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={async e => { const file = e.target.files?.[0]; if (!file || !editing.id) return; try { setUploading(true); const res = await uploadPhoto(file, editing.id, `${editing.id}_ls_${ls.id}`); const cacheBustedUrl = res.url ? `${res.url}?t=${Date.now()}` : ''; setEditing({ ...editing, lifeStagePhotos: { ...(editing.lifeStagePhotos ?? {}), [ls.id]: { url: cacheBustedUrl, blobKey: res.blobKey } } }); } finally { setUploading(false); e.target.value = ''; } }} />
                             </label>
                           </div>
                         </div>
