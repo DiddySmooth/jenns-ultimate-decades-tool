@@ -43,7 +43,7 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
 
   const lifeStages = trackerConfig.humanAging?.lifeStages ?? [];
 
-  async function uploadPhoto(file: File, simId: string) {
+  async function uploadPhoto(file: File, simId: string, blobName?: string) {
     const dataBase64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => { const b = String(reader.result || '').split(',')[1]; b ? resolve(b) : reject(new Error('bad base64')); };
@@ -52,9 +52,15 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
     });
     const r = await fetch(`/api/uploadAvatar?userId=${encodeURIComponent(userId)}&saveId=${encodeURIComponent(saveId)}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ simId, mimeType: file.type, dataBase64 }),
+      body: JSON.stringify({ simId, mimeType: file.type, dataBase64, ...(blobName ? { blobName } : {}) }),
     });
     if (!r.ok) throw new Error('Upload failed');
+    return r.json() as Promise<{ blobKey: string; url: string | null }>;
+  }
+
+  async function uploadAvatar(file: File, simId: string) {
+    return uploadPhoto(file, simId);
+  }
     return r.json() as Promise<{ blobKey: string; url: string | null }>;
   }
 
@@ -290,7 +296,7 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
                           <div style={{ padding: '0.5rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
                             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-text)' }}>{ls.name}</span>
                             <label style={{ cursor: 'pointer', fontSize: '0.75rem', color: sexColor, fontWeight: 600 }}>{uploading ? '…' : 'Upload'}
-                              <input type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={async e => { const file = e.target.files?.[0]; if (!file || !editing.id) return; try { setUploading(true); const res = await uploadPhoto(file, editing.id); setEditing({ ...editing, lifeStagePhotos: { ...(editing.lifeStagePhotos ?? {}), [ls.id]: { url: res.url ?? '', blobKey: res.blobKey } } }); } finally { setUploading(false); e.target.value = ''; } }} />
+                              <input type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={async e => { const file = e.target.files?.[0]; if (!file || !editing.id) return; try { setUploading(true); const res = await uploadPhoto(file, editing.id, `${editing.id}_ls_${ls.id}`); setEditing({ ...editing, lifeStagePhotos: { ...(editing.lifeStagePhotos ?? {}), [ls.id]: { url: res.url ?? '', blobKey: res.blobKey } } }); } finally { setUploading(false); e.target.value = ''; } }} />
                             </label>
                           </div>
                         </div>
