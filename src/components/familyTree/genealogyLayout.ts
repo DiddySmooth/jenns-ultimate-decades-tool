@@ -922,7 +922,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (memberPositions.length === 0) continue;
       const groupLeft = Math.min(...memberPositions.map((p) => p.x));
       const groupRight = Math.max(...memberPositions.map((p) => p.x)) + NODE_W;
-      const groupMidX = (groupLeft + groupRight) / 2;
       const groupWidth = groupRight - groupLeft;
 
       const targetLeft = childMidX - groupWidth / 2;
