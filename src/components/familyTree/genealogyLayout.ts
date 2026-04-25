@@ -837,7 +837,16 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
 
       const shift = groupMidX - childGroupMidX;
       if (Math.abs(shift) > 1) {
-        for (const c of allChildren) {
+        const toShift = new Set<string>(allChildren);
+        for (const childId of allChildren) {
+          for (const [, partners] of unionPartnersAll) {
+            if (!partners.has(childId)) continue;
+            for (const partnerId of partners) {
+              if (partnerId !== childId && !allChildren.includes(partnerId)) toShift.add(partnerId);
+            }
+          }
+        }
+        for (const c of toShift) {
           const pos = positioned.get(c);
           if (pos) positioned.set(c, { x: pos.x + shift, y: pos.y });
         }
@@ -892,7 +901,20 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const shift = groupMidX - childGroupMidX;
 
       if (Math.abs(shift) > 0.5) {
+        // When shifting children, also drag each child's spouse to maintain couple grouping
+        const toShift = new Set<string>(allChildren);
         for (const childId of allChildren) {
+          for (const [unionId] of [...(unionPartnersAll.entries())]) {
+            const partners = unionPartnersAll.get(unionId);
+            if (!partners?.has(childId)) continue;
+            for (const partnerId of partners) {
+              if (partnerId !== childId && !allChildren.includes(partnerId)) {
+                toShift.add(partnerId);
+              }
+            }
+          }
+        }
+        for (const childId of toShift) {
           const childPos = positioned.get(childId);
           if (childPos) positioned.set(childId, { x: childPos.x + shift, y: childPos.y });
         }
