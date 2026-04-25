@@ -900,6 +900,56 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // ── Bottom-up parent re-centering pass ─────────────────────────────────
+  // After children are placed, re-center each parent couple/group above its
+  // own children (not its grandchildren). Then de-overlap within each generation.
+  // Iterate from deepest generation upward so each level is stable before its
+  // parent is re-centered.
+  for (const g of [...genKeys].reverse()) {
+    const groups = buildGroupsForGeneration(sortedGens.get(g) ?? []);
+    for (const group of groups) {
+      if (group.type === 'cluster') continue;
+      const allChildren = getChildrenForLayoutGroup(group);
+      if (allChildren.length === 0) continue;
+
+      const childPositions = allChildren.map((c) => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
+      if (childPositions.length === 0) continue;
+      const childLeft = Math.min(...childPositions.map((p) => p.x));
+      const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
+      const childMidX = (childLeft + childRight) / 2;
+
+      const memberPositions = group.memberIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
+      if (memberPositions.length === 0) continue;
+      const groupLeft = Math.min(...memberPositions.map((p) => p.x));
+      const groupRight = Math.max(...memberPositions.map((p) => p.x)) + NODE_W;
+      const groupMidX = (groupLeft + groupRight) / 2;
+      const groupWidth = groupRight - groupLeft;
+
+      const targetLeft = childMidX - groupWidth / 2;
+      const shift = targetLeft - groupLeft;
+      if (Math.abs(shift) > 0.5) {
+        for (const id of group.memberIds) {
+          const pos = positioned.get(id);
+          if (pos) positioned.set(id, { x: pos.x + shift, y: pos.y });
+        }
+      }
+    }
+
+    // De-overlap within this generation after re-centering
+    const sortedIds = [...(sortedGens.get(g) ?? [])].sort((a, b) => (positioned.get(a)?.x ?? 0) - (positioned.get(b)?.x ?? 0));
+    for (let i = 1; i < sortedIds.length; i++) {
+      const prev = positioned.get(sortedIds[i - 1]);
+      const cur = positioned.get(sortedIds[i]);
+      if (!prev || !cur) continue;
+      const prevGroup = buildGroupsForGeneration(sortedGens.get(g) ?? []).find(gr => gr.memberIds.includes(sortedIds[i-1]));
+      const curGroup = buildGroupsForGeneration(sortedGens.get(g) ?? []).find(gr => gr.memberIds.includes(sortedIds[i]));
+      const sameGroup = prevGroup && curGroup && prevGroup.id === curGroup.id;
+      const gap = sameGroup ? (shareExclusivePairUnion(sortedIds[i-1], sortedIds[i]) ? GAP_COUPLE : GAP_SIBLING) : GAP_X;
+      const minX = prev.x + NODE_W + gap;
+      if (cur.x < minX) positioned.set(sortedIds[i], { x: minX, y: cur.y });
+    }
+  }
+
   type UnionSlot = {
     left: number;
     right: number;
