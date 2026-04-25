@@ -183,6 +183,8 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
                 <div className="field-group"><label>Death Day</label><input type="number" min={1} max={trackerConfig.daysPerYear} value={editing.deathDayOfYear ?? ''} onChange={(e) => setEditing({ ...editing, deathDayOfYear: e.target.value ? Number(e.target.value) : undefined })} /></div>
               </div>
 
+              <div className="field-group"><label>Cause of Death</label><input value={editing.causeOfDeath ?? ''} placeholder="e.g. Old age, Drowning…" onChange={(e) => setEditing({ ...editing, causeOfDeath: e.target.value || undefined })} /></div>
+
               {sheetConfig.showTraits && (
                 <div>
                   <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Traits</div>
