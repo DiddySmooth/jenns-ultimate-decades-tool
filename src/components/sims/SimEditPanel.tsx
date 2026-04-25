@@ -61,12 +61,6 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
   async function uploadAvatar(file: File, simId: string) {
     return uploadPhoto(file, simId);
   }
-    return r.json() as Promise<{ blobKey: string; url: string | null }>;
-  }
-
-  async function uploadAvatar(file: File, simId: string) {
-    return uploadPhoto(file, simId);
-  }
 
   const unionsForSim = (simId?: string) => (unions ?? []).filter((u) => u.partnerAId === simId || u.partnerBId === simId);
 
