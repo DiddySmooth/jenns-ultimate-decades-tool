@@ -44,11 +44,29 @@ export default function SimEditPanel({ sim, allSims, unions, open, onClose, onSa
   const lifeStages = trackerConfig.humanAging?.lifeStages ?? [];
 
   async function uploadPhoto(file: File, simId: string, blobName?: string) {
+    // Resize/compress client-side to max 1200px and ~80% quality before upload
     const dataBase64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => { const b = String(reader.result || '').split(',')[1]; b ? resolve(b) : reject(new Error('bad base64')); };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX_DIM = 1200;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM; }
+          else { width = Math.round(width * MAX_DIM / height); height = MAX_DIM; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas unavailable')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        const b = dataUrl.split(',')[1];
+        b ? resolve(b) : reject(new Error('bad base64'));
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+      img.src = objectUrl;
     });
     const r = await fetch(`/api/uploadAvatar?userId=${encodeURIComponent(userId)}&saveId=${encodeURIComponent(saveId)}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

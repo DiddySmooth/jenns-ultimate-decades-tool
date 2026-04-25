@@ -1,7 +1,7 @@
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 const CONTAINER = 'decades-saves';
-const MAX_BYTES = 3 * 1024 * 1024; // 3MB
+const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 
 function getConn() {
   const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
