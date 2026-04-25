@@ -211,6 +211,26 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   for (const [id, g] of genBySim) gens.set(g, [...(gens.get(g) ?? []), id]);
   const genKeys = Array.from(gens.keys()).sort((a, b) => a - b);
 
+  // ── Extended debug: generation assignments and parent maps ────────────────────────
+  if (typeof window !== 'undefined' && (window as unknown as Record<string,unknown>).__layoutDebug) {
+    const nodeLabel = (id: string) => {
+      const n = simNodes.find(n => n.id === id);
+      const s = (n?.data as Record<string,unknown> | undefined)?.sim as Record<string,unknown> | undefined;
+      return s ? `${s.firstName} ${s.lastName}` : id;
+    };
+    console.group('%c[genealogyLayout] generation assignments', 'color:#fbbf24;font-weight:bold');
+    const genRows: Record<string,unknown>[] = [];
+    for (const [id, g] of genBySim) {
+      const parents = Array.from(childToParentSims.get(id) ?? []).map(nodeLabel);
+      genRows.push({ name: nodeLabel(id), gen: g, parents: parents.join(', ') || '—' });
+    }
+    genRows.sort((a,b) => (a.gen as number) - (b.gen as number));
+    console.table(genRows);
+    console.log('unionPartnersAll:', Object.fromEntries([...unionPartnersAll.entries()].map(([k,v]) => [k, [...v].map(nodeLabel).join(' + ')])));
+    console.log('unionChildrenAll:', Object.fromEntries([...unionChildrenAll.entries()].map(([k,v]) => [k, [...v].map(nodeLabel).join(', ')])));
+    console.groupEnd();
+  }
+
   // Sort each generation: group spouses together, ordered by parent position
   const sortedGens = new Map<number, string[]>();
   for (const g of genKeys) {
@@ -1375,7 +1395,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       posRows.push({
         name: simLabel(n.id),
         id: simId,
-        gen: (n.data as Record<string,unknown>).generation,
+        gen: genBySim.get(n.id as string) ?? '?',
         x: Math.round(n.position.x),
         y: Math.round(n.position.y),
       });
