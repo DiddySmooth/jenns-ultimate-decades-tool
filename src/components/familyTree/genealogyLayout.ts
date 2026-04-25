@@ -1358,5 +1358,54 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     return { ...e, data: { ...e.data, midX: srcPos.x + NODE_W / 2, heartY: srcPos.y + NODE_H + 20 } };
   });
 
+  // ── Layout debug dump ────────────────────────────────────────────────────
+  // Set window.__layoutDebug = true in DevTools console to enable.
+  if (typeof window !== 'undefined' && (window as unknown as Record<string,unknown>).__layoutDebug) {
+    const simLabel = (id: string) => {
+      const n = result.find(n => n.id === id);
+      const s = (n?.data as Record<string,unknown> | undefined)?.sim as Record<string,unknown> | undefined;
+      return s ? `${s.firstName} ${s.lastName}` : id;
+    };
+    console.group('%c[genealogyLayout] debug dump', 'color:#6ee7b7;font-weight:bold');
+    console.log('%cSim positions (final)', 'color:#93c5fd');
+    const posRows: Record<string,unknown>[] = [];
+    for (const n of result) {
+      if (!n.id.startsWith('sim:')) continue;
+      const simId = n.id.replace('sim:', '');
+      posRows.push({
+        name: simLabel(n.id),
+        id: simId,
+        gen: (n.data as Record<string,unknown>).generation,
+        x: Math.round(n.position.x),
+        y: Math.round(n.position.y),
+      });
+    }
+    posRows.sort((a,b) => (a.gen as number) - (b.gen as number) || (a.x as number) - (b.x as number));
+    console.table(posRows);
+
+    console.log('%cGeneration groups', 'color:#93c5fd');
+    const genMap = new Map<number, string[]>();
+    for (const r of posRows) {
+      const g = r.gen as number;
+      if (!genMap.has(g)) genMap.set(g, []);
+      genMap.get(g)!.push(`${r.name as string} (x=${r.x})`);
+    }
+    for (const [gen, names] of [...genMap.entries()].sort((a,b)=>a[0]-b[0])) {
+      console.log(`  Gen ${gen}:`, names.join(' | '));
+    }
+
+    console.log('%cEdges (marriage + family)', 'color:#93c5fd');
+    const edgeRows = updatedEdges.map(e => ({
+      type: e.type,
+      src: e.source.replace('sim:',''),
+      tgt: e.target.replace('sim:',''),
+      midX: Math.round((e.data as Record<string,unknown>)?.midX as number ?? 0),
+      heartY: Math.round((e.data as Record<string,unknown>)?.heartY as number ?? 0),
+      multiUnion: (e.data as Record<string,unknown>)?.multiUnion,
+    }));
+    console.table(edgeRows);
+    console.groupEnd();
+  }
+
   return { nodes: result, edges: updatedEdges };
 }
