@@ -1,7 +1,7 @@
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 const CONTAINER = 'decades-saves';
-const MAX_BYTES = 3 * 1024 * 1024; // 3MB
+const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 
 function getConn() {
   const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -36,6 +36,7 @@ module.exports = async function (context, req) {
     const simId = body.simId;
     const mimeType = body.mimeType;
     const dataBase64 = body.dataBase64;
+    const blobNameOverride = body.blobName; // optional — e.g. simId_lifeStageId
 
     if (!simId || !dataBase64) {
       context.res = { status: 400, body: 'Missing simId or dataBase64' };
@@ -49,7 +50,8 @@ module.exports = async function (context, req) {
     }
 
     const ext = extFromMime(mimeType);
-    const key = `${userId}/media/${saveId}/avatars/${simId}.${ext}`;
+    const blobBaseName = blobNameOverride || simId;
+    const key = `${userId}/media/${saveId}/avatars/${blobBaseName}.${ext}`;
 
     const connStr = getConn();
     const blobService = BlobServiceClient.fromConnectionString(connStr);

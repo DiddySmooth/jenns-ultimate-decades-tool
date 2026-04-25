@@ -20,7 +20,7 @@ import { deriveUnionsFromSims } from './deriveUnions';
 import { genealogyLayout } from './genealogyLayout';
 import { buildRelationshipGraph, filterVisibleSimsForFamilyTree } from './graphModel';
 import { mapGraphToFlow } from './mapGraphToFlow';
-import SimDetailPanel from './SimDetailPanel';
+import SimEditPanel from '../sims/SimEditPanel';
 
 const nodeTypes = {
   sim: SimNode,
@@ -464,14 +464,16 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         </aside>
       </div>
 
-      <SimDetailPanel
+      <SimEditPanel
         sim={sims.find((s) => s.id === selectedSimId) ?? null}
         allSims={sims}
+        unions={unions}
         open={!!selectedSimId}
         onClose={() => setSelectedSimId(null)}
         onSave={(next) => onSimsChange(sims.map((x) => (x.id === next.id ? next : x)))}
         trackerConfig={trackerConfig}
         treeConfig={config}
+        sheetConfig={{ showAge: true, showSex: true, showGeneration: true, showBirthplace: true, showParents: true, showPartners: true, showCauseOfDeath: true, showNotes: true, showTraits: true }}
         isPremium={isPremium}
         userId={userId}
         saveId={saveId}

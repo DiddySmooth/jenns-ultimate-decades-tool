@@ -7,6 +7,7 @@ import SimsSheet from './components/sims/SimsSheet';
 import PregnancyTracker from './components/pregnancy/PregnancyTracker';
 import FamilyTree from './components/familyTree/FamilyTree';
 import AgingReference from './components/aging/AgingReference';
+import NotesView from './components/notes/NotesView';
 import ThemePicker from './components/ThemePicker';
 import Toast from './components/Toast';
 import ColumnLabelEditor from './components/ColumnLabelEditor';
@@ -14,7 +15,7 @@ import { useDebouncedSave } from './hooks/useDebouncedSave';
 import { useTheme } from './hooks/useTheme';
 import type { TrackerSave, SimEntry, TimelineEvent } from './types/tracker';
 
-type Tab = 'timeline' | 'sims' | 'pregnancy' | 'tree' | 'aging' | 'settings';
+type Tab = 'timeline' | 'sims' | 'pregnancy' | 'tree' | 'aging' | 'settings' | 'notes';
 
 const GOOGLE_CLIENT_ID = '106970576831-dbrfg4aqshbcqpq9m6fi3sr2itg0v4a6.apps.googleusercontent.com';
 const DEV_STORAGE_KEY = 'judt_dev_save';
@@ -500,6 +501,7 @@ export default function App() {
           <button className={tab === 'pregnancy' ? 'active' : ''} onClick={() => setTab('pregnancy')}>Marriage & Pregnancy</button>
           <button className={tab === 'tree' ? 'active' : ''} onClick={() => setTab('tree')}>Family Tree</button>
           <button className={tab === 'aging' ? 'active' : ''} onClick={() => setTab('aging')}>Aging</button>
+          <button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}>Notes</button>
           <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>Settings</button>
         </nav>
       </header>
@@ -534,6 +536,7 @@ export default function App() {
             currentDay={save.currentDay}
             userId={user.sub}
             saveId={saveId}
+            isPremium={isPremium}
             sheetConfig={save.simsSheetConfig}
             onSheetConfigChange={(next) => {
               const current = saveRef.current;
@@ -601,6 +604,14 @@ export default function App() {
         )}
         {tab === 'aging' && (
           <AgingReference configs={allAgingConfigs} />
+        )}
+        {tab === 'notes' && save && (
+          <NotesView
+            sims={save.sims}
+            trackerConfig={save.config}
+            currentDay={save.currentDay}
+            onSimsChange={(next) => updateSave({ ...save, sims: next })}
+          />
         )}
         {tab === 'settings' && (
           <div className="settings-page">

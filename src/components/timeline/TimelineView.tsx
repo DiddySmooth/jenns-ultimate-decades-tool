@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import type { TimelineDay, TimelineEvent, TrackerConfig } from '../../types/tracker';
 import { nanoid } from 'nanoid';
 
@@ -80,7 +80,7 @@ const EditableCell = memo(function EditableCell({ initialValue, width, onCommit 
 });
 
 // Row is memoized — only re-renders if its day object reference changes
-const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, isYearStart, isYearEnd, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onRemoveEvent, onActivate }: {
+const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, isYearStart, isYearEnd, lifeStageCols, onMarkDay, onUpdateCell, onAddEvent, onRemoveEvent, onActivate, rowRef }: {
   day: TimelineDay;
   isCurrent: boolean;
   isActive: boolean;
@@ -92,6 +92,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, isYear
   onAddEvent: (event: TimelineEvent) => void;
   onRemoveEvent: (eventId: string) => void;
   onActivate: () => void;
+  rowRef?: React.RefCallback<HTMLDivElement>;
 }) {
   const [addingEvent, setAddingEvent] = useState(false);
   const [eventDraft, setEventDraft] = useState('');
@@ -105,6 +106,7 @@ const TimelineRow = memo(function TimelineRow({ day, isCurrent, isActive, isYear
   const isPast = day.marked;
   return (
     <div
+      ref={rowRef}
       className={`vt-row${isPast ? ' past' : ''}${isCurrent ? ' current' : ''}${isActive ? ' active' : ''}${isYearEnd ? ' vt-year-block-end' : ''}`}
       onMouseDown={onActivate}
     >
@@ -164,6 +166,14 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
   const [newColLabel, setNewColLabel] = useState('');
   const [activeRow, setActiveRow] = useState<number | null>(null);
   const lifeStageCols = buildColumns(config);
+  const currentRowRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll to current day when the timeline mounts or currentDay changes
+  useEffect(() => {
+    if (currentRowRef.current) {
+      currentRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [currentDay]);
 
   const submitNewCol = () => {
     if (!newColLabel.trim()) return;
@@ -235,7 +245,6 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
                 day={day}
                 isCurrent={day.dayNumber === currentDay}
                 isActive={activeRow === day.dayNumber}
-
                 isYearStart={yearStarts[idx]}
                 isYearEnd={yearEnds[idx]}
                 lifeStageCols={lifeStageCols}
@@ -244,6 +253,7 @@ export default function TimelineView({ timeline, config, currentDay, onMarkDay, 
                 onAddEvent={(event) => onAddEvent(day.dayNumber, event)}
                 onRemoveEvent={(eventId) => onRemoveEvent(day.dayNumber, eventId)}
                 onActivate={() => setActiveRow(day.dayNumber)}
+                rowRef={day.dayNumber === currentDay ? (el) => { currentRowRef.current = el; } : undefined}
               />
             ))}
           </div>
