@@ -206,6 +206,41 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // ── Cross-generation union elevation pass ──────────────────────────────────
+  // When two spouses are assigned to different generations, elevate the younger
+  // one to the older one's generation for layout purposes only. This keeps
+  // marriage lines horizontal and children on a single consistent row.
+  // Only elevate if the sim has no children from another union that would be
+  // orphaned by moving them to a different row.
+  for (const [unionId, partners] of unionPartnersAll) {
+    const partnerArr = Array.from(partners).filter(id => genBySim.has(id));
+    if (partnerArr.length !== 2) continue;
+    const [idA, idB] = partnerArr;
+    const gA = genBySim.get(idA)!;
+    const gB = genBySim.get(idB)!;
+    if (gA === gB) continue; // same gen, no problem
+
+    const olderGen  = Math.min(gA, gB);
+    const youngerId = gA > gB ? idA : idB;
+    const youngerGen = Math.max(gA, gB);
+
+    // Only elevate if the younger sim has no children from a DIFFERENT union
+    // that are already placed at youngerGen+1 (would become detached).
+    const otherUnions = Array.from(personToUnionIds.get(youngerId) ?? []).filter(uid => uid !== unionId);
+    const hasChildrenElsewhere = otherUnions.some(uid => (unionChildrenAll.get(uid)?.size ?? 0) > 0);
+    if (hasChildrenElsewhere) continue;
+
+    // Elevate younger partner up to older partner's row
+    genBySim.set(youngerId, olderGen);
+
+    // Also elevate this union's children so they stay at olderGen+1
+    for (const childId of (unionChildrenAll.get(unionId) ?? [])) {
+      const childGen = genBySim.get(childId) ?? youngerGen + 1;
+      const targetGen = olderGen + 1;
+      if (childGen !== targetGen) genBySim.set(childId, targetGen);
+    }
+  }
+
   // Group by generation
   const gens = new Map<number, string[]>();
   for (const [id, g] of genBySim) gens.set(g, [...(gens.get(g) ?? []), id]);
