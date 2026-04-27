@@ -17,7 +17,7 @@ interface Props {
 function buildColumns(config: TrackerConfig) {
   const cols: { id: string; label: string }[] = [];
   for (const ls of config.humanAging.lifeStages) cols.push({ id: ls.id, label: ls.name });
-  for (const pet of config.pets) for (const ls of pet.lifeStages) cols.push({ id: ls.id, label: ls.name });
+  for (const pet of (config.pets ?? [])) for (const ls of pet.lifeStages) cols.push({ id: ls.id, label: ls.name });
   for (const col of config.customColumns ?? []) cols.push({ id: col.id, label: col.label });
   return cols;
 }

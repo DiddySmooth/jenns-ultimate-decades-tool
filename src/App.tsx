@@ -374,7 +374,7 @@ export default function App() {
     );
   }
 
-  const allAgingConfigs = [save.config.humanAging, ...save.config.pets, ...save.config.occults];
+  const allAgingConfigs = [save.config.humanAging, ...(save.config.pets ?? []), ...(save.config.occults ?? [])];
 
   return (
     <div className="app">
@@ -659,7 +659,7 @@ export default function App() {
                   }
 
                   if (scope.kind === 'pet') {
-                    const pets = current.config.pets.map((pet) => {
+                    const pets = (current.config.pets ?? []).map((pet) => {
                       if (String(pet.type) !== String(scope.type)) return pet;
                       return {
                         ...pet,

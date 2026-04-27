@@ -69,9 +69,9 @@ export default function ColumnLabelEditor({ config, onRename }: Props) {
         ))}
       </Group>
 
-      {config.pets.length > 0 && (
+      {(config.pets ?? []).length > 0 && (
         <Group title="Pets">
-          {config.pets.flatMap((pet) =>
+          {(config.pets ?? []).flatMap((pet) =>
             pet.lifeStages.map((ls) => (
               <div key={ls.id} className="col-row">
                 <span className="col-id">{pet.label}</span>
