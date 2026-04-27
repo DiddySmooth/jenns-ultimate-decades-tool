@@ -236,12 +236,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     // Also elevate all siblings of the younger partner (children of the same
     // union as youngerId's parents) so the whole sibling group stays together
     // on one row and parent lines don't span multiple generations.
-    const parentUnions = Array.from(personToUnionIds.get(youngerId) ?? []).filter(uid => uid !== unionId);
-    // youngerId has no other unions (checked above), so find their parent union via childToParentSims
     const youngerParents = Array.from(childToParentSims.get(youngerId) ?? []);
     if (youngerParents.length > 0) {
-      // Find the union that produced youngerId
-      for (const [uid, children] of unionChildrenAll) {
+      for (const [, children] of unionChildrenAll) {
         if (!children.has(youngerId)) continue;
         // Elevate all siblings from this union to olderGen
         for (const sibId of children) {
