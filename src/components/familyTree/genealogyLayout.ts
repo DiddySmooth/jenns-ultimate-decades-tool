@@ -229,24 +229,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const hasKidsElsewhere = otherUnions.some(u => (unionChildrenAll.get(u)?.size ?? 0) > 0);
     if (hasKidsElsewhere) continue;
 
-    // Elevate the younger spouse
+    // Elevate the younger spouse only — do NOT elevate siblings.
+    // Siblings stay on their original row; their parent line branches normally.
     genBySim.set(youngerId, olderGen);
     elevatedSims.add(youngerId);
-
-    // Elevate siblings (children of same parent union) so the sibling group
-    // stays together and parent lines don't span multiple rows.
-    for (const [, children] of unionChildrenAll) {
-      if (!children.has(youngerId)) continue;
-      for (const sibId of children) {
-        if (sibId === youngerId) continue;
-        const sibOtherUnions = Array.from(personToUnionIds.get(sibId) ?? []);
-        const sibHasKids = sibOtherUnions.some(u => (unionChildrenAll.get(u)?.size ?? 0) > 0);
-        if (!sibHasKids) {
-          genBySim.set(sibId, olderGen);
-          elevatedSims.add(sibId);
-        }
-      }
-    }
 
     // Children of this cross-gen union sit at olderGen + 1
     for (const childId of (unionChildrenAll.get(unionId) ?? [])) {
@@ -359,7 +345,29 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     sortedGens.set(g, ordered);
   }
 
-  // Compute X positions — couples get GAP_COUPLE between them, others get GAP_X
+  // Post-elevation fixup: move each elevated sim to be adjacent to their
+  // cross-gen spouse in sortedGens, so couple grouping places them next to
+  // each other instead of far apart based on their original parent order.
+  for (const elevatedId of elevatedSims) {
+    const elevatedGen = genBySim.get(elevatedId);
+    if (elevatedGen === undefined) continue;
+    const row = sortedGens.get(elevatedGen);
+    if (!row) continue;
+    // Find their cross-gen spouse (shares a union, spouse is NOT elevated)
+    const spouseId = Array.from(unionIdsByPerson.get(elevatedId) ?? [])
+      .flatMap(uid => Array.from(unionPartnersAll.get(uid) ?? []))
+      .find(pid => pid !== elevatedId && !elevatedSims.has(pid) && genBySim.get(pid) === elevatedGen);
+    if (!spouseId) continue;
+    const spouseIdx = row.indexOf(spouseId);
+    const elevatedIdx = row.indexOf(elevatedId);
+    if (spouseIdx === -1 || elevatedIdx === -1) continue;
+    if (Math.abs(spouseIdx - elevatedIdx) <= 1) continue; // already adjacent
+    // Remove elevated sim from current position and insert right after spouse
+    row.splice(elevatedIdx, 1);
+    const newSpouseIdx = row.indexOf(spouseId);
+    row.splice(newSpouseIdx + 1, 0, elevatedId);
+  }
+
   const positioned = new Map<string, { x: number; y: number }>();
 
   // First pass: compute total widths
