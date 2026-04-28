@@ -362,10 +362,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const elevatedIdx = row.indexOf(elevatedId);
     if (spouseIdx === -1 || elevatedIdx === -1) continue;
     if (Math.abs(spouseIdx - elevatedIdx) <= 1) continue; // already adjacent
-    // Remove elevated sim from current position and insert right after spouse
+    // Remove elevated sim from current position and insert LEFT of spouse
+    // (elevated sim has upward parent line going left toward their parents,
+    // so placing them left of the blood spouse keeps lines from crossing)
     row.splice(elevatedIdx, 1);
     const newSpouseIdx = row.indexOf(spouseId);
-    row.splice(newSpouseIdx + 1, 0, elevatedId);
+    row.splice(newSpouseIdx, 0, elevatedId); // insert before spouse
   }
 
   const positioned = new Map<string, { x: number; y: number }>();
@@ -584,11 +586,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   };
 
   const getChildrenForLayoutGroup = (group: LayoutGroup): string[] => {
+    let children: string[];
     if (group.unionIds.length > 0) {
-      return Array.from(new Set(group.unionIds.flatMap((uid) => unionInfos.get(uid)?.children ?? [])));
+      children = Array.from(new Set(group.unionIds.flatMap((uid) => unionInfos.get(uid)?.children ?? [])));
+    } else if (group.memberIds.length === 2) {
+      children = getChildrenForGroup(group.memberIds[0], group.memberIds[1]);
+    } else {
+      children = getChildrenForGroup(group.memberIds[0]);
     }
-    if (group.memberIds.length === 2) return getChildrenForGroup(group.memberIds[0], group.memberIds[1]);
-    return getChildrenForGroup(group.memberIds[0]);
+    // Exclude elevated sims — they moved to a different generation row and
+    // should not be counted when centering their original parents.
+    return children.filter(id => !elevatedSims.has(id));
   };
 
   const getUnionSlotWidth = (unionId: string): number => {

@@ -11,12 +11,11 @@ export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, mar
   let path: string;
   if (elevated) {
     // Child was elevated to a higher row via cross-gen union.
-    // Route the line OUT THE TOP of the child card, loop up and over to the
-    // parent's drop point. Uses a stepped path: up from targetY, across to
-    // midX, then down to startY (the parent's heartY).
-    const childTopY = targetY - 20; // exit top of child card
-    const loopY = Math.min(startY, childTopY) - 30; // go above both
-    path = `M ${targetX} ${targetY} L ${targetX} ${childTopY} L ${targetX} ${loopY} L ${midX} ${loopY} L ${midX} ${startY}`;
+    // Exit out the RIGHT side of the child card, go horizontally to midX,
+    // then drop down to the parent's heartY drop point.
+    const cardHalfW = 55; // NODE_W / 2
+    const exitX = targetX + cardHalfW; // right edge of child card
+    path = `M ${exitX} ${targetY} L ${midX} ${targetY} L ${midX} ${startY}`;
   } else {
     const gap = targetY - startY;
     const desiredSplitY = startY + clamp(gap * 0.5, 30, 100);
