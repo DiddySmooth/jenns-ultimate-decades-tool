@@ -2,11 +2,13 @@ import type { EdgeProps } from 'reactflow';
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
-export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data }: EdgeProps) {
+export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data, style }: EdgeProps) {
   const edgeData = (data as { midX?: number; heartY?: number; childBarY?: number; elevated?: boolean } | undefined);
   const midX = edgeData?.midX ?? sourceX;
   const elevated = edgeData?.elevated === true;
   const startY = edgeData?.heartY ?? (sourceY + 20);
+  const stroke = (style?.stroke as string) ?? 'rgba(0,0,0,0.35)';
+  const strokeWidth = (style?.strokeWidth as number) ?? 2;
 
   let path: string;
   if (elevated) {
@@ -36,8 +38,8 @@ export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, mar
       d={path}
       fill="none"
       markerEnd={markerEnd}
-      stroke="rgba(0,0,0,0.35)"
-      strokeWidth={2}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
     />

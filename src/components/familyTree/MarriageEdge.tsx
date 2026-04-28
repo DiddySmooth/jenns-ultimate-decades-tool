@@ -9,7 +9,7 @@ type MarriageData = {
   heartY?: number;
 };
 
-export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps<MarriageData>) {
+export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, data, style }: EdgeProps<MarriageData>) {
   const leftX = Math.min(sourceX, targetX);
   const rightX = Math.max(sourceX, targetX);
 
@@ -21,13 +21,15 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   // Heart at wife's center (targetX + half card width) for multi-union.
   const iconMidX = data?.heartX ?? (multiUnion ? targetX + 55 : (leftX + rightX) / 2);
 
-  const stroke = status === 'divorce'
+  const defaultStroke = status === 'divorce'
     ? 'rgba(176, 62, 94, 0.7)'
     : status === 'death'
     ? 'rgba(0,0,0,0.28)'
     : status === 'ended'
     ? 'rgba(0,0,0,0.28)'
     : 'rgba(0,0,0,0.35)';
+  const stroke = (style?.stroke as string) ?? defaultStroke;
+  const strokeWidth = (style?.strokeWidth as number) ?? (primary ? 2.5 : 2);
 
   const dash = status === 'divorce' || status === 'ended' || status === 'death' ? '5 4' : undefined;
   const icon = status === 'divorce' ? '💔' : '❤';
@@ -65,7 +67,7 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
         d={path}
         fill="none"
         stroke={stroke}
-        strokeWidth={primary ? 2.5 : 2}
+        strokeWidth={strokeWidth}
         strokeDasharray={dash}
         strokeLinecap="round"
         strokeLinejoin="round"
