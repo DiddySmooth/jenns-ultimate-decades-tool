@@ -1062,6 +1062,35 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
+  // ── Final cross-gen child centering ──────────────────────────────────────
+  // After all centering passes, children of cross-gen unions may be misplaced
+  // because their elevated parent moved during earlier passes. Force-center
+  // them under the final positions of both parents.
+  for (const [unionId, partners] of unionPartnersAll) {
+    const partnerArr = Array.from(partners);
+    if (!partnerArr.some(id => elevatedSims.has(id))) continue; // only cross-gen unions
+    const partnerPositions = partnerArr.map(id => positioned.get(id)).filter(Boolean) as {x:number;y:number}[];
+    if (partnerPositions.length < 2) continue;
+    const parentLeft = Math.min(...partnerPositions.map(p => p.x));
+    const parentRight = Math.max(...partnerPositions.map(p => p.x)) + NODE_W;
+    const parentMidX = (parentLeft + parentRight) / 2;
+
+    const children = Array.from(unionChildrenAll.get(unionId) ?? []).filter(id => !elevatedSims.has(id));
+    if (children.length === 0) continue;
+    const childPositions = children.map(id => positioned.get(id)).filter(Boolean) as {x:number;y:number}[];
+    if (childPositions.length === 0) continue;
+    const childLeft = Math.min(...childPositions.map(p => p.x));
+    const childRight = Math.max(...childPositions.map(p => p.x)) + NODE_W;
+    const childMidX = (childLeft + childRight) / 2;
+    const shift = parentMidX - childMidX;
+    if (Math.abs(shift) > 0.5) {
+      for (const childId of children) {
+        const pos = positioned.get(childId);
+        if (pos) positioned.set(childId, { x: pos.x + shift, y: pos.y });
+      }
+    }
+  }
+
   type UnionSlot = {
     left: number;
     right: number;
@@ -1514,10 +1543,6 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const partnerPositions = partners
         .map((id) => positioned.get(id))
         .filter(Boolean) as { x: number; y: number }[];
-      if (typeof window !== 'undefined' && (window as unknown as Record<string,unknown>).__layoutDebug) {
-        const pnames = partners.map(id => { const n = simNodes.find(n=>n.id===id); const s=(n?.data as Record<string,unknown>|undefined)?.sim as Record<string,unknown>|undefined; return s ? s.firstName : id; });
-        console.log('[FamilyEdge midX]', 'target=', String(e.target), 'unionId=', data.unionId, 'partners=', pnames, 'positions=', partnerPositions);
-      }
       if (partnerPositions.length >= 2) {
         const leftX = Math.min(...partnerPositions.map((p) => p.x));
         const rightX = Math.max(...partnerPositions.map((p) => p.x));
