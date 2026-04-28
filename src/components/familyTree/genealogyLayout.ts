@@ -1514,6 +1514,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const partnerPositions = partners
         .map((id) => positioned.get(id))
         .filter(Boolean) as { x: number; y: number }[];
+      if (typeof window !== 'undefined' && (window as unknown as Record<string,unknown>).__layoutDebug) {
+        const pnames = partners.map(id => { const n = simNodes.find(n=>n.id===id); const s=(n?.data as Record<string,unknown>|undefined)?.sim as Record<string,unknown>|undefined; return s ? s.firstName : id; });
+        console.log('[FamilyEdge midX]', 'target=', String(e.target), 'unionId=', data.unionId, 'partners=', pnames, 'positions=', partnerPositions);
+      }
       if (partnerPositions.length >= 2) {
         const leftX = Math.min(...partnerPositions.map((p) => p.x));
         const rightX = Math.max(...partnerPositions.map((p) => p.x));
