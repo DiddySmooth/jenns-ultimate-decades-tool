@@ -885,12 +885,17 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
   }
 
   // Snap visible union partners to identical Y so marriage lines stay horizontal.
-  for (const [, partnersSet] of unionPartnersAll) {
+  // Skip cross-generation unions — those intentionally span rows and use an
+  // L-shaped connector instead of a horizontal line.
+  for (const [unionId, partnersSet] of unionPartnersAll) {
     const partnerIds = Array.from(partnersSet).filter((id) => positioned.has(id));
     if (partnerIds.length < 2) continue;
     const partnerPositions = partnerIds.map((id) => positioned.get(id)).filter(Boolean) as { x: number; y: number }[];
     if (partnerPositions.length < 2) continue;
-    const sharedY = Math.min(...partnerPositions.map((p) => p.y));
+    // Skip if partners are on different generation rows (cross-gen union)
+    const ys = partnerPositions.map((p) => p.y);
+    if (Math.max(...ys) - Math.min(...ys) > 10) continue;
+    const sharedY = Math.min(...ys);
     for (const id of partnerIds) {
       const pos = positioned.get(id);
       if (pos && pos.y !== sharedY) positioned.set(id, { ...pos, y: sharedY });
