@@ -10,12 +10,18 @@ export default function FamilyEdge({ id, sourceX, sourceY, targetX, targetY, mar
 
   let path: string;
   if (elevated) {
-    // Child was elevated to a higher row via cross-gen union.
-    // Exit out the RIGHT side of the child card, go horizontally to midX,
-    // then drop down to the parent's heartY drop point.
-    const cardHalfW = 55; // NODE_W / 2
-    const exitX = targetX + cardHalfW; // right edge of child card
-    path = `M ${exitX} ${targetY} L ${midX} ${targetY} L ${midX} ${startY}`;
+    // Child was elevated to the same row as their cross-gen spouse.
+    // Their original parents are on the same row but to the left/right.
+    // Route: exit top of card → up above the row → across to midX → down to heartY.
+    const OVERHEAD = 60; // clearance above the row
+    const cardTopY = targetY;          // handle is at top-center of card
+    const aboveRowY = cardTopY - OVERHEAD;
+    path = [
+      `M ${targetX} ${cardTopY}`,      // top-center of elevated child card
+      `L ${targetX} ${aboveRowY}`,      // go up above the row
+      `L ${midX} ${aboveRowY}`,         // go horizontally to above parent midpoint
+      `L ${midX} ${startY}`,            // drop down to parent heartY
+    ].join(' ');
   } else {
     const gap = targetY - startY;
     const desiredSplitY = startY + clamp(gap * 0.5, 30, 100);
