@@ -268,21 +268,16 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             onInit={setRf}
             onNodeClick={(_, n) => {
               if (String(n.id).startsWith('sim:')) {
-                const simId = String(n.id).replace(/^sim:/, '');
-                if (selectedSimId === simId) {
-                  // Second click — open panel
-                  setSelectedSimId(simId);
-                } else {
-                  setSelectedSimId(simId);
-                }
-                const lin = getLineage(simId);
-                setLineageIds(prev => {
-                  // Toggle off if clicking same node
-                  if (prev.has(simId) && prev.size === lin.size) return new Set();
-                  return lin;
-                });
+                setSelectedSimId(String(n.id).replace(/^sim:/, ''));
               }
             }}
+            onNodeMouseEnter={(_, n) => {
+              if (String(n.id).startsWith('sim:')) {
+                const simId = String(n.id).replace(/^sim:/, '');
+                setLineageIds(getLineage(simId));
+              }
+            }}
+            onNodeMouseLeave={() => setLineageIds(new Set())}
             onPaneClick={() => setLineageIds(new Set())}
             defaultEdgeOptions={{
               type: 'smoothstep',
