@@ -16,7 +16,7 @@ const GEN_COLORS = [
   '#2c3e50', // dark
 ];
 
-export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: FamilyTreeConfig; trackerConfig: TrackerConfig; currentDay: number }>) {
+export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: FamilyTreeConfig; trackerConfig: TrackerConfig; currentDay: number; highlighted?: boolean; dimmed?: boolean }>) {
   const sim = props.data.sim;
   const treeConfig = props.data.treeConfig;
   const trackerConfig = props.data.trackerConfig;
@@ -63,8 +63,19 @@ export default function SimNode(props: NodeProps<{ sim: SimEntry; treeConfig: Fa
   const isDead = dy != null;
   const sexBg = sim.sex === 'Female' ? 'rgba(249,168,201,0.12)' : sim.sex === 'Male' ? 'rgba(147,197,253,0.12)' : undefined;
 
+  const highlighted = props.data.highlighted === true;
+  const dimmed = props.data.dimmed === true;
+
   return (
-    <div className={`ft-node ft-sim${d.compactNodes ? ' compact' : ''}${isDead ? ' ft-sim-dead' : ''}`} title={tooltip} style={sexBg ? { background: sexBg } : undefined}>
+    <div
+      className={`ft-node ft-sim${d.compactNodes ? ' compact' : ''}${isDead ? ' ft-sim-dead' : ''}${highlighted ? ' ft-sim-highlighted' : ''}${dimmed ? ' ft-sim-dimmed' : ''}`}
+      title={tooltip}
+      style={{
+        ...(sexBg ? { background: sexBg } : {}),
+        ...(highlighted ? { boxShadow: '0 0 0 2.5px #f59e0b, 0 0 16px rgba(245,158,11,0.5)' } : {}),
+        ...(dimmed ? { opacity: 0.35, filter: 'grayscale(40%)' } : {}),
+      }}
+    >
       {/* Handles — invisible */}
       <Handle type="target" position={Position.Top}    id="parent-in"  style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
       <Handle type="source" position={Position.Bottom} id="parent-out" style={{ opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0 }} />

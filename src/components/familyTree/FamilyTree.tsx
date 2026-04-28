@@ -63,6 +63,22 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   const [nodes, setNodes, onNodesChange] = useNodesState(built.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(built.edges);
   const [selectedSimId, setSelectedSimId] = useState<string | null>(null);
+  const [lineageIds, setLineageIds] = useState<Set<string>>(new Set());
+
+  // Walk ancestors recursively from a sim ID
+  const getLineage = useCallback((simId: string): Set<string> => {
+    const result = new Set<string>();
+    const queue = [simId];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      if (result.has(id)) continue;
+      result.add(id);
+      const sim = sims.find(s => s.id === id);
+      if (sim?.fatherId) queue.push(sim.fatherId);
+      if (sim?.motherId) queue.push(sim.motherId);
+    }
+    return result;
+  }, [sims]);
 
   // When underlying sims/unions/filters change, rebuild and fully re-layout the visible graph.
   useEffect(() => {
@@ -99,6 +115,30 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
       rf.fitView({ padding: 0.2, duration: 250 });
     }, 60);
   }, [built.nodes, built.edges, rf, setEdges, setNodes]);
+
+  // Update node/edge highlight when lineage selection changes
+  useEffect(() => {
+    setNodes(nds => nds.map(n => {
+      if (!String(n.id).startsWith('sim:')) return n;
+      const simId = String(n.id).replace(/^sim:/, '');
+      const highlighted = lineageIds.size > 0 && lineageIds.has(simId);
+      const dimmed = lineageIds.size > 0 && !lineageIds.has(simId);
+      return { ...n, data: { ...n.data, highlighted, dimmed } };
+    }));
+    setEdges(eds => eds.map(e => {
+      const srcId = String(e.source).replace(/^sim:/, '');
+      const tgtId = String(e.target).replace(/^sim:/, '');
+      const onPath = lineageIds.size > 0 && lineageIds.has(srcId) && lineageIds.has(tgtId);
+      return {
+        ...e,
+        style: onPath
+          ? { stroke: '#f59e0b', strokeWidth: 3 }
+          : lineageIds.size > 0
+          ? { stroke: 'rgba(0,0,0,0.10)', strokeWidth: 1.5 }
+          : undefined,
+      };
+    }));
+  }, [lineageIds, setNodes, setEdges]);
 
     // Positions are always managed by auto-arrange, not manual dragging
   const savedRef = useRef(saved);
@@ -228,9 +268,22 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             onInit={setRf}
             onNodeClick={(_, n) => {
               if (String(n.id).startsWith('sim:')) {
-                setSelectedSimId(String(n.id).replace(/^sim:/, ''));
+                const simId = String(n.id).replace(/^sim:/, '');
+                if (selectedSimId === simId) {
+                  // Second click — open panel
+                  setSelectedSimId(simId);
+                } else {
+                  setSelectedSimId(simId);
+                }
+                const lin = getLineage(simId);
+                setLineageIds(prev => {
+                  // Toggle off if clicking same node
+                  if (prev.has(simId) && prev.size === lin.size) return new Set();
+                  return lin;
+                });
               }
             }}
+            onPaneClick={() => setLineageIds(new Set())}
             defaultEdgeOptions={{
               type: 'smoothstep',
               style: { stroke: 'rgba(0,0,0,0.35)', strokeWidth: 2 },
