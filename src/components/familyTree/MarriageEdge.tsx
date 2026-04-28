@@ -20,7 +20,6 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   const bottomY = data?.heartY ?? (Math.max(sourceY, targetY) + 20);
   // Heart at wife's center (targetX + half card width) for multi-union.
   const iconMidX = data?.heartX ?? (multiUnion ? targetX + 55 : (leftX + rightX) / 2);
-  const isCrossGen = Math.abs(sourceY - targetY) > 80; // spouses on different rows
 
   const stroke = status === 'divorce'
     ? 'rgba(176, 62, 94, 0.7)'
@@ -36,21 +35,7 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   const iconOpacity = primary ? 1 : 0.92;
 
   let path: string;
-  if (isCrossGen) {
-    // Cross-generation marriage: draw an L-shaped connector.
-    // Drop from the upper spouse to the lower spouse's Y, then go horizontal.
-    // Heart sits at the midpoint horizontally on the lower row.
-    const upperX = sourceY < targetY ? sourceX : targetX;
-    const lowerX = sourceY < targetY ? targetX : sourceX;
-    const lowerY = Math.max(sourceY, targetY);
-    path = `
-      M ${upperX} ${Math.min(sourceY, targetY)}
-      L ${upperX} ${lowerY}
-      L ${iconMidX} ${lowerY}
-      M ${lowerX} ${lowerY}
-      L ${iconMidX} ${lowerY}
-    `;
-  } else if (multiUnion) {
+  if (multiUnion) {
     // Mockup layout: one horizontal spine from anchor to wife at heartY.
     // Wife drops straight down to heartY. Heart sits at wife's center (targetX).
     // Children drop from directly below the heart (wife center).

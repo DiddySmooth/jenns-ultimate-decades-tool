@@ -206,12 +206,12 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // ── Cross-generation union handling ─────────────────────────────────────
-  // When two spouses are on different generations, ensure their children are
-  // placed at max(parentGenA, parentGenB) + 1. The marriage line renders
-  // naturally across rows via MarriageEdge (already uses max(sourceY, targetY)).
-  // We do NOT move either spouse — keeping everyone on their correct gen row
-  // avoids scrambling the layout for their other relationships.
+  // ── Cross-generation union elevation ──────────────────────────────────────
+  // When two spouses are on different generations, elevate the younger spouse
+  // AND their siblings up to the older spouse's generation row. Their parent
+  // line will be routed upward (out the top of the card) back to their actual
+  // parents. Track elevated sims so FamilyEdge can flip the routing direction.
+  const elevatedSims = new Set<string>(); // sims moved to a higher row via cross-gen union
   for (const [unionId, partners] of unionPartnersAll) {
     const partnerArr = Array.from(partners).filter(id => genBySim.has(id));
     if (partnerArr.length !== 2) continue;
@@ -219,11 +219,38 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const gA = genBySim.get(idA)!;
     const gB = genBySim.get(idB)!;
     if (gA === gB) continue;
-    const targetChildGen = Math.max(gA, gB) + 1;
-    for (const childId of (unionChildrenAll.get(unionId) ?? [])) {
-      if ((genBySim.get(childId) ?? 0) !== targetChildGen) {
-        genBySim.set(childId, targetChildGen);
+
+    const olderGen   = Math.min(gA, gB);
+    const youngerId  = gA > gB ? idA : idB;
+
+    // Don't elevate if the younger sim has children from another union —
+    // that would orphan those children's parent lines.
+    const otherUnions = Array.from(personToUnionIds.get(youngerId) ?? []).filter(u => u !== unionId);
+    const hasKidsElsewhere = otherUnions.some(u => (unionChildrenAll.get(u)?.size ?? 0) > 0);
+    if (hasKidsElsewhere) continue;
+
+    // Elevate the younger spouse
+    genBySim.set(youngerId, olderGen);
+    elevatedSims.add(youngerId);
+
+    // Elevate siblings (children of same parent union) so the sibling group
+    // stays together and parent lines don't span multiple rows.
+    for (const [, children] of unionChildrenAll) {
+      if (!children.has(youngerId)) continue;
+      for (const sibId of children) {
+        if (sibId === youngerId) continue;
+        const sibOtherUnions = Array.from(personToUnionIds.get(sibId) ?? []);
+        const sibHasKids = sibOtherUnions.some(u => (unionChildrenAll.get(u)?.size ?? 0) > 0);
+        if (!sibHasKids) {
+          genBySim.set(sibId, olderGen);
+          elevatedSims.add(sibId);
+        }
       }
+    }
+
+    // Children of this cross-gen union sit at olderGen + 1
+    for (const childId of (unionChildrenAll.get(unionId) ?? [])) {
+      genBySim.set(childId, olderGen + 1);
     }
   }
 
@@ -1427,6 +1454,10 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const kind = data?.kind;
     if (kind !== 'parent') return e;
 
+    // Flag parent edges whose target was elevated to a higher row
+    const isElevatedChild = elevatedSims.has(String(e.target).replace('sim:', '')) ||
+      elevatedSims.has(String(e.target));
+
     const srcPos = positioned.get(String(e.source));
     if (!srcPos) return e;
 
@@ -1438,7 +1469,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
         const heartY = explicitSlot?.heartY ?? (srcPos.y + NODE_H + 20);
         const isClusterUnion = (simToUnionIds.get(String(e.source))?.length ?? 0) > 1 ||
           Array.from(unionPartnersAll.get(data.unionId) ?? []).some(p => (simToUnionIds.get(p)?.length ?? 0) > 1);
-        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight, childBarY: explicitSlot?.childBarY, multiUnion: isClusterUnion } };
+        return { ...e, data: { ...e.data, midX: explicitHeartX, heartY, childLeft: explicitSlot?.childLeft, childRight: explicitSlot?.childRight, childBarY: explicitSlot?.childBarY, multiUnion: isClusterUnion, elevated: isElevatedChild } };
       }
 
       const partners = Array.from(unionPartners.get(data.unionId) ?? []);
@@ -1455,7 +1486,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
           ? partnerCenterA + (partnerCenterB - partnerCenterA) * 0.82
           : (leftX + rightX + NODE_W) / 2;
         const heartY = Math.max(...partnerPositions.map((p) => p.y + NODE_H)) + 20;
-        return { ...e, data: { ...e.data, midX, heartY, multiUnion: isMultiUnion } };
+        return { ...e, data: { ...e.data, midX, heartY, multiUnion: isMultiUnion, elevated: isElevatedChild } };
       }
     }
 
@@ -1468,11 +1499,11 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const midX = (leftX + rightX + NODE_W) / 2;
       const heartY = Math.max(...parentPositions.map((p) => p.y + NODE_H)) + 20;
       const isMultiUnion = parentIds.some(id => (simToUnionIds.get(id)?.length ?? 0) > 1);
-      return { ...e, data: { ...e.data, midX, heartY, multiUnion: isMultiUnion } };
+      return { ...e, data: { ...e.data, midX, heartY, multiUnion: isMultiUnion, elevated: isElevatedChild } };
     }
 
     // Last resort: single-parent center.
-    return { ...e, data: { ...e.data, midX: srcPos.x + NODE_W / 2, heartY: srcPos.y + NODE_H + 20 } };
+    return { ...e, data: { ...e.data, midX: srcPos.x + NODE_W / 2, heartY: srcPos.y + NODE_H + 20, elevated: isElevatedChild } };
   });
 
   // ── Layout debug dump ────────────────────────────────────────────────────
