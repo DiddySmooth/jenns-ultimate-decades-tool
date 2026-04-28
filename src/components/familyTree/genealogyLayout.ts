@@ -2,11 +2,11 @@ import type { Edge, Node } from 'reactflow';
 
 const NODE_W = 110; // matches CSS width
 const NODE_H = 200; // matches fixed CSS height
-const GAP_X = 60;   // gap between unrelated family groups
-const GAP_SIBLING = 16; // gap between siblings within same family
-const GAP_COUPLE = 30; // gap between spouses
+const GAP_X = 30;   // gap between unrelated family groups
+const GAP_SIBLING = 10; // gap between siblings within same family
+const GAP_COUPLE = 20; // gap between spouses
 const GAP_Y = 200;  // extra room for heart + child lines below cards
-const GAP_UNION_GROUP = 30; // visual gutter between adjacent union groups in shared-parent strips
+const GAP_UNION_GROUP = 20; // visual gutter between adjacent union groups in shared-parent strips
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
