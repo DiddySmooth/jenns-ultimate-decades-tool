@@ -206,58 +206,24 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // ── Cross-generation union elevation pass ──────────────────────────────────
-  // When two spouses are assigned to different generations, elevate the younger
-  // one to the older one's generation for layout purposes only. This keeps
-  // marriage lines horizontal and children on a single consistent row.
-  // Only elevate if the sim has no children from another union that would be
-  // orphaned by moving them to a different row.
+  // ── Cross-generation union handling ─────────────────────────────────────
+  // When two spouses are on different generations, ensure their children are
+  // placed at max(parentGenA, parentGenB) + 1. The marriage line renders
+  // naturally across rows via MarriageEdge (already uses max(sourceY, targetY)).
+  // We do NOT move either spouse — keeping everyone on their correct gen row
+  // avoids scrambling the layout for their other relationships.
   for (const [unionId, partners] of unionPartnersAll) {
     const partnerArr = Array.from(partners).filter(id => genBySim.has(id));
     if (partnerArr.length !== 2) continue;
     const [idA, idB] = partnerArr;
     const gA = genBySim.get(idA)!;
     const gB = genBySim.get(idB)!;
-    if (gA === gB) continue; // same gen, no problem
-
-    const olderGen  = Math.min(gA, gB);
-    const youngerId = gA > gB ? idA : idB;
-    const youngerGen = Math.max(gA, gB);
-
-    // Only elevate if the younger sim has no children from a DIFFERENT union
-    // that are already placed at youngerGen+1 (would become detached).
-    const otherUnions = Array.from(personToUnionIds.get(youngerId) ?? []).filter(uid => uid !== unionId);
-    const hasChildrenElsewhere = otherUnions.some(uid => (unionChildrenAll.get(uid)?.size ?? 0) > 0);
-    if (hasChildrenElsewhere) continue;
-
-    // Elevate younger partner up to older partner's row
-    genBySim.set(youngerId, olderGen);
-
-    // Also elevate all siblings of the younger partner (children of the same
-    // union as youngerId's parents) so the whole sibling group stays together
-    // on one row and parent lines don't span multiple generations.
-    const youngerParents = Array.from(childToParentSims.get(youngerId) ?? []);
-    if (youngerParents.length > 0) {
-      for (const [, children] of unionChildrenAll) {
-        if (!children.has(youngerId)) continue;
-        // Elevate all siblings from this union to olderGen
-        for (const sibId of children) {
-          if (sibId === youngerId) continue;
-          const sibGen = genBySim.get(sibId);
-          if (sibGen === undefined) continue;
-          // Only elevate siblings that don't have their own children elsewhere
-          const sibOtherUnions = Array.from(personToUnionIds.get(sibId) ?? []);
-          const sibHasKids = sibOtherUnions.some(u => (unionChildrenAll.get(u)?.size ?? 0) > 0);
-          if (!sibHasKids) genBySim.set(sibId, olderGen);
-        }
-      }
-    }
-
-    // Also elevate this union's children so they stay at olderGen+1
+    if (gA === gB) continue;
+    const targetChildGen = Math.max(gA, gB) + 1;
     for (const childId of (unionChildrenAll.get(unionId) ?? [])) {
-      const childGen = genBySim.get(childId) ?? youngerGen + 1;
-      const targetGen = olderGen + 1;
-      if (childGen !== targetGen) genBySim.set(childId, targetGen);
+      if ((genBySim.get(childId) ?? 0) !== targetChildGen) {
+        genBySim.set(childId, targetChildGen);
+      }
     }
   }
 
