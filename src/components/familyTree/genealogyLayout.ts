@@ -2,11 +2,11 @@ import type { Edge, Node } from 'reactflow';
 
 const NODE_W = 110; // matches CSS width
 const NODE_H = 200; // matches fixed CSS height
-const GAP_X = 120;  // gap between couples/unrelated sims
-const GAP_SIBLING = 20; // gap between siblings within same family
-const GAP_COUPLE = 40; // gap between spouses
+const GAP_X = 60;   // gap between unrelated family groups
+const GAP_SIBLING = 16; // gap between siblings within same family
+const GAP_COUPLE = 30; // gap between spouses
 const GAP_Y = 200;  // extra room for heart + child lines below cards
-const GAP_UNION_GROUP = 42; // visual gutter between adjacent union groups in shared-parent strips
+const GAP_UNION_GROUP = 30; // visual gutter between adjacent union groups in shared-parent strips
 
 export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   const simNodes = nodes.filter((n) => String(n.id).startsWith('sim:'));
@@ -381,10 +381,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (i > 0) {
         const prev = ids[i - 1];
         const cur = ids[i];
-        // Use tighter gap if this is a couple
-        const isCouple = shareExclusivePairUnion(prev, cur);
-        const gap = isCouple ? GAP_COUPLE : GAP_X;
-        w += gap;
+        w += gapBetween(prev, cur);
       }
       w += NODE_W;
     }
@@ -404,8 +401,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       if (i > 0) {
         const prev = ids[i - 1];
         const cur = ids[i];
-        const isCouple = shareExclusivePairUnion(prev, cur);
-        x += isCouple ? GAP_COUPLE : GAP_X;
+        x += gapBetween(prev, cur);
       }
       positioned.set(ids[i], { x, y });
       x += NODE_W;
@@ -503,6 +499,21 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const bUnionIds = unionIdsByPerson.get(b) ?? [];
     const shared = aUnionIds.filter((uid) => bUnionIds.includes(uid));
     return shared.some((uid) => (unionPartnersAll.get(uid)?.size ?? 0) === 2);
+  }
+
+  // Returns true if a and b share at least one parent union (are siblings)
+  function areSiblings(a: string, b: string) {
+    const aParents = childToParentSims.get(a);
+    const bParents = childToParentSims.get(b);
+    if (!aParents || !bParents || aParents.size === 0 || bParents.size === 0) return false;
+    for (const p of aParents) { if (bParents.has(p)) return true; }
+    return false;
+  }
+
+  function gapBetween(prev: string, cur: string): number {
+    if (shareExclusivePairUnion(prev, cur)) return GAP_COUPLE;
+    if (areSiblings(prev, cur)) return GAP_SIBLING;
+    return GAP_X;
   }
 
   const getPreferredClusterAnchor = (memberIds: string[]): string => {
@@ -935,7 +946,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const prev = positioned.get(sortedIds[i - 1]);
       const cur = positioned.get(sortedIds[i]);
       if (!prev || !cur) continue;
-      const minX = prev.x + NODE_W + 18;
+      const minX = prev.x + NODE_W + gapBetween(sortedIds[i - 1], sortedIds[i]);
       if (cur.x < minX) positioned.set(sortedIds[i], { x: minX, y: cur.y });
     }
   }
