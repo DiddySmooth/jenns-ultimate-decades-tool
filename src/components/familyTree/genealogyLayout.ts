@@ -889,11 +889,24 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const allChildren = getChildrenForLayoutGroup(group);
       if (allChildren.length === 0) continue;
 
+      // For midpoint calculation, use only "free" children — those without
+      // their own spouse in the same generation (couple-placed children have
+      // already been positioned by their own couple logic and shouldn't be
+      // used to anchor the parent's centering, as they may have drifted).
+      const childGen = allChildren.length > 0 ? genBySim.get(allChildren[0]) : undefined;
+      const freeChildren = allChildren.filter(cid => {
+        const spouseIds = Array.from(unionIdsByPerson.get(cid) ?? [])
+          .flatMap(uid => Array.from(unionPartnersAll.get(uid) ?? []))
+          .filter(pid => pid !== cid);
+        return !spouseIds.some(pid => genBySim.get(pid) === childGen);
+      });
+      const childrenForMid = freeChildren.length > 0 ? freeChildren : allChildren;
+
       const leftX = Math.min(...memberPositions.map((p) => p.x));
       const rightX = Math.max(...memberPositions.map((p) => p.x)) + NODE_W;
       const groupMidX = (leftX + rightX) / 2;
 
-      const childPositions = allChildren.map((c) => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
+      const childPositions = childrenForMid.map((c) => positioned.get(c)).filter(Boolean) as { x: number; y: number }[];
       if (childPositions.length === 0) continue;
       const childLeft = Math.min(...childPositions.map((p) => p.x));
       const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
@@ -962,7 +975,16 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
       const groupRight = Math.max(...memberPositions.map((p) => p.x)) + NODE_W;
       const groupMidX = (groupLeft + groupRight) / 2;
 
-      const childPositions = allChildren.map((childId) => positioned.get(childId)).filter(Boolean) as { x: number; y: number }[];
+      // Use only free children (no same-gen spouse) for midpoint calculation
+      const childGen2 = allChildren.length > 0 ? genBySim.get(allChildren[0]) : undefined;
+      const freeChildren2 = allChildren.filter(cid => {
+        const spouseIds = Array.from(unionIdsByPerson.get(cid) ?? [])
+          .flatMap(uid => Array.from(unionPartnersAll.get(uid) ?? []))
+          .filter(pid => pid !== cid);
+        return !spouseIds.some(pid => genBySim.get(pid) === childGen2);
+      });
+      const childrenForMid2 = freeChildren2.length > 0 ? freeChildren2 : allChildren;
+      const childPositions = childrenForMid2.map((childId) => positioned.get(childId)).filter(Boolean) as { x: number; y: number }[];
       if (childPositions.length === 0) continue;
       const childLeft = Math.min(...childPositions.map((p) => p.x));
       const childRight = Math.max(...childPositions.map((p) => p.x)) + NODE_W;
