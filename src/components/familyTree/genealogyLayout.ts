@@ -1105,7 +1105,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  // -- Left-edge guard --──────────────────────────────────────────────────────
+  // Left-edge guard: shift whole tree right if any sim drifted to negative X
   // After all centering passes, some sims may have drifted to negative X.
   // Find the leftmost position and shift the entire tree right if needed.
   const minX = Math.min(...Array.from(positioned.values()).map(p => p.x));
@@ -1114,6 +1114,7 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     for (const [id, pos] of positioned) positioned.set(id, { x: pos.x + nudge, y: pos.y });
   }
 
+  type UnionSlot = {
     left: number;
     right: number;
     heartX: number;
