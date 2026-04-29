@@ -1033,6 +1033,9 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     const groups = buildGroupsForGeneration(sortedGens.get(g) ?? []);
     for (const group of groups) {
       if (group.type === 'cluster') continue;
+      // Don't re-center groups that contain elevated sims — their position
+      // is determined by the post-elevation adjacency sort, not by children.
+      if (group.memberIds.some(id => elevatedSims.has(id))) continue;
       const allChildren = getChildrenForLayoutGroup(group);
       if (allChildren.length === 0) continue;
 
@@ -1102,7 +1105,15 @@ export function genealogyLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; 
     }
   }
 
-  type UnionSlot = {
+  // ── Left-edge guard ────────────────────────────────────────────────────────
+  // After all centering passes, some sims may have drifted to negative X.
+  // Find the leftmost position and shift the entire tree right if needed.
+  const minX = Math.min(...Array.from(positioned.values()).map(p => p.x));
+  if (minX < 40) {
+    const nudge = 40 - minX;
+    for (const [id, pos] of positioned) positioned.set(id, { x: pos.x + nudge, y: pos.y });
+  }
+
     left: number;
     right: number;
     heartX: number;
