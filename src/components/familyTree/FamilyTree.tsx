@@ -115,7 +115,11 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
         };
       });
 
-    const visibleNodes = [...(showBoxes ? laidOut : laidOut.filter(n => n.type !== 'clusterBoundary')), ...heartNodes];
+    const visibleNodes = [
+      ...(showBoxes ? laidOut : laidOut.filter(n => n.type !== 'clusterBoundary'))
+        .map(n => ({ ...n, draggable: false, selectable: false })), // sim nodes never draggable
+      ...heartNodes,
+    ];
 
     setNodes(visibleNodes);
     setEdges(laidEdges.map((e) => {
@@ -310,7 +314,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             }}
             nodesDraggable={unlocked}
             nodesConnectable={false}
-            elementsSelectable={false}
+            elementsSelectable={unlocked}
             onEdgesChange={onEdgesChange}
             onInit={setRf}
             onNodeClick={(_, n) => {
