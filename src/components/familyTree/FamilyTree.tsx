@@ -13,6 +13,7 @@ import type { FamilyTreeConfig, FamilyTreeState, SimEntry, TrackerConfig, UnionN
 import SimNode from './SimNode';
 import ClusterBoundaryNode from './ClusterBoundaryNode';
 import UnionNodeView from './UnionNode';
+import HeartNode from './HeartNode';
 import TrunkEdge from './TrunkEdge';
 import MarriageEdge from './MarriageEdge';
 import FamilyEdge from './FamilyEdge';
@@ -25,6 +26,7 @@ import SimEditPanel from '../sims/SimEditPanel';
 const nodeTypes = {
   sim: SimNode,
   union: UnionNodeView,
+  heart: HeartNode,
   clusterBoundary: ClusterBoundaryNode,
 };
 
@@ -64,6 +66,7 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
   const [edges, setEdges, onEdgesChange] = useEdgesState(built.edges);
   const [selectedSimId, setSelectedSimId] = useState<string | null>(null);
   const [lineageIds, setLineageIds] = useState<Set<string>>(new Set());
+  const [unlocked, setUnlocked] = useState(false);
 
   // Walk ancestors recursively from a sim ID
   const getLineage = useCallback((simId: string): Set<string> => {
@@ -90,8 +93,29 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
     });
 
     const { nodes: laidOut, edges: laidEdges } = genealogyLayout(built.nodes, mappedEdges);
-    const showBoxes = config.display.showFamilyBoxes !== false; // default off — only show when explicitly true
-    const visibleNodes = showBoxes ? laidOut : laidOut.filter(n => n.type !== 'clusterBoundary');
+    const showBoxes = config.display.showFamilyBoxes !== false;
+
+    // Inject a HeartNode for each marriage edge at its computed heartX/heartY
+    const heartNodes = laidEdges
+      .filter(e => (e.data as { kind?: string } | undefined)?.kind === 'spouse')
+      .map(e => {
+        const d = e.data as { heartX?: number; heartY?: number; unionId?: string; status?: string; primary?: boolean };
+        const unionId = d?.unionId ?? e.id;
+        const savedPos = savedRef.current.nodes?.find(n => n.id === `heart:${unionId}`)?.position;
+        const x = savedPos?.x ?? ((d?.heartX ?? 0) - 12);
+        const y = savedPos?.y ?? ((d?.heartY ?? 0) - 12);
+        return {
+          id: `heart:${unionId}`,
+          type: 'heart' as const,
+          position: { x, y },
+          draggable: unlocked,
+          selectable: unlocked,
+          zIndex: 200,
+          data: { status: d?.status ?? 'active', primary: d?.primary !== false, unlocked },
+        };
+      });
+
+    const visibleNodes = [...(showBoxes ? laidOut : laidOut.filter(n => n.type !== 'clusterBoundary')), ...heartNodes];
 
     setNodes(visibleNodes);
     setEdges(laidEdges.map((e) => {
@@ -250,6 +274,17 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
           <button className="btn-secondary btn-sm" onClick={centerView}>
             Center View
           </button>
+          <button
+            className={`btn-secondary btn-sm${unlocked ? ' btn-active' : ''}`}
+            onClick={() => {
+              setUnlocked(u => !u);
+              setNodes(nds => nds.map(n => String(n.id).startsWith('heart:') ? { ...n, draggable: !unlocked, selectable: !unlocked, data: { ...n.data, unlocked: !unlocked } } : n));
+            }}
+            title={unlocked ? 'Lock layout' : 'Unlock hearts to drag them'}
+            style={unlocked ? { background: 'rgba(245,158,11,0.15)', borderColor: '#f59e0b', color: '#f59e0b' } : {}}
+          >
+            {unlocked ? '🔓 Unlock' : '🔒 Lock'}
+          </button>
         </div>
       </div>
 
@@ -260,8 +295,20 @@ export default function FamilyTree({ sims, unions, saved, config, trackerConfig,
             edges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            nodesDraggable={false}
+            onNodesChange={(changes) => {
+              onNodesChange(changes);
+              // Persist heart node positions when dragged
+              const posChanges = changes.filter(c => c.type === 'position' && c.dragging === false && String((c as { id?: string }).id ?? '').startsWith('heart:'));
+              if (posChanges.length > 0) {
+                const current = savedRef.current;
+                const updatedHearts = posChanges.map(c => ({ id: (c as { id: string }).id, type: 'sim' as const, position: (c as { position?: { x: number; y: number } }).position ?? { x: 0, y: 0 } }));
+                const existingNonHearts = (current.nodes ?? []).filter(n => !String(n.id).startsWith('heart:'));
+                const existingHearts = (current.nodes ?? []).filter(n => String(n.id).startsWith('heart:'));
+                const mergedHearts = [...existingHearts.filter(h => !updatedHearts.find(u => u.id === h.id)), ...updatedHearts];
+                onSavedChange({ ...current, nodes: [...existingNonHearts, ...mergedHearts] });
+              }
+            }}
+            nodesDraggable={unlocked}
             nodesConnectable={false}
             elementsSelectable={false}
             onEdgesChange={onEdgesChange}

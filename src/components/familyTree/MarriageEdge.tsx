@@ -32,9 +32,6 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
   const strokeWidth = (style?.strokeWidth as number) ?? (primary ? 2.5 : 2);
 
   const dash = status === 'divorce' || status === 'ended' || status === 'death' ? '5 4' : undefined;
-  const icon = status === 'divorce' ? '💔' : '❤';
-  const iconColor = status === 'divorce' ? '#b03e5e' : status === 'death' ? '#8f8f8f' : '#e05c7a';
-  const iconOpacity = primary ? 1 : 0.92;
 
   let path: string;
   if (multiUnion) {
@@ -72,23 +69,6 @@ export default function MarriageEdge({ id, sourceX, sourceY, targetX, targetY, d
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <foreignObject x={iconMidX - 12} y={bottomY - 12} width={24} height={24} style={{ overflow: 'visible', zIndex: 1000 }}>
-        <div style={{
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
-          background: 'var(--color-surface)',
-          border: `1.5px solid ${status === 'divorce' ? 'rgba(176, 62, 94, 0.35)' : 'var(--color-border)'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 12,
-          color: iconColor,
-          opacity: iconOpacity,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-          pointerEvents: 'none',
-        }}>{icon}</div>
-      </foreignObject>
     </g>
   );
 }
